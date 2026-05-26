@@ -13,7 +13,7 @@
     "lint": "concurrently \"npm run lint --workspace=frontend\" \"npm run lint --workspace=backend\"",
     "start:backend": "npm run start --workspace=backend",
     "start:frontend": "npm run start --workspace=frontend",
-    "prepare": "husky install"
+    "prepare": "husky install || exit 0"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
