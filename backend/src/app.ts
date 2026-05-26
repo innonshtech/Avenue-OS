@@ -41,6 +41,11 @@ app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', message: 'Innonsh SprintOS API is running.' });
 });
 
+// Root route
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).send('Welcome to Innonsh SprintOS API');
+});
+
 // API Routes
 app.use('/api/v1/projects', projectRoutes);
 app.use('/api/v1/sprints', sprintRoutes);
