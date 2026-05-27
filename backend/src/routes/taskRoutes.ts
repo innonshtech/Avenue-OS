@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getTasks, getTaskById, createTask, updateTask, deleteTask, getMyTasks, addBlocker, addQuickUpdate, moveSprint } from '../controllers/taskController';
+import { getTasks, getTaskById, createTask, updateTask, deleteTask, archiveTask, restoreTask, getMyTasks, addBlocker, resolveBlocker, addQuickUpdate, moveSprint } from '../controllers/taskController';
 import { getComments, addComment, updateComment, deleteComment } from '../controllers/commentController';
 import { addAttachment, deleteAttachment } from '../controllers/attachmentController';
 import { addSubtask, updateSubtask, deleteSubtask } from '../controllers/subtaskController';
@@ -12,8 +12,11 @@ router.get('/:id', getTaskById);
 router.post('/', createTask);
 router.put('/:id', updateTask);
 router.delete('/:id', deleteTask);
+router.patch('/:id/archive', archiveTask);
+router.patch('/:id/restore', restoreTask);
 router.patch('/:id/move-sprint', moveSprint);
 router.post('/:id/blocker', addBlocker);
+router.patch('/:id/blocker/:blockerId/resolve', resolveBlocker);
 router.post('/:id/update', addQuickUpdate);
 
 // Comments

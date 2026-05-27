@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTask, useUpdateTaskStatus, useAddSubtask, useUpdateSubtask } from '../api/taskApi';
+import { useTask, useUpdateTaskStatus, useAddSubtask, useUpdateSubtask, useArchiveTask, useRestoreTask, useDeleteTask, useResolveBlocker } from '../api/taskApi';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useToast } from '@/hooks/use-toast';
 import { TEAM_MEMBERS } from '@/constants/teamMembers';
@@ -9,6 +9,7 @@ import {
   SheetContent, 
   SheetTitle,
 } from '@/components/ui/sheet';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,7 +21,12 @@ import {
   CheckCircle2, 
   AlertTriangle,
   Plus,
-  ListTodo
+  ListTodo,
+  MoreVertical,
+  Trash,
+  Archive,
+  RefreshCw,
+  CheckCircle
 } from 'lucide-react';
 import TaskComments from './TaskComments';
 import TaskActivityTimeline from './TaskActivityTimeline';
@@ -35,11 +41,18 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
   const updateTaskStatus = useUpdateTaskStatus();
   const addSubtask = useAddSubtask();
   const updateSubtask = useUpdateSubtask();
+  const archiveTask = useArchiveTask();
+  const restoreTask = useRestoreTask();
+  const deleteTask = useDeleteTask();
+  const resolveBlocker = useResolveBlocker();
+  
   const { user } = useAuthStore();
   const { toast } = useToast();
   
   const [newSubtask, setNewSubtask] = useState('');
   const [activeTab, setActiveTab] = useState<'comments' | 'history' | 'standups'>('comments');
+  const [resolutionNote, setResolutionNote] = useState('');
+  const [showResolveInput, setShowResolveInput] = useState(false);
   
   if (!taskId) return null;
   if (isLoading) return <Sheet open={!!taskId} onOpenChange={(open) => !open && onClose()}><SheetContent><div className="p-10 text-center">Loading task details...</div></SheetContent></Sheet>;
@@ -89,9 +102,46 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                 <span className="font-mono">{task.key}</span>
               </div>
               <div className="flex items-center gap-2">
+                {task.isArchived && (
+                  <Badge variant="secondary" className="bg-slate-200 text-slate-700">Archived</Badge>
+                )}
                 <Badge variant="outline" className={getPriorityColor(task.priority)}>
                   {task.priority}
                 </Badge>
+                
+                {user?.role === 'PRODUCT_MANAGER' && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {!task.isArchived ? (
+                        <DropdownMenuItem onClick={() => {
+                          if (confirm('Archive this task?')) {
+                            archiveTask.mutate(task.id, { onSuccess: () => { toast({ title: 'Task archived' }); onClose(); }});
+                          }
+                        }}>
+                          <Archive className="mr-2 h-4 w-4" /> Archive Task
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem onClick={() => {
+                          restoreTask.mutate(task.id, { onSuccess: () => toast({ title: 'Task restored' }) });
+                        }}>
+                          <RefreshCw className="mr-2 h-4 w-4" /> Restore Task
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onClick={() => {
+                        if (confirm('Are you sure you want to delete this task? This will remove board visibility, sprint linkage, and analytics contribution.')) {
+                          deleteTask.mutate(task.id, { onSuccess: () => { toast({ title: 'Task deleted' }); onClose(); }});
+                        }
+                      }}>
+                        <Trash className="mr-2 h-4 w-4" /> Delete Task
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             </div>
             
@@ -193,7 +243,36 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                       <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
                       <div>
                         <h4 className="text-sm font-semibold text-red-600 dark:text-red-400">Blocked: {blocker.type}</h4>
-                        <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1">{blocker.description}</p>
+                        <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1 mb-2">{blocker.description}</p>
+                        
+                        {(user?.role === 'PRODUCT_MANAGER' || user?.role === 'ADMIN') && (
+                          <div className="mt-3 border-t border-red-500/20 pt-3">
+                            {!showResolveInput ? (
+                              <Button size="sm" variant="outline" className="border-red-500 text-red-600 hover:bg-red-500 hover:text-white" onClick={() => setShowResolveInput(true)}>
+                                Resolve Blocker
+                              </Button>
+                            ) : (
+                              <div className="flex gap-2 items-center">
+                                <Input 
+                                  placeholder="Add resolution note..." 
+                                  value={resolutionNote}
+                                  onChange={(e) => setResolutionNote(e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                                <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white h-8" onClick={() => {
+                                  resolveBlocker.mutate({ taskId: task.id, blockerId: blocker.id, resolutionNote }, {
+                                    onSuccess: () => {
+                                      toast({ title: 'Blocker Resolved' });
+                                      setShowResolveInput(false);
+                                    }
+                                  });
+                                }}>
+                                  Resolve
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -309,6 +388,14 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                     <div>
                       <span className="text-xs text-muted-foreground block mb-1.5">Due Date</span>
                       <span className="text-sm font-medium">{new Date(task.dueDate).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  
+                  {task.completedAt && (user?.role === 'PRODUCT_MANAGER' || user?.role === 'ADMIN') && (
+                    <div className="pt-2 border-t border-border/50">
+                      <span className="text-xs text-muted-foreground block mb-1.5">Completed On</span>
+                      <span className="text-sm font-medium block">{new Date(task.completedAt).toLocaleDateString()} {new Date(task.completedAt).toLocaleTimeString()}</span>
+                      <span className="text-xs text-muted-foreground mt-1 block">By: {TEAM_MEMBERS.find(m => m.id === task.completedById)?.name || 'System'}</span>
                     </div>
                   )}
 

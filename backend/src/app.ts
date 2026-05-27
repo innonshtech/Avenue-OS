@@ -15,6 +15,8 @@ import memberDashboardRoutes from './routes/memberDashboardRoutes';
 import memberReportRoutes from './routes/memberReportRoutes';
 import memberFeedbackRoutes from './routes/memberFeedbackRoutes';
 import adminRoutes from './modules/admin/admin.routes';
+import activityRoutes from './routes/activityRoutes';
+import notificationRoutes from './routes/notificationRoutes';
 import { extractUserContext } from './middleware/authMiddleware';
 
 const app: Application = express();
@@ -27,6 +29,7 @@ app.use(cors({
     'http://localhost:5173', 
     'http://localhost:5174',
     'https://innonsh-sprintos-frontend.vercel.app',
+    'https://sprintos.innonsh.com',
     process.env.FRONTEND_URL || ''
   ].filter(Boolean),
   credentials: true,
@@ -60,6 +63,9 @@ app.use('/api/v1', memberDashboardRoutes);
 app.use('/api/v1/member-reports', memberReportRoutes);
 app.use('/api/v1/member-feedbacks', memberFeedbackRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/activities', activityRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/team-members', teamRoutes);
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

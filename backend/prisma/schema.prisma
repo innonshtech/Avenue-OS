@@ -12,6 +12,8 @@ enum UserRole {
   PRODUCT_MANAGER
   DEVELOPER
   MARKETING
+  HR
+  QA
 }
 
 enum TaskPriority {
@@ -83,40 +85,41 @@ enum ProjectStatus {
 }
 
 model User {
-  id             String    @id @default(uuid())
-  name           String
-  email          String    @unique
-  password       String
-  role           UserRole
-  department     String
-  avatar         String?
-  isActive       Boolean   @default(true)
+  id         String   @id @default(uuid())
+  name       String
+  email      String   @unique
+  password   String
+  role       UserRole
+  department String
+  avatar     String?
+  isActive   Boolean  @default(true)
 
-  projectsOwned  Project[]   @relation("ProjectOwner")
-  tasksAssigned  Task[]      @relation("TaskAssignee")
-  tasksCreated   Task[]      @relation("TaskCreator")
-  comments       TaskComment[]
-  activities     TaskActivity[]
-  standups       DailyStandup[]
-  blockersReported Blocker[]
-  feedbacks      Feedback[]
-  notifications  Notification[]
-  performanceMetrics TeamPerformanceMetric[]
+  projectsOwned        Project[]               @relation("ProjectOwner")
+  tasksAssigned        Task[]                  @relation("TaskAssignee")
+  tasksCreated         Task[]                  @relation("TaskCreator")
+  comments             TaskComment[]
+  activities           TaskActivity[]
+  enterpriseActivities ActivityLog[]
+  standups             DailyStandup[]
+  blockersReported     Blocker[]
+  feedbacks            Feedback[]
+  notifications        Notification[]
+  performanceMetrics   TeamPerformanceMetric[]
 
   projectMembers ProjectMember[]
   sprintMembers  SprintMember[]
-  blockersHelped Blocker[]   @relation("BlockerHelper")
+  blockersHelped Blocker[]       @relation("BlockerHelper")
   focuses        TodayFocus[]
 
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([email])
 }
 
 model Project {
-  id          String   @id @default(uuid())
-  key         String   @unique // e.g., "PROJ"
+  id          String        @id @default(uuid())
+  key         String        @unique // e.g., "PROJ"
   name        String
   description String?
   status      ProjectStatus @default(PLANNING)
@@ -124,97 +127,97 @@ model Project {
   deadline    DateTime?
   ownerId     String
 
-  owner       User     @relation("ProjectOwner", fields: [ownerId], references: [id])
+  owner User @relation("ProjectOwner", fields: [ownerId], references: [id])
 
-  sprints     Sprint[]
-  tasks       Task[]
-  members     ProjectMember[]
+  sprints       Sprint[]
+  tasks         Task[]
+  members       ProjectMember[]
   sprintReports SprintReport[]
 
-  isArchived  Boolean  @default(false)
+  isArchived Boolean @default(false)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([key])
 }
 
 model ProjectMember {
-  id          String   @id @default(uuid())
-  projectId   String
-  userId      String
-  role        String   @default("MEMBER") // e.g. LEAD, MEMBER
-  
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String @id @default(uuid())
+  projectId String
+  userId    String
+  role      String @default("MEMBER") // e.g. LEAD, MEMBER
 
-  createdAt   DateTime @default(now())
-  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
   @@unique([projectId, userId])
 }
 
 model Sprint {
-  id          String   @id @default(uuid())
-  name        String
-  goal        String?
-  startDate   DateTime
-  endDate     DateTime
-  status      SprintStatus @default(PLANNED)
-  projectId   String
+  id        String       @id @default(uuid())
+  name      String
+  goal      String?
+  startDate DateTime
+  endDate   DateTime
+  status    SprintStatus @default(PLANNED)
+  projectId String
 
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tasks       Task[]
-  standups    DailyStandup[]
-  feedbacks   Feedback[]
-  retrospectives RetrospectiveComparison[]
-  report      SprintReport?
+  project            Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks              Task[]
+  standups           DailyStandup[]
+  feedbacks          Feedback[]
+  retrospectives     RetrospectiveComparison[]
+  report             SprintReport?
   performanceMetrics TeamPerformanceMetric[]
-  members     SprintMember[]
+  members            SprintMember[]
 
-  isArchived  Boolean  @default(false)
+  isArchived Boolean @default(false)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([projectId])
 }
 
 model SprintMember {
-  id          String   @id @default(uuid())
-  sprintId    String
-  userId      String
-  
-  sprint      Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id       String @id @default(uuid())
+  sprintId String
+  userId   String
 
-  createdAt   DateTime @default(now())
-  
+  sprint Sprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
   @@unique([sprintId, userId])
 }
 
 model Task {
-  id          String   @id @default(uuid())
-  key         String   @unique // e.g., "PROJ-123"
-  title       String
-  description String?
-  type        String   @default("STORY") // STORY, BUG, TASK, EPIC
-  status      TaskStatus @default(TODO)
-  priority    TaskPriority @default(MEDIUM)
-  storyPoints Int?
-  dueDate     DateTime?
-  startDate   DateTime?
+  id                 String       @id @default(uuid())
+  key                String       @unique // e.g., "PROJ-123"
+  title              String
+  description        String?
+  type               String       @default("STORY") // STORY, BUG, TASK, EPIC
+  status             TaskStatus   @default(TODO)
+  priority           TaskPriority @default(MEDIUM)
+  storyPoints        Int?
+  dueDate            DateTime?
+  startDate          DateTime?
   acceptanceCriteria String?
-  labels      String[]
-  
-  projectId   String
-  sprintId    String?
-  assigneeId  String?
-  creatorId   String
+  labels             String[]
 
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sprint      Sprint?  @relation(fields: [sprintId], references: [id])
-  assignee    User?    @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  creator     User     @relation("TaskCreator", fields: [creatorId], references: [id])
+  projectId  String
+  sprintId   String?
+  assigneeId String?
+  creatorId  String
+
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sprint   Sprint? @relation(fields: [sprintId], references: [id])
+  assignee User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator  User    @relation("TaskCreator", fields: [creatorId], references: [id])
 
   comments    TaskComment[]
   activities  TaskActivity[]
@@ -223,8 +226,14 @@ model Task {
   subtasks    TaskSubtask[]
   standups    DailyStandup[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  isArchived    Boolean   @default(false)
+  archivedAt    DateTime?
+  archivedById  String?
+  completedAt   DateTime?
+  completedById String?
 
   @@index([projectId])
   @@index([assigneeId])
@@ -232,214 +241,218 @@ model Task {
 }
 
 model TaskComment {
-  id          String   @id @default(uuid())
-  content     String
-  taskId      String
-  userId      String
+  id      String @id @default(uuid())
+  content String
+  taskId  String
+  userId  String
 
-  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model TaskSubtask {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   title       String
-  isCompleted Boolean  @default(false)
+  isCompleted Boolean @default(false)
   taskId      String
 
-  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model TaskActivity {
-  id          String   @id @default(uuid())
-  taskId      String
-  userId      String
-  action      String   // e.g., "STATUS_CHANGED", "ASSIGNEE_CHANGED"
-  oldValue    String?
-  newValue    String?
+  id       String  @id @default(uuid())
+  taskId   String
+  userId   String
+  action   String // e.g., "STATUS_CHANGED", "ASSIGNEE_CHANGED"
+  oldValue String?
+  newValue String?
 
-  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model DailyStandup {
-  id          String   @id @default(uuid())
-  date        DateTime @default(now())
-  yesterday   String
-  today       String
-  blockers    String?
-  userId      String
-  sprintId    String
-  taskId      String?
+  id        String   @id @default(uuid())
+  date      DateTime @default(now())
+  yesterday String
+  today     String
+  blockers  String?
+  userId    String
+  sprintId  String
+  taskId    String?
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sprint      Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
-  task        Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sprint           Sprint    @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  task             Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   reportedBlockers Blocker[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, sprintId, date])
 }
 
 model Blocker {
-  id          String   @id @default(uuid())
+  id          String  @id @default(uuid())
   description String
-  isResolved  Boolean  @default(false)
-  
-  severity    BlockerSeverity @default(HIGH)
-  type        BlockerType     @default(TECHNICAL)
+  isResolved  Boolean @default(false)
+
+  severity                BlockerSeverity @default(HIGH)
+  type                    BlockerType     @default(TECHNICAL)
   estimatedResolutionDate DateTime?
-  helperId    String?
-  
-  taskId      String
-  reporterId  String
-  standupId   String?
+  helperId                String?
 
-  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  reporter    User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
-  helper      User?    @relation("BlockerHelper", fields: [helperId], references: [id])
-  standup     DailyStandup? @relation(fields: [standupId], references: [id], onDelete: Cascade)
+  taskId     String
+  reporterId String
+  standupId  String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  task     Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  reporter User          @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  helper   User?         @relation("BlockerHelper", fields: [helperId], references: [id])
+  standup  DailyStandup? @relation(fields: [standupId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  resolvedAt     DateTime?
+  resolvedById   String?
+  resolutionNote String?
 }
 
 model Feedback {
-  id          String   @id @default(uuid())
-  content     String
-  sentiment   String?  // POSITIVE, NEUTRAL, NEGATIVE
-  category    FeedbackCategory @default(SPRINT)
-  
+  id        String           @id @default(uuid())
+  content   String
+  sentiment String? // POSITIVE, NEUTRAL, NEGATIVE
+  category  FeedbackCategory @default(SPRINT)
+
   // Specific questions
-  wentWell    String?
-  wentWrong   String?
-  improvement String?
-  realisticPlanning Boolean @default(true)
+  wentWell            String?
+  wentWrong           String?
+  improvement         String?
+  realisticPlanning   Boolean @default(true)
   achievableDeadlines Boolean @default(true)
-  fairDistribution Boolean @default(true)
-  blockerPatterns String?
-  
-  userId      String
-  sprintId    String
+  fairDistribution    Boolean @default(true)
+  blockerPatterns     String?
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sprint      Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  userId   String
+  sprintId String
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sprint Sprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SprintReport {
-  id              String   @id @default(uuid())
-  sprintId        String   @unique
-  projectId       String
-  successRate     Float
-  velocity        Int
-  completedTasks  Int
-  pendingTasks    Int
-  blockerCount    Int
-  summary         String?
+  id             String  @id @default(uuid())
+  sprintId       String  @unique
+  projectId      String
+  successRate    Float
+  velocity       Int
+  completedTasks Int
+  pendingTasks   Int
+  blockerCount   Int
+  summary        String?
 
-  sprint          Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
-  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  createdAt       DateTime @default(now())
+  sprint  Sprint  @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 }
 
 model TeamPerformanceMetric {
-  id              String   @id @default(uuid())
-  userId          String
-  sprintId        String
-  assignedTasks   Int
-  completedTasks  Int
-  delayedTasks    Int
-  blockersRaised  Int
-  avgCompletionTime Float // in hours
+  id                 String @id @default(uuid())
+  userId             String
+  sprintId           String
+  assignedTasks      Int
+  completedTasks     Int
+  delayedTasks       Int
+  blockersRaised     Int
+  avgCompletionTime  Float // in hours
   standupConsistency Float // percentage
-  utilizationRate Float // percentage
-  
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sprint          Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
-  
-  createdAt       DateTime @default(now())
-  
+  utilizationRate    Float // percentage
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sprint Sprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
   @@unique([userId, sprintId])
 }
 
 model AnalyticsSnapshot {
-  id              String   @id @default(uuid())
-  date            DateTime @default(now())
-  totalActiveTasks Int
+  id                   String   @id @default(uuid())
+  date                 DateTime @default(now())
+  totalActiveTasks     Int
   sprintCompletionRate Float
-  delayedTasks    Int
-  blockersCount   Int
-  teamVelocity    Int
-  avgCompletionTime Float
-  activeProjects  Int
-  teamUtilization Float
+  delayedTasks         Int
+  blockersCount        Int
+  teamVelocity         Int
+  avgCompletionTime    Float
+  activeProjects       Int
+  teamUtilization      Float
 }
 
 model RetrospectiveComparison {
-  id          String   @id @default(uuid())
-  metrics     Json     // Stores sprint velocity, completed points, etc.
-  sprintId    String
+  id       String @id @default(uuid())
+  metrics  Json // Stores sprint velocity, completed points, etc.
+  sprintId String
 
-  sprint      Sprint   @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  sprint Sprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model Notification {
-  id          String   @id @default(uuid())
-  type        NotificationType
-  title       String
-  message     String
-  isRead      Boolean  @default(false)
-  linkUrl     String?
-  userId      String
+  id      String           @id @default(uuid())
+  type    NotificationType
+  title   String
+  message String
+  isRead  Boolean          @default(false)
+  linkUrl String?
+  userId  String
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model Attachment {
-  id          String   @id @default(uuid())
-  fileName    String
-  fileUrl     String
-  fileType    String
-  fileSize    Int
-  taskId      String
+  id       String @id @default(uuid())
+  fileName String
+  fileUrl  String
+  fileType String
+  fileSize Int
+  taskId   String
 
-  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model AuditLog {
-  id          String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  userId      String
-  action      String   // e.g., "CREATED", "UPDATED", "DELETED"
-  entityType  String   // e.g., "PROJECT", "USER"
-  entityId    String
-  metadata    Json?
+  userId     String
+  action     String // e.g., "CREATED", "UPDATED", "DELETED"
+  entityType String // e.g., "PROJECT", "USER"
+  entityId   String
+  metadata   Json?
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model MemberSprintStats {
-  id             String   @id @default(uuid())
+  id             String @id @default(uuid())
   userId         String
   sprintId       String
   completedTasks Int
@@ -448,34 +461,34 @@ model MemberSprintStats {
   completionRate Float
   blockerCount   Int
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model TodayFocus {
-  id        String   @id @default(uuid())
-  userId    String
-  content   String
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id      String @id @default(uuid())
+  userId  String
+  content String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([userId])
 }
 
 model ProductivitySnapshot {
-  id                String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  userId            String
+  userId String
 
   completedTasks    Int
   pendingTasks      Int
   blockers          Int
   productivityScore Float
 
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model EmailLog {
@@ -487,4 +500,32 @@ model EmailLog {
   provider     String
   errorMessage String?
   createdAt    DateTime @default(now())
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String
+  actionType  String
+  entityType  String
+  entityId    String
+  title       String
+  description String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model NotificationHistory {
+  id             String   @id @default(uuid())
+  type           String
+  title          String
+  description    String
+  senderId       String
+  receiverId     String?
+  taskId         String?
+  sprintId       String?
+  projectId      String?
+  mailSent       Boolean  @default(false)
+  deliveryStatus String
+  createdAt      DateTime @default(now())
 }

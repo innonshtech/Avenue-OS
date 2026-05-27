@@ -14,7 +14,9 @@ import {
   Menu,
   LogOut,
   Zap,
-  Briefcase
+  Briefcase,
+  Activity,
+  ShieldCheck
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -24,7 +26,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ROLE_COLORS } from '@/constants/teamMembers';
 import type { UserRole } from '@/types/user';
 
@@ -39,6 +40,7 @@ const SIDEBAR_CONFIG: Record<UserRole, { icon: any, label: string, path: string 
     { icon: Users, label: 'Standups', path: '/dashboard/standups' },
     { icon: BarChart, label: 'Analytics', path: '/dashboard/analytics' },
     { icon: BarChart, label: 'Reports', path: '/dashboard/reports' },
+    { icon: ShieldCheck, label: 'Audit Log', path: '/dashboard/organization-audit' },
     { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
     { icon: Users, label: 'Team Management', path: '/dashboard/team' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
@@ -48,14 +50,18 @@ const SIDEBAR_CONFIG: Record<UserRole, { icon: any, label: string, path: string 
     { icon: CheckSquare, label: 'My Tasks', path: '/dashboard/my-tasks' },
     { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
     { icon: Users, label: 'Standups', path: '/dashboard/standups' },
+    { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
     { icon: BarChart, label: 'Sprint Reports', path: '/dashboard/sprint-reports' },
     { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
+    { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
   ],
   MARKETING: [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Briefcase, label: 'Campaign Tasks', path: '/dashboard/campaign-tasks' },
     { icon: Users, label: 'Standups', path: '/dashboard/standups' },
+    { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
     { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
+    { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
   ],
   ADMIN: [
     { icon: LayoutDashboard, label: 'Admin Dashboard', path: '/admin' },
@@ -143,15 +149,6 @@ export default function DashboardLayout() {
                       </span>
                       <span className="text-[10px] font-medium text-muted-foreground uppercase">{user?.department}</span>
                     </div>
-                  </div>
-                  <div className="relative">
-                    <Avatar className="h-10 w-10 border border-border shadow-sm">
-                      <AvatarImage src={user?.avatar} />
-                      <AvatarFallback className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-400 font-medium">
-                        {user?.name?.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-background rounded-full"></span>
                   </div>
                 </div>
               </DropdownMenuTrigger>

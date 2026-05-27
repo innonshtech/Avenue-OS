@@ -20,7 +20,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function SignInPage() {
   const navigate = useNavigate();
@@ -221,10 +220,6 @@ export default function SignInPage() {
                     {TEAM_MEMBERS.map((member) => (
                       <SelectItem key={member.id} value={member.id} className="py-3 cursor-pointer">
                         <div className="flex items-center gap-3">
-                          <Avatar className="w-8 h-8">
-                            <AvatarImage src={member.avatar} />
-                            <AvatarFallback className="bg-primary/10 text-primary text-xs">{member.name.substring(0,2).toUpperCase()}</AvatarFallback>
-                          </Avatar>
                           <div className="flex flex-col text-left">
                             <span className="font-semibold">{member.name}</span>
                             <span className="text-xs text-muted-foreground">{member.role.replace('_', ' ')} • {member.department}</span>
