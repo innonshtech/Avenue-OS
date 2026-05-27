@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useStandups, useCreateStandup, useTeamStandups, useMyStandups } from '../api/standupApi';
 import { useToast } from '@/hooks/use-toast';
 import { useSprints } from '@/features/sprints/api/sprintApi';
+import { useProjects } from '@/features/projects/api/projectApi';
 import { useTasks } from '@/features/tasks/api/taskApi';
 import { TEAM_MEMBERS } from '@/constants/teamMembers';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import type { BlockerType, BlockerSeverity } from '@/types/core';
 export default function StandupPage() {
   const { user } = useAuthStore();
   const { data: sprints = [] } = useSprints();
+  const { data: projects = [] } = useProjects();
   const activeSprintId = sprints.find((s: any) => s.status === 'ACTIVE')?.id;
   
   const { toast } = useToast();
@@ -25,6 +27,26 @@ export default function StandupPage() {
   const [timeRange, setTimeRange] = useState<'sprint' | 'month' | 'year'>('sprint');
 
   const [selectedSprintId, setSelectedSprintId] = useState<string | undefined>(activeSprintId || sprints[0]?.id);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [formSprintId, setFormSprintId] = useState<string>('');
+
+  useEffect(() => {
+    if (sprints.length > 0 && !selectedProjectId) {
+      const activeSprint = sprints.find((s: any) => s.status === 'ACTIVE');
+      if (activeSprint) {
+        setSelectedProjectId(activeSprint.projectId);
+        setFormSprintId(activeSprint.id);
+      } else {
+        setSelectedProjectId(sprints[0].projectId);
+        setFormSprintId(sprints[0].id);
+      }
+    }
+  }, [sprints, selectedProjectId]);
+
+  const filteredSprintsForForm = useMemo(() => {
+    if (!selectedProjectId) return [];
+    return sprints.filter((s: any) => s.projectId === selectedProjectId);
+  }, [sprints, selectedProjectId]);
 
   // Update selectedSprintId if sprints load later
   if (!selectedSprintId && sprints.length > 0) {
@@ -83,10 +105,10 @@ export default function StandupPage() {
     e.preventDefault();
     if (!user) return;
     
-    if (!selectedSprintId) {
+    if (!formSprintId) {
       toast({
         title: "No Sprint Selected",
-        description: "Please select a sprint before submitting an update.",
+        description: "Please select a project and sprint before submitting an update.",
         variant: "destructive"
       });
       return;
@@ -97,7 +119,7 @@ export default function StandupPage() {
       today,
       blockers: hasBlocker ? blockerDesc : null,
       userId: user.id,
-      sprintId: selectedSprintId,
+      sprintId: formSprintId,
       blockerDetails: hasBlocker && blockerTaskId ? {
         description: blockerDesc,
         severity: blockerSeverity,
@@ -171,6 +193,44 @@ export default function StandupPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-lg border border-border/50">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Project</label>
+                  <Select value={selectedProjectId} onValueChange={(val) => {
+                    setSelectedProjectId(val);
+                    const firstSprintOfProject = sprints.find((s: any) => s.projectId === val);
+                    setFormSprintId(firstSprintOfProject?.id || '');
+                  }}>
+                    <SelectTrigger className="w-full bg-background border-border">
+                      <SelectValue placeholder="Select Project" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {projects.map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Sprint</label>
+                  <Select value={formSprintId} onValueChange={setFormSprintId}>
+                    <SelectTrigger className="w-full bg-background border-border">
+                      <SelectValue placeholder="Select Sprint" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredSprintsForForm.map((s: any) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">What did you complete yesterday?</label>
                 <Textarea 
@@ -312,10 +372,15 @@ export default function StandupPage() {
                       <Card key={standup.id} className={`bg-card shadow-sm hover:shadow-md transition-shadow border-l-4 ${standup.blockers ? 'border-l-red-500 border-red-500/20' : 'border-border'}`}>
                         <CardHeader className="pb-3 flex flex-row items-start justify-between">
                           <div className="flex items-center gap-3">
-                            <div>
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-xs font-semibold text-muted-foreground">
                                 {new Date(standup.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {new Date(standup.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                               </span>
+                              {standup.sprint && (
+                                <Badge variant="outline" className="text-[10px] bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border-indigo-200/50">
+                                  {standup.sprint.project?.name || 'Smart Parking System'} — {standup.sprint.name}
+                                </Badge>
+                              )}
                             </div>
                           </div>
                           {standup.blockers && (

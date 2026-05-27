@@ -13,7 +13,11 @@ export const getStandups = async (req: Request, res: Response) => {
       where: query,
       include: {
         user: true,
-        sprint: true,
+        sprint: {
+          include: {
+            project: true
+          }
+        },
       },
       orderBy: { date: 'desc' }
     });
@@ -39,7 +43,11 @@ export const getMyStandups = async (req: Request, res: Response) => {
       include: {
         user: true,
         task: true,
-        sprint: true,
+        sprint: {
+          include: {
+            project: true
+          }
+        },
         reportedBlockers: true
       },
       orderBy: { date: 'desc' }
@@ -69,6 +77,11 @@ export const getTeamStandups = async (req: Request, res: Response) => {
         user: true,
         task: true,
         reportedBlockers: true,
+        sprint: {
+          include: {
+            project: true
+          }
+        }
       },
       orderBy: { date: 'desc' }
     });

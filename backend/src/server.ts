@@ -3,6 +3,7 @@ import app from './app';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
+import { initStandupReminderCron } from './jobs/standupReminderJob';
 
 dotenv.config();
 
@@ -40,6 +41,10 @@ async function startServer() {
     // Connect to Database
     await prisma.$connect();
     console.log('Connected to PostgreSQL Database via Prisma.');
+
+    // Initialize daily standup reminder cron job
+    initStandupReminderCron();
+    console.log('Daily standup reminder cron job initialized.');
 
     server.listen(PORT, () => {
       console.log(`Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);

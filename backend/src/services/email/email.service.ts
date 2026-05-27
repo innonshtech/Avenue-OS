@@ -64,6 +64,50 @@ export class EmailService {
     }
   }
 
+  async sendStandupReminderMail(userName: string, userEmail: string): Promise<boolean> {
+    const subject = `[ SprintOS ] Daily Standup Reminder`;
+    try {
+      if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+        console.warn('MAIL_USER or MAIL_PASS is missing. Mocking standup reminder email send.');
+        await this.logEmail('', userEmail, subject, 'failed', 'Missing Gmail SMTP Credentials');
+        return false;
+      }
+
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+          <h2 style="color: #4f46e5; margin-bottom: 20px;">Daily Standup Reminder</h2>
+          <p>Hi ${userName},</p>
+          <p>This is a reminder to submit your daily standup update for today. Keeping the team in sync is essential for our sprint progress!</p>
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard/standups" 
+               style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+              Submit Daily Standup
+            </a>
+          </div>
+          <p style="color: #6b7280; font-size: 12px; margin-top: 40px; border-top: 1px solid #e0e0e0; padding-top: 20px;">
+            This is an automated notification from SprintOS. Please do not reply to this email.
+          </p>
+        </div>
+      `;
+
+      await transporter.sendMail({
+        from: MAIL_FROM,
+        to: userEmail,
+        cc: MAIL_CC,
+        subject,
+        html,
+      });
+
+      console.log(`Standup reminder mail sent to ${userEmail}`);
+      await this.logEmail('', userEmail, subject, 'sent');
+      return true;
+    } catch (error: any) {
+      console.error('Standup reminder mail failed:', error.message);
+      await this.logEmail('', userEmail, subject, 'failed', error.message);
+      return false;
+    }
+  }
+
   // Stubs for future implementation
   async sendBlockerEscalationMail() {
     console.log('Not implemented yet');

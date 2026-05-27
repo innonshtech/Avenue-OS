@@ -11,6 +11,8 @@ interface StandupUpdateCardProps {
     hasBlocker: boolean;
     helperRequired: string;
     submittedAt: string;
+    projectName?: string;
+    sprintName?: string;
   };
 }
 
@@ -34,6 +36,11 @@ export default function StandupUpdateCard({ update }: StandupUpdateCardProps) {
           <p className="text-xs text-muted-foreground flex items-center">
             <ArrowRight className="w-3 h-3 mr-1" /> {update.task}
           </p>
+          {(update.projectName || update.sprintName) && (
+            <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold mt-1">
+              {update.projectName} — {update.sprintName}
+            </p>
+          )}
         </div>
         <div className="text-right flex flex-col items-end">
           <span className="text-[10px] text-muted-foreground">{new Date(update.submittedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>

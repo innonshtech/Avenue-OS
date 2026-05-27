@@ -34,6 +34,7 @@ import { Input } from '@/components/ui/input';
 import { Search, ListFilter, Plus } from 'lucide-react';
 import TaskDrawer from '@/features/tasks/components/TaskDrawer';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const COLUMNS: { id: TaskStatus; title: string }[] = [
   { id: 'TODO', title: 'TO DO' },
@@ -282,18 +283,22 @@ export default function KanbanBoardPage() {
               <option value="">All Sprints</option>
               {sprints.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-            <div className="flex -space-x-2">
-              {TEAM_MEMBERS.map(m => (
-                <button
-                  key={m.id}
-                  onClick={() => setAssigneeFilter(assigneeFilter === m.id ? null : m.id)}
-                  className={`w-8 h-8 rounded-full border-2 transition-transform ${assigneeFilter === m.id ? 'z-10 scale-110 border-indigo-500' : 'border-background hover:z-10 hover:scale-105 opacity-70 hover:opacity-100'}`}
-                  title={m.name}
-                >
-                  <img src={m.avatar} alt={m.name} className="w-full h-full rounded-full" />
-                </button>
-              ))}
-            </div>
+            <Select 
+              value={assigneeFilter || 'ALL'} 
+              onValueChange={(val) => setAssigneeFilter(val === 'ALL' ? null : val)}
+            >
+              <SelectTrigger className="w-[180px] bg-background border-border">
+                <SelectValue placeholder="All Members" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Members</SelectItem>
+                {TEAM_MEMBERS.map(m => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button variant="outline" className="shadow-sm">
               <ListFilter className="w-4 h-4 mr-2" />
               More
