@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import { notificationService } from '../services/notifications/notification.service';
+import { inAppNotificationService } from '../services/notifications/inapp-notification.service';
+import { ActivityTrackerService } from '../services/audit/activity-tracker.service';
 
 export const getTasks = async (req: Request, res: Response) => {
   try {
@@ -103,6 +105,9 @@ export const createTask = async (req: Request, res: Response) => {
       }
     });
 
+    const dbCreator = creatorId ? await prisma.user.findUnique({ where: { id: creatorId } }) : null;
+    const creatorName = dbCreator?.name || 'Saket';
+
     let emailTriggered = false;
     if (task.assignee) {
       emailTriggered = await notificationService.handleTaskAssignment({
@@ -119,6 +124,15 @@ export const createTask = async (req: Request, res: Response) => {
         acceptanceCriteria: task.acceptanceCriteria || '',
         taskId: task.id
       });
+
+      // Send in-app notification to assignee
+      await inAppNotificationService.createNotification(
+        task.assigneeId!,
+        'ASSIGNED',
+        `New Task Assigned: ${task.key}`,
+        `${creatorName} assigned task "${task.title}" to you.`,
+        `/dashboard/boards`
+      );
     }
 
     res.status(201).json({
@@ -145,6 +159,9 @@ export const updateTask = async (req: Request, res: Response) => {
     const existingTask = await prisma.task.findUnique({ where: { id } });
     if (!existingTask) return res.status(404).json({ error: 'Task not found' });
     
+    const dbUser = user?.id ? await prisma.user.findUnique({ where: { id: user.id } }) : null;
+    const performerName = dbUser?.name || 'Saket';
+
     if (user && user.role !== 'PRODUCT_MANAGER' && existingTask.assigneeId !== user.id) {
       return res.status(403).json({ error: 'Forbidden: You can only edit your own assigned tasks' });
     }
@@ -155,9 +172,10 @@ export const updateTask = async (req: Request, res: Response) => {
     if (title !== undefined) dataToUpdate.title = title;
     if (description !== undefined) dataToUpdate.description = description;
     if (type !== undefined) dataToUpdate.type = type;
+    const fromInReviewToDone = (existingTask.status === 'IN_REVIEW' && status === 'DONE');
     if (status !== undefined) {
       dataToUpdate.status = status;
-      if (status === 'DONE' && existingTask.status !== 'DONE') {
+      if (fromInReviewToDone) {
         dataToUpdate.completedAt = new Date();
         dataToUpdate.completedById = user?.id;
       }
@@ -182,8 +200,35 @@ export const updateTask = async (req: Request, res: Response) => {
         }
       }
     });
+
+    const statusChanged = status !== undefined && status !== existingTask.status;
     
-    if (status === 'DONE' && existingTask.status !== 'DONE') {
+    if (fromInReviewToDone) {
+      // 1. Log activity for the user who completed the task
+      await ActivityTrackerService.logActivity({
+        userId: user?.id || 'SYSTEM',
+        actionType: 'TASK_COMPLETED_FROM_REVIEW',
+        entityType: 'TASK',
+        entityId: task.id,
+        title: `Completed Task from In Review`,
+        description: `Moved task ${task.key} from IN REVIEW to DONE.`,
+      });
+
+      // 2. Log activity for Saket (the PM)
+      const saket = await prisma.user.findFirst({
+        where: { email: 'saket.innonsh@gmail.com' }
+      });
+      if (saket && saket.id !== user?.id) {
+        await ActivityTrackerService.logActivity({
+          userId: saket.id,
+          actionType: 'TASK_COMPLETED_FROM_REVIEW',
+          entityType: 'TASK',
+          entityId: task.id,
+          title: `Developer completed task from In Review`,
+          description: `${performerName} moved task ${task.key} from IN REVIEW to DONE.`,
+        });
+      }
+    } else if (status === 'DONE' && existingTask.status !== 'DONE') {
       const { AuditEngineService } = await import('../services/audit/audit.service');
       await AuditEngineService.logAction(
         user?.id || 'SYSTEM',
@@ -191,8 +236,36 @@ export const updateTask = async (req: Request, res: Response) => {
         'TASK',
         task.id,
         `Task Completed: ${task.title}`,
-        `${'User'} completed task ${task.key}`
+        `${performerName} completed task ${task.key}`
       );
+    }
+
+    // In-app notifications for task assignments and updates
+    if (assigneeId !== undefined && assigneeId !== existingTask.assigneeId && task.assigneeId && task.assigneeId !== user?.id) {
+      await inAppNotificationService.createNotification(
+        task.assigneeId,
+        'ASSIGNED',
+        `Task Assigned: ${task.key}`,
+        `${performerName} assigned task "${task.title}" to you.`,
+        `/dashboard/boards`
+      );
+    } else if (task.assigneeId && task.assigneeId !== user?.id) {
+      const changes: string[] = [];
+      if (title !== undefined && title !== existingTask.title) changes.push('title');
+      if (description !== undefined && description !== existingTask.description) changes.push('description');
+      if (statusChanged) changes.push(`status to ${status}`);
+      if (priority !== undefined && priority !== existingTask.priority) changes.push(`priority to ${priority}`);
+      if (sprintId !== undefined && sprintId !== existingTask.sprintId) changes.push('sprint');
+
+      if (changes.length > 0) {
+        await inAppNotificationService.createNotification(
+          task.assigneeId,
+          'STATUS_CHANGE',
+          `Task Updated: ${task.key}`,
+          `${performerName} updated the ${changes.join(', ')} of your assigned task "${task.title}".`,
+          `/dashboard/boards`
+        );
+      }
     }
 
     res.status(200).json(task);

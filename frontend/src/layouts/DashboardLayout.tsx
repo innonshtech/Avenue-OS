@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { 
@@ -26,6 +27,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { 
+  useNotifications, 
+  useMarkNotificationRead, 
+  useMarkAllNotificationsRead 
+} from '@/features/notifications/api/notificationApi';
 import { ROLE_COLORS } from '@/constants/teamMembers';
 import type { UserRole } from '@/types/user';
 
@@ -72,6 +78,16 @@ export default function DashboardLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const { data: notifications = [], isLoading: isLoadingNotifications } = useNotifications();
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
+
+  const unreadCount = notifications.filter((n: any) => !n.isRead).length;
+
+  const unreadNotifications = useMemo(() => {
+    return notifications.filter((n: any) => !n.isRead);
+  }, [notifications]);
 
   const handleLogout = () => {
     logout();
@@ -133,10 +149,62 @@ export default function DashboardLayout() {
           </div>
           
           <div className="flex items-center gap-6">
-            <button className="relative text-muted-foreground hover:text-foreground transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full ring-2 ring-background"></span>
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="relative text-muted-foreground hover:text-foreground transition-colors focus:outline-none">
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[9px] font-bold text-white ring-2 ring-background">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 p-0 shadow-lg border border-border">
+                <div className="flex items-center justify-between border-b border-border p-3">
+                  <span className="font-semibold text-sm">Notifications</span>
+                  {unreadCount > 0 && (
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        markAllRead.mutate();
+                      }} 
+                      className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-72 overflow-y-auto">
+                  {isLoadingNotifications ? (
+                    <div className="p-4 text-center text-xs text-muted-foreground">Loading...</div>
+                  ) : unreadNotifications.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-muted-foreground font-medium">No new notifications</div>
+                  ) : (
+                    unreadNotifications.map((notif: any) => (
+                      <DropdownMenuItem 
+                        key={notif.id} 
+                        onSelect={(e) => {
+                          e.preventDefault(); // Prevents the dropdown from closing on click
+                          if (!notif.isRead) markRead.mutate(notif.id);
+                          if (notif.linkUrl) navigate(notif.linkUrl);
+                        }}
+                        className="flex flex-col items-start p-3 border-b border-border/50 cursor-pointer focus:bg-accent/50 bg-indigo-500/5 font-semibold text-foreground"
+                      >
+                        <div className="flex justify-between items-start w-full mb-1">
+                          <span className="text-xs font-semibold">{notif.title}</span>
+                          <span className="text-[9px] text-muted-foreground">
+                            {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2 font-normal">{notif.message}</p>
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <DropdownMenu>
               <DropdownMenuTrigger className="focus:outline-none">

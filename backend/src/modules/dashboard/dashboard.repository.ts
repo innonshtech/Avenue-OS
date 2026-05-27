@@ -88,6 +88,11 @@ export class DashboardRepository {
       orderBy: { date: 'desc' },
       include: {
         user: true,
+        sprint: {
+          include: {
+            project: true
+          }
+        }
       }
     });
   }

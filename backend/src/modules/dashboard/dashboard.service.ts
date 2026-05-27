@@ -153,7 +153,9 @@ export class DashboardService {
           blockers: latest.blockers || 'None',
           hasBlocker: !!latest.blockers && latest.blockers.trim() !== 'None' && latest.blockers.trim() !== '',
           helperRequired: 'Not specified',
-          submittedAt: latest.date
+          submittedAt: latest.date,
+          projectName: latest.sprint?.project?.name || 'Smart Parking System',
+          sprintName: latest.sprint?.name || 'Sprint 3'
         });
       }
     });

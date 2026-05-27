@@ -76,4 +76,7 @@ export interface DailyStandup {
   userId: string;
   sprintId: string;
   createdAt: string;
+  sprint?: Sprint & { project?: Project };
+  task?: Task;
+  reportedBlockers?: Blocker[];
 }

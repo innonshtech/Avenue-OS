@@ -86,6 +86,16 @@ export const ActivityLogTable = ({ activities, showUser = false }: ActivityLogTa
                       <span className="text-xs text-muted-foreground mt-1 truncate" title={activity.description}>
                         {activity.description}
                       </span>
+                      {activity.task && (
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <span className="text-[10px] uppercase font-bold tracking-wider bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-mono">
+                            {activity.task.key}
+                          </span>
+                          <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium truncate">
+                            {activity.task.title}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>

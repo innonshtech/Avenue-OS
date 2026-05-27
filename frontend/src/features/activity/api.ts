@@ -17,6 +17,11 @@ export interface ActivityLog {
     email: string;
     role: string;
   };
+  task?: {
+    id: string;
+    key: string;
+    title: string;
+  } | null;
 }
 
 export const useActivities = (filters?: { actionType?: string; memberId?: string; entityType?: string }) => {
