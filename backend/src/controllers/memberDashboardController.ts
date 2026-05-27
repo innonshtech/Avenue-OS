@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient, TaskStatus, BlockerSeverity } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../utils/prisma';
 
 // ==========================================
 // MEMBER OVERVIEW

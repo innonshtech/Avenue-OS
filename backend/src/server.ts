@@ -2,14 +2,12 @@ import http from 'http';
 import app from './app';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import prisma from './utils/prisma';
 import { initStandupReminderCron } from './jobs/standupReminderJob';
 
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
-
-export const prisma = new PrismaClient();
 
 const server = http.createServer(app);
 
