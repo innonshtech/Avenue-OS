@@ -21,6 +21,9 @@ import TeamManagementPage from './features/team/pages/TeamManagementPage';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
 import SprintReportsPage from './features/member/sprint-reports/pages/SprintReportsPage';
 import AdminDashboard from './features/admin/pages/AdminDashboard';
+import MyActivityLogPage from './features/activity/pages/MyActivityLogPage';
+import OrganizationAuditLogPage from './features/activity/pages/OrganizationAuditLogPage';
+import SettingsPage from './features/settings/pages/SettingsPage';
 
 import { Toaster } from '@/components/ui/toaster';
 
@@ -60,6 +63,7 @@ function App() {
                 <Route path="analytics" element={<AnalyticsDashboardPage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="team" element={<TeamManagementPage />} />
+                <Route path="organization-audit" element={<OrganizationAuditLogPage />} />
               </Route>
 
               {/* Feedbacks - Accessible to all, but view is restricted inside component or by API */}
@@ -68,7 +72,11 @@ function App() {
               {/* Member-Only Routes */}
               <Route element={<RoleProtectedRoute allowedRoles={['DEVELOPER', 'MARKETING']} />}>
                 <Route path="sprint-reports" element={<SprintReportsPage />} />
+                <Route path="activity" element={<MyActivityLogPage />} />
               </Route>
+
+              {/* Settings Route - Accessible to everyone in the dashboard */}
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
 
             {/* Admin Route */}

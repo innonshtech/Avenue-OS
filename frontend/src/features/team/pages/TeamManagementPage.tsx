@@ -4,10 +4,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { ROLE_COLORS } from '@/constants/teamMembers';
 import api from '@/lib/api';
+import { useAuthStore } from '@/features/auth/store/authStore';
+import { Button } from '@/components/ui/button';
+import OnboardEmployeeModal from '../components/OnboardEmployeeModal';
 
 export default function TeamManagementPage() {
   const [team, setTeam] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [onboardModalOpen, setOnboardModalOpen] = useState(false);
+  const { user } = useAuthStore();
+  const isPM = user?.role === 'PRODUCT_MANAGER';
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -27,10 +33,19 @@ export default function TeamManagementPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Team Control Center</h1>
-        <p className="text-muted-foreground mt-2">Manage team workload, utilization, and assignments.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Team Control Center</h1>
+          <p className="text-muted-foreground mt-2">Manage team workload, utilization, and assignments.</p>
+        </div>
+        {isPM && (
+          <Button onClick={() => setOnboardModalOpen(true)}>
+            Onboard Employee
+          </Button>
+        )}
       </div>
+
+      <OnboardEmployeeModal open={onboardModalOpen} onOpenChange={setOnboardModalOpen} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {team.map(member => (

@@ -17,6 +17,7 @@ import SprintHealthPanel from '@/features/dashboard/components/SprintHealthPanel
 import TeamWorkloadPanel from '@/features/dashboard/components/TeamWorkloadPanel';
 import SprintBoardSnapshot from '@/features/dashboard/components/SprintBoardSnapshot';
 import TeamStandupMonitoring from '@/features/dashboard/components/TeamStandupMonitoring';
+import { OrganizationActivityFeed } from '@/features/activity/OrganizationActivityFeed';
 
 // Legacy Dev/Marketing widgets
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -129,6 +130,11 @@ export default function DashboardPage() {
           {/* Section 4: Standup Monitoring */}
           <div className="pt-2">
             <TeamStandupMonitoring standups={standups} isLoading={isLoadingStandups} />
+          </div>
+
+          {/* Section 5: Organization Audit */}
+          <div className="pt-2">
+            <OrganizationActivityFeed />
           </div>
         </div>
       ) : (

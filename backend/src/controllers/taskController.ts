@@ -4,17 +4,17 @@ import { notificationService } from '../services/notifications/notification.serv
 
 export const getTasks = async (req: Request, res: Response) => {
   try {
-    const { projectId, sprintId, assigneeId } = req.query;
+    const { projectId, sprintId, assigneeId, isArchived } = req.query;
     
     const query: any = {};
     if (projectId) query.projectId = String(projectId);
     if (sprintId) query.sprintId = String(sprintId);
     
-    // Removed the constraint that limited tasks by assigneeId for non-PMs.
-    // Now everyone can see all tasks, but updateTask enforces edit permissions.
     if (assigneeId) {
       query.assigneeId = String(assigneeId);
     }
+    
+    query.isArchived = isArchived === 'true';
 
     const tasks = await prisma.task.findMany({
       where: query,
@@ -155,7 +155,13 @@ export const updateTask = async (req: Request, res: Response) => {
     if (title !== undefined) dataToUpdate.title = title;
     if (description !== undefined) dataToUpdate.description = description;
     if (type !== undefined) dataToUpdate.type = type;
-    if (status !== undefined) dataToUpdate.status = status;
+    if (status !== undefined) {
+      dataToUpdate.status = status;
+      if (status === 'DONE' && existingTask.status !== 'DONE') {
+        dataToUpdate.completedAt = new Date();
+        dataToUpdate.completedById = user?.id;
+      }
+    }
     if (priority !== undefined) dataToUpdate.priority = priority;
     if (storyPoints !== undefined) dataToUpdate.storyPoints = storyPoints ? parseInt(storyPoints) : null;
     if (sprintId !== undefined) dataToUpdate.sprintId = sprintId;
@@ -176,6 +182,18 @@ export const updateTask = async (req: Request, res: Response) => {
         }
       }
     });
+    
+    if (status === 'DONE' && existingTask.status !== 'DONE') {
+      const { AuditEngineService } = await import('../services/audit/audit.service');
+      await AuditEngineService.logAction(
+        user?.id || 'SYSTEM',
+        'TASK_COMPLETED',
+        'TASK',
+        task.id,
+        `Task Completed: ${task.title}`,
+        `${'User'} completed task ${task.key}`
+      );
+    }
 
     res.status(200).json(task);
   } catch (error) {
@@ -187,12 +205,104 @@ export const updateTask = async (req: Request, res: Response) => {
 export const deleteTask = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    await prisma.task.delete({
-      where: { id }
+    const user = req.user;
+    
+    if (user?.role !== 'PRODUCT_MANAGER') {
+      return res.status(403).json({ error: 'Only Product Managers can delete tasks' });
+    }
+
+    // Soft delete: remove sprint and archive
+    const task = await prisma.task.update({
+      where: { id },
+      data: {
+        isArchived: true,
+        archivedAt: new Date(),
+        archivedById: user?.id,
+        sprintId: null // Remove from sprint
+      }
     });
-    res.status(200).json({ message: 'Task deleted successfully' });
+    
+    const { AuditEngineService } = await import('../services/audit/audit.service');
+    await AuditEngineService.logAction(
+      user?.id || 'SYSTEM',
+      'TASK_DELETED',
+      'TASK',
+      task.id,
+      `Task Deleted: ${task.title}`,
+      `${'User'} deleted task ${task.key}`
+    );
+
+    res.status(200).json({ message: 'Task deleted successfully', task });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete task' });
+  }
+};
+
+export const archiveTask = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+    
+    if (user?.role !== 'PRODUCT_MANAGER') {
+      return res.status(403).json({ error: 'Only Product Managers can archive tasks' });
+    }
+
+    const task = await prisma.task.update({
+      where: { id },
+      data: {
+        isArchived: true,
+        archivedAt: new Date(),
+        archivedById: user?.id,
+      }
+    });
+    
+    const { AuditEngineService } = await import('../services/audit/audit.service');
+    await AuditEngineService.logAction(
+      user?.id || 'SYSTEM',
+      'TASK_ARCHIVED',
+      'TASK',
+      task.id,
+      `Task Archived: ${task.title}`,
+      `${'User'} archived task ${task.key}`
+    );
+
+    res.status(200).json({ message: 'Task archived successfully', task });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to archive task' });
+  }
+};
+
+export const restoreTask = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+    
+    if (user?.role !== 'PRODUCT_MANAGER') {
+      return res.status(403).json({ error: 'Only Product Managers can restore tasks' });
+    }
+
+    const task = await prisma.task.update({
+      where: { id },
+      data: {
+        isArchived: false,
+        archivedAt: null,
+        archivedById: null,
+      }
+    });
+    
+    const { AuditEngineService } = await import('../services/audit/audit.service');
+    await AuditEngineService.logAction(
+      user?.id || 'SYSTEM',
+      'TASK_RESTORED',
+      'TASK',
+      task.id,
+      `Task Restored: ${task.title}`,
+      `${'User'} restored task ${task.key}`
+    );
+
+    res.status(200).json({ message: 'Task restored successfully', task });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to restore task' });
   }
 };
 
@@ -278,5 +388,42 @@ export const addQuickUpdate = async (req: Request, res: Response) => {
     res.status(201).json(activity);
   } catch(error) {
     res.status(500).json({ error: 'Failed to create quick update' });
+  }
+};
+
+export const resolveBlocker = async (req: Request, res: Response) => {
+  try {
+    const { id, blockerId } = req.params;
+    const user = req.user;
+    
+    if (user?.role !== 'PRODUCT_MANAGER' && user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only PM or Admin can resolve blockers' });
+    }
+
+    const { resolutionNote } = req.body;
+    
+    const blocker = await prisma.blocker.update({
+      where: { id: blockerId },
+      data: {
+        isResolved: true,
+        resolvedAt: new Date(),
+        resolvedById: user?.id,
+        resolutionNote
+      }
+    });
+
+    const { AuditEngineService } = await import('../services/audit/audit.service');
+    await AuditEngineService.logAction(
+      user?.id || 'SYSTEM',
+      'BLOCKER_RESOLVED',
+      'BLOCKER',
+      blocker.id,
+      `Blocker Resolved`,
+      `${'User'} resolved blocker with note: ${resolutionNote || 'No note'}`
+    );
+
+    res.status(200).json(blocker);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to resolve blocker' });
   }
 };

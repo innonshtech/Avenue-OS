@@ -126,6 +126,16 @@ export const createStandup = async (req: Request, res: Response) => {
       });
     }
 
+    const { AuditEngineService } = await import('../services/audit/audit.service');
+    await AuditEngineService.logAction(
+      userId,
+      'STANDUP_SUBMITTED',
+      'STANDUP',
+      standup.id,
+      `Daily Standup Submitted`,
+      `Today: ${today.substring(0, 100)}${today.length > 100 ? '...' : ''}`
+    );
+
     res.status(201).json(standup);
   } catch (error) {
     console.error(error);

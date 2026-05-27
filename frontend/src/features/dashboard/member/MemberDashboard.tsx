@@ -2,6 +2,7 @@ import { useMemberOverview, useMyTasks } from '../api/memberDashboardApi';
 import MemberOverviewCards from './MemberOverviewCards';
 import MyWorkTodayPanel from './MyWorkTodayPanel';
 import MiniSprintBoard from './MiniSprintBoard';
+import { MemberActivityFeed } from '@/features/activity/MemberActivityFeed';
 
 export default function MemberDashboard() {
   const { data: overview, isLoading: isOverviewLoading } = useMemberOverview();
@@ -17,6 +18,10 @@ export default function MemberDashboard() {
           <MiniSprintBoard tasks={tasks} />
         </>
       )}
+
+      <div className="pt-2">
+        <MemberActivityFeed />
+      </div>
     </div>
   );
 }
