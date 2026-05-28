@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Code2, Target, Users, Zap, Briefcase, ChevronRight, Activity, LayoutDashboard, Shield } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
@@ -21,8 +21,11 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
+import { AuthApi } from '../authApi';
+
 export default function SignInPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuthStore();
   const { toast } = useToast();
 
@@ -60,36 +63,29 @@ export default function SignInPage() {
   };
 
   const onSubmit = async (data: SignInFormValues) => {
-    // Simulate network delay for internal portal
-    await new Promise((resolve) => setTimeout(resolve, 600));
-
-    const user = TEAM_MEMBERS.find(
-      (u) =>
-        u.email === data.email &&
-        u.password === data.password &&
-        u.role === data.role
-    );
-
-    if (user) {
-      // Mock internal token
-      const token = `internal-jwt-token-${user.id}-${Date.now()}`;
-      login(user, token, data.rememberMe);
-      
-      toast({
-        title: `Welcome back, ${user.name}`,
-        description: `Successfully authenticated into Innonsh SprintOS.`,
+    try {
+      const response = await AuthApi.login({
+        email: data.email,
+        password: data.password,
       });
-      
-      if (user.role === 'ADMIN') {
-        navigate('/admin');
-      } else {
-        navigate('/dashboard');
+
+      if (response.success && response.user) {
+        // Placeholders token since session is fully cookie-based
+        login(response.user, 'sprintos-cookie-token', data.rememberMe);
+
+        toast({
+          title: `Welcome back, ${response.user.name}`,
+          description: `Successfully authenticated into Innonsh SprintOS.`,
+        });
+
+        const from = (location.state as any)?.from?.pathname || (response.user.role === 'ADMIN' ? '/admin' : '/dashboard');
+        navigate(from, { replace: true });
       }
-    } else {
+    } catch (err: any) {
       toast({
         variant: 'destructive',
         title: 'Authentication Failed',
-        description: 'Invalid password or configuration. Please check your credentials.',
+        description: err.response?.data?.message || 'Invalid password or configuration. Please check your credentials.',
       });
     }
   };

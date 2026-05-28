@@ -202,3 +202,71 @@ export const useResolveBlocker = () => {
     },
   });
 };
+
+// Threaded Comments System Hooks
+export const useComments = (taskId: string) => {
+  return useQuery<any[]>({
+    queryKey: ['comments', taskId],
+    queryFn: async () => {
+      const { data } = await api.get(`/comments/task/${taskId}`);
+      return data;
+    },
+    enabled: !!taskId,
+  });
+};
+
+export const useCreateComment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ taskId, content, parentCommentId }: { taskId: string; content: string; parentCommentId?: string }) => {
+      const { data } = await api.post(`/comments/task/${taskId}`, { content, parentCommentId });
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['comments', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['task', variables.taskId] });
+    },
+  });
+};
+
+export const useUpdateComment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, taskId, content }: { id: string; taskId: string; content: string }) => {
+      const { data } = await api.put(`/comments/${id}`, { content });
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['comments', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['task', variables.taskId] });
+    },
+  });
+};
+
+export const useDeleteComment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, taskId }: { id: string; taskId: string }) => {
+      const { data } = await api.delete(`/comments/${id}`);
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['comments', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['task', variables.taskId] });
+    },
+  });
+};
+
+export const useToggleReaction = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ commentId, taskId, emoji }: { commentId: string; taskId: string; emoji: string }) => {
+      const { data } = await api.post(`/comments/${commentId}/reactions`, { emoji });
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['comments', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['task', variables.taskId] });
+    },
+  });
+};

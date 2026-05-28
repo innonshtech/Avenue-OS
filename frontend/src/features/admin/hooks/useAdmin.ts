@@ -63,3 +63,10 @@ export const useIntelligence = () => {
     queryFn: adminApi.getIntelligence,
   });
 };
+
+export const useSecurityMetrics = () => {
+  return useQuery({
+    queryKey: ['admin', 'securityMetrics'],
+    queryFn: adminApi.getSecurityMetrics,
+  });
+};

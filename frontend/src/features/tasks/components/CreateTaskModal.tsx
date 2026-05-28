@@ -17,9 +17,11 @@ interface CreateTaskModalProps {
   onOpenChange: (open: boolean) => void;
   defaultProjectId?: string;
   defaultSprintId?: string;
+  defaultTitle?: string;
+  defaultDescription?: string;
 }
 
-export function CreateTaskModal({ open, onOpenChange, defaultProjectId, defaultSprintId }: CreateTaskModalProps) {
+export function CreateTaskModal({ open, onOpenChange, defaultProjectId, defaultSprintId, defaultTitle = '', defaultDescription = '' }: CreateTaskModalProps) {
   const { user } = useAuthStore();
   const createTask = useCreateTask();
   const { toast } = useToast();
@@ -28,14 +30,23 @@ export function CreateTaskModal({ open, onOpenChange, defaultProjectId, defaultS
   const [projectId, setProjectId] = useState(defaultProjectId || '');
   const { data: sprints = [] } = useSprints(projectId);
 
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(defaultTitle);
   const [key, setKey] = useState('');
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(defaultDescription);
   const [type, setType] = useState('STORY');
   const [priority, setPriority] = useState('MEDIUM');
   const [sprintId, setSprintId] = useState(defaultSprintId || 'none');
   const [assigneeId, setAssigneeId] = useState('none');
   const [storyPoints, setStoryPoints] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setTitle(defaultTitle);
+      setDescription(defaultDescription);
+      if (defaultProjectId) setProjectId(defaultProjectId);
+      if (defaultSprintId) setSprintId(defaultSprintId);
+    }
+  }, [open, defaultTitle, defaultDescription, defaultProjectId, defaultSprintId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import TaskComments from './TaskComments';
 import TaskActivityTimeline from './TaskActivityTimeline';
+import { CreateDiscussionModal } from '@/features/chat/components/CreateDiscussionModal';
 
 interface TaskDrawerProps {
   taskId: string | null;
@@ -53,6 +54,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
   const [activeTab, setActiveTab] = useState<'comments' | 'history' | 'standups'>('comments');
   const [resolutionNote, setResolutionNote] = useState('');
   const [showResolveInput, setShowResolveInput] = useState(false);
+  const [showDiscussionModal, setShowDiscussionModal] = useState(false);
   
   if (!taskId) return null;
   if (isLoading) return <Sheet open={!!taskId} onOpenChange={(open) => !open && onClose()}><SheetContent><div className="p-10 text-center">Loading task details...</div></SheetContent></Sheet>;
@@ -413,11 +415,20 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                   <div className="pt-2 border-t border-border/50">
                     <span className="text-xs text-muted-foreground block mb-2">Actions</span>
                     <div className="flex flex-col gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full justify-start text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 border-indigo-200 dark:text-indigo-400 dark:hover:text-indigo-300 dark:hover:bg-indigo-500/10 dark:border-indigo-500/20 transition-all"
+                        onClick={() => setShowDiscussionModal(true)}
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Open in Chat
+                      </Button>
                       {canEdit && task.status !== 'DONE' && (
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="w-full justify-start text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 border-emerald-500/20"
+                          className="w-full justify-start text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200 dark:hover:bg-emerald-500/10 dark:border-emerald-500/20 transition-all"
                           onClick={() => {
                             updateTaskStatus.mutate({ id: task.id, status: 'DONE' }, {
                               onSuccess: () => {
@@ -461,6 +472,13 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
           </div>
         </div>
       </SheetContent>
+      {showDiscussionModal && (
+        <CreateDiscussionModal 
+          isOpen={showDiscussionModal} 
+          onClose={() => setShowDiscussionModal(false)} 
+          task={task} 
+        />
+      )}
     </Sheet>
   );
 }

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const checkPMRole = (req: Request, res: Response) => {
   const user = req.user;

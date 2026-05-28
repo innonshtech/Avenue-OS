@@ -98,7 +98,9 @@ model User {
   projectsOwned        Project[]               @relation("ProjectOwner")
   tasksAssigned        Task[]                  @relation("TaskAssignee")
   tasksCreated         Task[]                  @relation("TaskCreator")
-  comments             TaskComment[]
+  comments             Comment[]
+  commentReactions     CommentReaction[]
+  inAppNotifications   InAppNotification[]
   activities           TaskActivity[]
   enterpriseActivities ActivityLog[]
   standups             DailyStandup[]
@@ -111,6 +113,13 @@ model User {
   sprintMembers  SprintMember[]
   blockersHelped Blocker[]       @relation("BlockerHelper")
   focuses        TodayFocus[]
+  sessions       UserSession[]
+
+  chatMessages        ChatMessage[]
+  messageReactions    MessageReaction[]
+  chatMemberships     ChatMember[]
+  pinnedMessages      PinnedMessage[]
+  createdChannels     ChatChannel[]           @relation("CreatedChannels")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -134,6 +143,7 @@ model Project {
   tasks         Task[]
   members       ProjectMember[]
   sprintReports SprintReport[]
+  chatChannels  ChatChannel[]
 
   isArchived Boolean @default(false)
 
@@ -174,6 +184,7 @@ model Sprint {
   report             SprintReport?
   performanceMetrics TeamPerformanceMetric[]
   members            SprintMember[]
+  chatChannels       ChatChannel[]
 
   isArchived Boolean @default(false)
 
@@ -220,12 +231,13 @@ model Task {
   assignee User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
   creator  User    @relation("TaskCreator", fields: [creatorId], references: [id])
 
-  comments    TaskComment[]
+  comments    Comment[]
   activities  TaskActivity[]
   attachments Attachment[]
   blockers    Blocker[]
   subtasks    TaskSubtask[]
   standups    DailyStandup[]
+  chatChannels ChatChannel[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -241,17 +253,33 @@ model Task {
   @@index([sprintId])
 }
 
-model TaskComment {
-  id      String @id @default(uuid())
-  content String
-  taskId  String
-  userId  String
+model Comment {
+  id               String   @id @default(uuid())
+  taskId           String
+  userId           String
+  parentCommentId  String?
+  content          String
+  isEdited         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task             Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentComment    Comment? @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies          Comment[] @relation("CommentReplies")
+  reactions        CommentReaction[]
+}
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model CommentReaction {
+  id               String   @id @default(uuid())
+  commentId        String
+  userId           String
+  emoji            String
+
+  comment          Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId, emoji])
 }
 
 model TaskSubtask {
@@ -326,6 +354,7 @@ model Blocker {
   resolvedAt     DateTime?
   resolvedById   String?
   resolutionNote String?
+  chatChannels   ChatChannel[]
 }
 
 model Feedback {
@@ -529,4 +558,137 @@ model NotificationHistory {
   mailSent       Boolean  @default(false)
   deliveryStatus String
   createdAt      DateTime @default(now())
+}
+
+model UserSession {
+  id               String   @id @default(uuid())
+  userId           String
+  refreshTokenHash String
+  ipAddress        String?
+  userAgent        String?
+  deviceName       String?
+  isActive         Boolean  @default(true)
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [id])
+}
+
+model SecurityAuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  ipAddress String?
+  userAgent String?
+  metadata  Json?
+  severity  String
+  createdAt DateTime @default(now())
+}
+
+model LoginHistory {
+  id            String    @id @default(uuid())
+  userId        String?
+  email         String
+  ipAddress     String?
+  userAgent     String?
+  deviceName    String?
+  status        String
+  failureReason String?
+  loggedInAt    DateTime  @default(now())
+  loggedOutAt   DateTime?
+}
+
+model InAppNotification {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  description String
+  type        String
+  isRead      Boolean  @default(false)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ChatChannel {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  type        String // DIRECT, PROJECT, SPRINT, TASK, BLOCKER, ANNOUNCEMENT
+  projectId   String?
+  sprintId    String?
+  taskId      String?
+  blockerId   String?
+  createdById String
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  createdBy User     @relation("CreatedChannels", fields: [createdById], references: [id], onDelete: Cascade)
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sprint    Sprint?  @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  blocker   Blocker? @relation(fields: [blockerId], references: [id], onDelete: Cascade)
+
+  messages  ChatMessage[]
+  members   ChatMember[]
+  pinnedMessages PinnedMessage[]
+}
+
+model ChatMessage {
+  id              String   @id @default(uuid())
+  channelId       String
+  senderId        String
+  content         String
+  messageType     String // TEXT, SYSTEM, TASK_REFERENCE
+  parentMessageId String?
+  isEdited        Boolean  @default(false)
+  editedAt        DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  channel       ChatChannel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  sender        User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  parentMessage ChatMessage?   @relation("ThreadReplies", fields: [parentMessageId], references: [id], onDelete: Cascade)
+  replies       ChatMessage[]  @relation("ThreadReplies")
+  reactions     MessageReaction[]
+  pinnedMessage PinnedMessage?
+}
+
+model MessageReaction {
+  id        String @id @default(uuid())
+  messageId String
+  userId    String
+  emoji     String
+
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+}
+
+model ChatMember {
+  id         String    @id @default(uuid())
+  channelId  String
+  userId     String
+  joinedAt   DateTime  @default(now())
+  lastSeenAt DateTime?
+
+  channel    ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+}
+
+model PinnedMessage {
+  id         String   @id @default(uuid())
+  channelId  String
+  messageId  String   @unique
+  pinnedById String
+  createdAt  DateTime @default(now())
+
+  channel    ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  message    ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  pinnedBy   User        @relation(fields: [pinnedById], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, messageId])
 }

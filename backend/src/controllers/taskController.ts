@@ -3,6 +3,9 @@ import prisma from '../utils/prisma';
 import { notificationService } from '../services/notifications/notification.service';
 import { inAppNotificationService } from '../services/notifications/inapp-notification.service';
 import { ActivityTrackerService } from '../services/audit/activity-tracker.service';
+import { getIO } from '../sockets/socket.server';
+import { SOCKET_EVENTS } from '../sockets/socket.events';
+import { ChatService } from '../modules/chat/chat.service';
 
 export const getTasks = async (req: Request, res: Response) => {
   try {
@@ -133,6 +136,19 @@ export const createTask = async (req: Request, res: Response) => {
         `${creatorName} assigned task "${task.title}" to you.`,
         `/dashboard/boards`
       );
+    }
+
+    // Auto-create task chat channel removed for Enterprise Architecture (lazy creation)
+
+    try {
+      const io = getIO();
+      io.to(`project:${projectId}`).to('organization').emit(SOCKET_EVENTS.TASK_UPDATED, {
+        action: 'CREATE',
+        taskId: task.id,
+        projectId
+      });
+    } catch (wsError) {
+      console.warn('WebSocket emission failed:', wsError);
     }
 
     res.status(201).json({
@@ -268,6 +284,17 @@ export const updateTask = async (req: Request, res: Response) => {
       }
     }
 
+    try {
+      const io = getIO();
+      io.to(`project:${task.projectId}`).to('organization').emit(SOCKET_EVENTS.TASK_UPDATED, {
+        action: 'UPDATE',
+        taskId: task.id,
+        projectId: task.projectId
+      });
+    } catch (wsError) {
+      console.warn('WebSocket emission failed:', wsError);
+    }
+
     res.status(200).json(task);
   } catch (error) {
     console.error(error);
@@ -304,6 +331,17 @@ export const deleteTask = async (req: Request, res: Response) => {
       `Task Deleted: ${task.title}`,
       `${'User'} deleted task ${task.key}`
     );
+
+    try {
+      const io = getIO();
+      io.to(`project:${task.projectId}`).to('organization').emit(SOCKET_EVENTS.TASK_UPDATED, {
+        action: 'DELETE',
+        taskId: task.id,
+        projectId: task.projectId
+      });
+    } catch (wsError) {
+      console.warn('WebSocket emission failed:', wsError);
+    }
 
     res.status(200).json({ message: 'Task deleted successfully', task });
   } catch (error) {
@@ -398,6 +436,17 @@ export const moveSprint = async (req: Request, res: Response) => {
       data: { sprintId }
     });
 
+    try {
+      const io = getIO();
+      io.to(`project:${task.projectId}`).to('organization').emit(SOCKET_EVENTS.TASK_UPDATED, {
+        action: 'MOVE_SPRINT',
+        taskId: task.id,
+        projectId: task.projectId
+      });
+    } catch (wsError) {
+      console.warn('WebSocket emission failed:', wsError);
+    }
+
     res.status(200).json(task);
   } catch (error) {
     console.error(error);
@@ -437,6 +486,23 @@ export const addBlocker = async (req: Request, res: Response) => {
         reporterId: userId,
       }
     });
+
+    // Auto-create blocker escalation channel removed for Enterprise Architecture (lazy creation)
+
+    try {
+      const task = await prisma.task.findUnique({ where: { id }, select: { projectId: true } });
+      if (task?.projectId) {
+        const io = getIO();
+        io.to(`project:${task.projectId}`).to('organization').emit(SOCKET_EVENTS.BLOCKER_ADDED, {
+          blocker,
+          projectId: task.projectId,
+          taskId: id
+        });
+      }
+    } catch (wsError) {
+      console.warn('WebSocket emission failed:', wsError);
+    }
+
     res.status(201).json(blocker);
   } catch (error) {
     res.status(500).json({ error: 'Failed to create blocker' });
@@ -494,6 +560,20 @@ export const resolveBlocker = async (req: Request, res: Response) => {
       `Blocker Resolved`,
       `${'User'} resolved blocker with note: ${resolutionNote || 'No note'}`
     );
+
+    try {
+      const task = await prisma.task.findUnique({ where: { id }, select: { projectId: true } });
+      if (task?.projectId) {
+        const io = getIO();
+        io.to(`project:${task.projectId}`).to('organization').emit(SOCKET_EVENTS.BLOCKER_RESOLVED, {
+          blockerId,
+          projectId: task.projectId,
+          taskId: id
+        });
+      }
+    } catch (wsError) {
+      console.warn('WebSocket emission failed:', wsError);
+    }
 
     res.status(200).json(blocker);
   } catch (error) {

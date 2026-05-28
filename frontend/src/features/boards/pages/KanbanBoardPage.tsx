@@ -1,9 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTasks, useUpdateTaskStatus } from '@/features/tasks/api/taskApi';
 import { useSprints } from '@/features/sprints/api/sprintApi';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { TEAM_MEMBERS } from '@/constants/teamMembers';
+import { useSocket } from '@/features/realtime/SocketProvider';
 import type { TaskStatus, Task } from '@/types/core';
+import { AdvancedFilterPanel, initialFilterState } from '@/features/filters/AdvancedFilterPanel';
+import type { FilterState } from '@/features/filters/AdvancedFilterPanel';
 import {
   DndContext,
   DragOverlay,
@@ -180,26 +183,69 @@ export default function KanbanBoardPage() {
   const { data: tasks = [], isLoading } = useTasks(sprintFilter ? { sprintId: sprintFilter } : undefined);
   const updateTaskStatus = useUpdateTaskStatus();
   const { user } = useAuthStore();
+  const { joinProject, leaveProject } = useSocket();
+
+  useEffect(() => {
+    const projectIds = Array.from(new Set(tasks.map((t: any) => t.projectId).filter(Boolean))) as string[];
+    projectIds.forEach(id => joinProject(id));
+    return () => {
+      projectIds.forEach(id => leaveProject(id));
+    };
+  }, [tasks, joinProject, leaveProject]);
   
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
+  
+  // Advanced filters state
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>(initialFilterState);
 
   const filteredTasks = useMemo(() => {
     return tasks
       .filter((t: any) => {
+        // Search query
         if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.key.toLowerCase().includes(search.toLowerCase())) return false;
-        if (assigneeFilter && t.assigneeId !== assigneeFilter) return false;
+        
+        // Sprint filter (legacy dropdown or advanced filters)
         if (sprintFilter) {
           if (t.sprintId !== sprintFilter) return false;
+        } else if (advancedFilters.sprintIds.length > 0) {
+          if (!advancedFilters.sprintIds.includes(t.sprintId)) return false;
         } else {
-          // If "All Sprints" is selected, only show tasks from ACTIVE sprints
           if (!activeSprintIds.includes(t.sprintId)) return false;
         }
+
+        // Priority filter
+        if (advancedFilters.priorities.length > 0 && !advancedFilters.priorities.includes(t.priority)) return false;
+
+        // Assignee filter (legacy select or advanced filters)
+        if (assigneeFilter) {
+          if (t.assigneeId !== assigneeFilter) return false;
+        } else if (advancedFilters.assigneeIds.length > 0) {
+          if (!t.assigneeId || !advancedFilters.assigneeIds.includes(t.assigneeId)) return false;
+        }
+
+        // Project filter
+        if (advancedFilters.projectIds.length > 0 && !advancedFilters.projectIds.includes(t.projectId)) return false;
+
+        // Overdue filter
+        if (advancedFilters.isOverdue) {
+          if (!t.dueDate || t.status === 'DONE') return false;
+          if (new Date(t.dueDate) >= new Date()) return false;
+        }
+
+        // Blocked filter
+        if (advancedFilters.isBlocked) {
+          // If status is BLOCKED or has any active blockers
+          const hasActiveBlockers = t.blockers && t.blockers.some((b: any) => !b.isResolved);
+          if (t.status !== 'BLOCKED' && !hasActiveBlockers) return false;
+        }
+
         return true;
       });
-  }, [tasks, search, assigneeFilter, sprintFilter, activeSprintIds]);
+  }, [tasks, search, assigneeFilter, sprintFilter, activeSprintIds, advancedFilters]);
 
   const columns = useMemo(() => COLUMNS, []);
 
@@ -299,7 +345,7 @@ export default function KanbanBoardPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" className="shadow-sm">
+            <Button variant="outline" className="shadow-sm" onClick={() => setIsFilterPanelOpen(true)}>
               <ListFilter className="w-4 h-4 mr-2" />
               More
             </Button>
@@ -344,6 +390,14 @@ export default function KanbanBoardPage() {
       </div>
 
       <TaskDrawer taskId={drawerTaskId} onClose={() => setDrawerTaskId(null)} />
+      <AdvancedFilterPanel 
+        isOpen={isFilterPanelOpen} 
+        onClose={() => setIsFilterPanelOpen(false)} 
+        filters={advancedFilters} 
+        setFilters={setAdvancedFilters} 
+        sprints={sprints}
+        isBoardView={true}
+      />
     </div>
   );
 }

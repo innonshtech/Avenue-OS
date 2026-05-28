@@ -6,11 +6,13 @@ export interface AuthState {
   user: TeamMember | null;
   token: string | null;
   isAuthenticated: boolean;
+  isCheckingSession: boolean;
   loginTimestamp: number | null;
   rememberSession: boolean;
   login: (user: TeamMember, token: string, rememberMe: boolean) => void;
   logout: () => void;
   setUser: (user: TeamMember) => void;
+  setCheckingSession: (val: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -19,6 +21,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isAuthenticated: false,
+      isCheckingSession: true,
       loginTimestamp: null,
       rememberSession: false,
       login: (user: TeamMember, token: string, rememberSession: boolean) =>
@@ -37,11 +40,11 @@ export const useAuthStore = create<AuthState>()(
         rememberSession: false
       }),
       setUser: (user: TeamMember) => set({ user }),
+      setCheckingSession: (val: boolean) => set({ isCheckingSession: val }),
     }),
     {
       name: 'sprintos-auth-storage',
       // Persist only if rememberSession is true, else we could clear on mount if false.
-      // But standard zustand persist stores it. We will handle session clearing logic in app initialization if needed.
     }
   )
 );

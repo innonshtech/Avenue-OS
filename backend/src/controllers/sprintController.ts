@@ -71,10 +71,11 @@ export const createSprint = async (req: Request, res: Response) => {
 
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
-    if (start < today) {
+    // Timezone-safe check: allow start date if it's within the last 36 hours to account for timezone differences
+    const minStartDate = new Date(Date.now() - 36 * 60 * 60 * 1000);
+
+    if (start < minStartDate) {
       return res.status(400).json({ error: 'Sprint start date cannot be in the past.' });
     }
     if (end < start) {
@@ -119,9 +120,8 @@ export const updateSprint = async (req: Request, res: Response) => {
     
     // Only validate start date against today if it's being updated
     if (startDate) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (start < today) {
+      const minStartDate = new Date(Date.now() - 36 * 60 * 60 * 1000);
+      if (start < minStartDate) {
         return res.status(400).json({ error: 'Sprint start date cannot be in the past.' });
       }
     }

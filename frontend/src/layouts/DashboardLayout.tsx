@@ -17,7 +17,8 @@ import {
   Zap,
   Briefcase,
   Activity,
-  ShieldCheck
+  ShieldCheck,
+  Calendar
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -34,6 +35,8 @@ import {
 } from '@/features/notifications/api/notificationApi';
 import { ROLE_COLORS } from '@/constants/teamMembers';
 import type { UserRole } from '@/types/user';
+import { GlobalSearchBar } from '@/features/search/GlobalSearchBar';
+import { useChannels } from '@/features/chat/api/chatApi';
 
 // Access Control config
 const SIDEBAR_CONFIG: Record<UserRole, { icon: any, label: string, path: string }[]> = {
@@ -43,30 +46,36 @@ const SIDEBAR_CONFIG: Record<UserRole, { icon: any, label: string, path: string 
     { icon: Clock, label: 'Sprints', path: '/dashboard/sprints' },
     { icon: CheckSquare, label: 'Tasks', path: '/dashboard/tasks' },
     { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
+    { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
     { icon: Users, label: 'Standups', path: '/dashboard/standups' },
     { icon: BarChart, label: 'Analytics', path: '/dashboard/analytics' },
     { icon: BarChart, label: 'Reports', path: '/dashboard/reports' },
     { icon: ShieldCheck, label: 'Audit Log', path: '/dashboard/organization-audit' },
     { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
     { icon: Users, label: 'Team Management', path: '/dashboard/team' },
+    { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
   ],
   DEVELOPER: [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: CheckSquare, label: 'My Tasks', path: '/dashboard/my-tasks' },
     { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
+    { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
     { icon: Users, label: 'Standups', path: '/dashboard/standups' },
     { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
     { icon: BarChart, label: 'Sprint Reports', path: '/dashboard/sprint-reports' },
     { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
+    { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
   ],
   MARKETING: [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Briefcase, label: 'Campaign Tasks', path: '/dashboard/campaign-tasks' },
+    { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
     { icon: Users, label: 'Standups', path: '/dashboard/standups' },
     { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
     { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
+    { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
   ],
   ADMIN: [
@@ -74,8 +83,10 @@ const SIDEBAR_CONFIG: Record<UserRole, { icon: any, label: string, path: string 
   ]
 };
 
+import { SessionManager } from '@/features/auth/sessionManager';
+
 export default function DashboardLayout() {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -89,9 +100,11 @@ export default function DashboardLayout() {
     return notifications.filter((n: any) => !n.isRead);
   }, [notifications]);
 
+  const { data: channels = [] } = useChannels();
+  const unreadChatCount = channels.reduce((acc, c) => acc + (c._count?.unread || 0), 0);
+
   const handleLogout = () => {
-    logout();
-    navigate('/signin');
+    SessionManager.performLogout();
   };
 
   const sidebarItems = user ? (SIDEBAR_CONFIG[user.role] || []) : [];
@@ -116,14 +129,28 @@ export default function DashboardLayout() {
               <Link 
                 key={i} 
                 to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors ${
+                className={`flex items-center justify-between px-3 py-2.5 rounded-md transition-colors relative ${
                   isActive 
                   ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium' 
                   : 'hover:bg-accent/50 text-muted-foreground hover:text-foreground font-medium'
                 }`}
               >
-                <item.icon className="w-5 h-5" />
-                <span className="text-sm">{item.label}</span>
+                <div className="flex items-center gap-3">
+                  <item.icon className="w-5 h-5" />
+                  <span className="text-sm">{item.label}</span>
+                </div>
+                
+                {/* Notification Dots */}
+                {item.label === 'Chat' && unreadChatCount > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold text-white">
+                    {unreadChatCount}
+                  </span>
+                )}
+                
+                {/* Generic Notification Check based on notifications array */}
+                {item.label !== 'Chat' && item.path !== '/dashboard' && unreadNotifications.some((n: any) => n.linkUrl?.includes(item.path)) && (
+                  <span className="w-2 h-2 rounded-full bg-indigo-600" />
+                )}
               </Link>
             );
           })}
@@ -138,14 +165,7 @@ export default function DashboardLayout() {
             <button className="md:hidden text-muted-foreground hover:text-foreground">
               <Menu className="w-6 h-6" />
             </button>
-            <div className="hidden sm:flex items-center bg-muted/40 rounded-full px-4 py-2 w-full max-w-md border border-border/50 focus-within:ring-1 focus-within:ring-indigo-500 transition-shadow">
-              <Search className="w-4 h-4 text-muted-foreground mr-3" />
-              <input 
-                type="text" 
-                placeholder="Search projects, tasks, or members..." 
-                className="bg-transparent border-none outline-none text-sm w-full text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
+            <GlobalSearchBar />
           </div>
           
           <div className="flex items-center gap-6">
@@ -236,8 +256,8 @@ export default function DashboardLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          <div className="max-w-7xl mx-auto">
+        <main className={`flex-1 overflow-y-auto ${location.pathname.includes('/chat') ? 'p-2 md:p-4' : 'p-4 md:p-8'}`}>
+          <div className={`${location.pathname.includes('/chat') ? 'w-full h-full mx-auto' : 'max-w-7xl mx-auto'}`}>
             <Outlet />
           </div>
         </main>

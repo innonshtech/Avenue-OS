@@ -18,5 +18,6 @@ router.get('/blockers', adminController.getBlockers);
 router.get('/activity-feed', adminController.getActivityFeed);
 router.get('/audit-logs', adminController.getAuditLogs);
 router.get('/intelligence', adminController.getIntelligence);
+router.get('/security-metrics', adminController.getSecurityMetrics);
 
 export default router;

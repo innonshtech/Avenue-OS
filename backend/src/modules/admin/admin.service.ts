@@ -1,3 +1,4 @@
+import prisma from '../../utils/prisma';
 import { adminRepository } from './admin.repository';
 import { adminAnalytics } from './admin.analytics';
 
@@ -130,6 +131,33 @@ export class AdminService {
     ]);
 
     return adminAnalytics.generateInsights({ projects, workload, blockers });
+  }
+
+  async getSecurityMetrics() {
+    const failedAttempts = await prisma.loginHistory.count({
+      where: { status: { in: ['FAILED', 'LOCKED'] } },
+    });
+
+    const activeSessions = await prisma.userSession.count({
+      where: { isActive: true, expiresAt: { gt: new Date() } },
+    });
+
+    const securityAlerts = await prisma.securityAuditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 15,
+    });
+
+    const recentLogs = await prisma.loginHistory.findMany({
+      orderBy: { loggedInAt: 'desc' },
+      take: 15,
+    });
+
+    return {
+      failedAttempts,
+      activeSessions,
+      securityAlerts,
+      recentLogs,
+    };
   }
 }
 

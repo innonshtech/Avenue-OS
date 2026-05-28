@@ -86,3 +86,13 @@ export const getIntelligence = async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message || 'Failed to fetch intelligence insights' });
   }
 };
+
+export const getSecurityMetrics = async (req: Request, res: Response) => {
+  try {
+    const metrics = await adminService.getSecurityMetrics();
+    res.json(metrics);
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ error: error.message || 'Failed to fetch security metrics' });
+  }
+};

@@ -62,9 +62,8 @@ export const createProject = async (req: Request, res: Response) => {
 
     if (deadline) {
       const deadlineDate = new Date(deadline);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (deadlineDate < today) {
+      const minDeadlineDate = new Date(Date.now() - 36 * 60 * 60 * 1000);
+      if (deadlineDate < minDeadlineDate) {
         return res.status(400).json({ error: 'Project deadline cannot be in the past.' });
       }
     }
@@ -107,9 +106,8 @@ export const updateProject = async (req: Request, res: Response) => {
 
     if (deadline) {
       const deadlineDate = new Date(deadline);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (deadlineDate < today) {
+      const minDeadlineDate = new Date(Date.now() - 36 * 60 * 60 * 1000);
+      if (deadlineDate < minDeadlineDate) {
         return res.status(400).json({ error: 'Project deadline cannot be in the past.' });
       }
     }

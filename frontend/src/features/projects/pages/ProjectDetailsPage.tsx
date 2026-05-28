@@ -6,11 +6,23 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Clock, Activity, CheckCircle2, LayoutDashboard, Target } from 'lucide-react';
 import { ProjectActionDropdown } from '../components/ProjectActionDropdown';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import { useEffect } from 'react';
+import { useSocket } from '@/features/realtime/SocketProvider';
 
 export default function ProjectDetailsPage() {
   const { id } = useParams();
   const { data: project, isLoading } = useProject(id!);
   const { user } = useAuthStore();
+  const { joinProject, leaveProject } = useSocket();
+
+  useEffect(() => {
+    if (id) {
+      joinProject(id);
+      return () => {
+        leaveProject(id);
+      };
+    }
+  }, [id, joinProject, leaveProject]);
 
   if (isLoading) return <div className="flex justify-center p-10">Loading project...</div>;
   if (!project) return <div>Project not found.</div>;

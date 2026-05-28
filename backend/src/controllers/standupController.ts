@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
+import { getIO } from '../sockets/socket.server';
+import { SOCKET_EVENTS } from '../sockets/socket.events';
 
 export const getStandups = async (req: Request, res: Response) => {
   try {
@@ -148,6 +150,30 @@ export const createStandup = async (req: Request, res: Response) => {
       `Daily Standup Submitted`,
       `Today: ${today.substring(0, 100)}${today.length > 100 ? '...' : ''}`
     );
+
+    let projectId: string | null = null;
+    if (sprintId) {
+      const sprint = await prisma.sprint.findUnique({
+        where: { id: sprintId },
+        select: { projectId: true }
+      });
+      projectId = sprint?.projectId || null;
+    }
+
+    try {
+      const io = getIO();
+      const payload = {
+        standup,
+        projectId,
+        sprintId
+      };
+      io.to('organization').emit(SOCKET_EVENTS.STANDUP_SUBMITTED, payload);
+      if (projectId) {
+        io.to(`project:${projectId}`).emit(SOCKET_EVENTS.STANDUP_SUBMITTED, payload);
+      }
+    } catch (wsError) {
+      console.warn('WebSocket emission failed:', wsError);
+    }
 
     res.status(201).json(standup);
   } catch (error) {

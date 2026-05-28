@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTasks } from '../api/taskApi';
 import { useProjects } from '@/features/projects/api/projectApi';
+import { AdvancedFilterPanel, initialFilterState } from '@/features/filters/AdvancedFilterPanel';
+import type { FilterState } from '@/features/filters/AdvancedFilterPanel';
 import { CreateTaskModal } from '../components/CreateTaskModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,14 +21,48 @@ export default function TaskListPage() {
   const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Advanced filters state
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>(initialFilterState);
+
   // Filter tasks based on user role
   const isPM = user?.role === 'PRODUCT_MANAGER';
   
-  const visibleTasks = tasks.filter((t: any) => {
-    if (!isPM && t.assigneeId !== user?.id) return false;
-    if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.key.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const visibleTasks = useMemo(() => {
+    return tasks.filter((t: any) => {
+      // Role permission check
+      if (!isPM && t.assigneeId !== user?.id) return false;
+
+      // Search query
+      if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.key.toLowerCase().includes(search.toLowerCase())) return false;
+
+      // Priorities
+      if (advancedFilters.priorities.length > 0 && !advancedFilters.priorities.includes(t.priority)) return false;
+
+      // Statuses
+      if (advancedFilters.statuses.length > 0 && !advancedFilters.statuses.includes(t.status)) return false;
+
+      // Assignees
+      if (advancedFilters.assigneeIds.length > 0 && !advancedFilters.assigneeIds.includes(t.assigneeId)) return false;
+
+      // Projects
+      if (advancedFilters.projectIds.length > 0 && !advancedFilters.projectIds.includes(t.projectId)) return false;
+
+      // Overdue filter
+      if (advancedFilters.isOverdue) {
+        if (!t.dueDate || t.status === 'DONE') return false;
+        if (new Date(t.dueDate) >= new Date()) return false;
+      }
+
+      // Blocked filter
+      if (advancedFilters.isBlocked) {
+        const hasActiveBlockers = t.blockers && t.blockers.some((b: any) => !b.isResolved);
+        if (t.status !== 'BLOCKED' && !hasActiveBlockers) return false;
+      }
+
+      return true;
+    });
+  }, [tasks, search, isPM, user, advancedFilters]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -66,7 +102,7 @@ export default function TaskListPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button variant="outline" className="shrink-0 shadow-sm">
+          <Button variant="outline" className="shrink-0 shadow-sm" onClick={() => setIsFilterPanelOpen(true)}>
             <ListFilter className="h-4 w-4 mr-2" />
             Filters
           </Button>
@@ -137,6 +173,14 @@ export default function TaskListPage() {
 
       <TaskDrawer taskId={drawerTaskId} onClose={() => setDrawerTaskId(null)} />
       <CreateTaskModal open={isModalOpen} onOpenChange={setIsModalOpen} />
+      <AdvancedFilterPanel 
+        isOpen={isFilterPanelOpen} 
+        onClose={() => setIsFilterPanelOpen(false)} 
+        filters={advancedFilters} 
+        setFilters={setAdvancedFilters}
+        projects={projects}
+        isBoardView={false}
+      />
     </div>
   );
 }

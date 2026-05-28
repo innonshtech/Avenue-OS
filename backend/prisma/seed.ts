@@ -1,4 +1,5 @@
 import { PrismaClient, UserRole, ProjectStatus, SprintStatus, TaskStatus, TaskPriority, BlockerSeverity, BlockerType } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -20,10 +21,17 @@ async function main() {
   // 1. Seed Users
   const createdUsers: Record<string, any> = {};
   for (const u of users) {
+    const hashedPassword = await bcrypt.hash(u.password, 10);
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: u,
-      create: u,
+      update: {
+        ...u,
+        password: hashedPassword,
+      },
+      create: {
+        ...u,
+        password: hashedPassword,
+      },
     });
     createdUsers[u.name] = user;
   }

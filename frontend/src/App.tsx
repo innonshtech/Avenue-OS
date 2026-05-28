@@ -24,14 +24,75 @@ import AdminDashboard from './features/admin/pages/AdminDashboard';
 import MyActivityLogPage from './features/activity/pages/MyActivityLogPage';
 import OrganizationAuditLogPage from './features/activity/pages/OrganizationAuditLogPage';
 import SettingsPage from './features/settings/pages/SettingsPage';
+import CalendarPage from './pages/CalendarPage';
+import ChatPage from './features/chat/pages/ChatPage';
 
+import { useState, useEffect } from 'react';
+import { ShieldAlert } from 'lucide-react';
+import { useAuthStore } from './features/auth/store/authStore';
+import { SessionManager } from './features/auth/sessionManager';
+import { inactivityWatcher } from './features/auth/inactivityWatcher';
 import { Toaster } from '@/components/ui/toaster';
+import { SocketProvider } from './features/realtime/SocketProvider';
 
 const queryClient = new QueryClient();
 
 function App() {
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false);
+
+  useEffect(() => {
+    // 1. Inactivity watcher setup
+    inactivityWatcher.init(
+      () => {
+        setShowInactivityWarning(true);
+      },
+      () => {
+        setShowInactivityWarning(false);
+      }
+    );
+
+    // 2. Validate current session on startup
+    const checkUserSession = async () => {
+      try {
+        await SessionManager.checkSession();
+      } finally {
+        useAuthStore.getState().setCheckingSession(false);
+      }
+    };
+    checkUserSession();
+
+    return () => {
+      inactivityWatcher.destroy();
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
+      <SocketProvider>
+        {showInactivityWarning && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 text-amber-500 mb-4">
+              <ShieldAlert className="w-6 h-6 animate-pulse" />
+              <h3 className="text-lg font-bold text-white tracking-tight">Session Expiring Due to Inactivity</h3>
+            </div>
+            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+              You have been inactive for a while. For security reasons, your Innonsh SprintOS session will automatically expire in 5 minutes. Move your mouse or press any key to keep your session alive.
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  inactivityWatcher.resetTimer();
+                  setShowInactivityWarning(false);
+                }}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Keep Session Active
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <Router>
         <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -75,8 +136,14 @@ function App() {
                 <Route path="activity" element={<MyActivityLogPage />} />
               </Route>
 
+               {/* Chat Route - Accessible to everyone */}
+              <Route path="chat" element={<ChatPage />} />
+
               {/* Settings Route - Accessible to everyone in the dashboard */}
               <Route path="settings" element={<SettingsPage />} />
+              
+              {/* Calendar Timeline Route - Accessible to everyone */}
+              <Route path="calendar" element={<CalendarPage />} />
             </Route>
 
             {/* Admin Route */}
@@ -87,6 +154,7 @@ function App() {
         </Routes>
       </Router>
       <Toaster />
+      </SocketProvider>
     </QueryClientProvider>
   );
 }

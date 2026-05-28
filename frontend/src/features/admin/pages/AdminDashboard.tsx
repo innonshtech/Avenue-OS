@@ -4,7 +4,8 @@ import { SprintMonitoringBoard } from '../components/SprintMonitoringBoard';
 import { TeamPerformanceMatrix } from '../components/TeamPerformanceMatrix';
 import { BlockerMonitoringCenter } from '../components/BlockerMonitoringCenter';
 import { ProductivityInsightsPanel } from '../components/ProductivityInsightsPanel';
-import { ShieldAlert } from 'lucide-react';
+import { SecurityMonitoringPanel } from '../components/SecurityMonitoringPanel';
+import { ShieldAlert, ShieldCheck } from 'lucide-react';
 
 const AdminDashboard = () => {
   return (
@@ -15,17 +16,26 @@ const AdminDashboard = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-              <ShieldAlert className="h-8 w-8 text-blue-500" />
+              <ShieldCheck className="h-8 w-8 text-indigo-500" />
               Executive Operations Center
             </h1>
             <p className="text-slate-400 mt-2">
-              Enterprise Monitoring Layer. Read-only access to all organizational metrics.
+              Enterprise Monitoring Layer. Read-only access to all organizational metrics & security parameters.
             </p>
           </div>
         </div>
 
         {/* Global KPIs */}
         <ExecutiveOverviewCards />
+
+        {/* Enterprise Security Monitoring */}
+        <div className="bg-slate-950/40 border border-slate-900 rounded-2xl p-6">
+          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2.5">
+            <ShieldCheck className="h-6 w-6 text-indigo-400" />
+            Enterprise Security Auditing
+          </h2>
+          <SecurityMonitoringPanel />
+        </div>
 
         {/* Middle Section: Intelligence & Blockers */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
