@@ -110,57 +110,59 @@ export default function TaskListPage() {
       </div>
 
       <div className="rounded-md border border-border bg-card">
-        <table className="w-full text-sm text-left">
-          <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
-            <tr>
-              <th className="px-6 py-4 font-medium w-16">Key</th>
-              <th className="px-6 py-4 font-medium">Title</th>
-              <th className="px-6 py-4 font-medium">Project</th>
-              <th className="px-6 py-4 font-medium">Status</th>
-              <th className="px-6 py-4 font-medium">Priority</th>
-              <th className="px-6 py-4 font-medium">Assignee</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={6} className="text-center py-10">Loading tasks...</td></tr>
-            ) : visibleTasks.map((task: any) => {
-              const project = projects.find((p: any) => p.id === task.projectId);
-              const assignee = TEAM_MEMBERS.find(m => m.id === task.assigneeId);
-              
-              return (
-                <tr 
-                  key={task.id} 
-                  className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
-                  onClick={() => setDrawerTaskId(task.id)}
-                >
-                  <td className="px-6 py-4 font-mono text-xs text-muted-foreground">
-                    {task.key}
-                  </td>
-                  <td className="px-6 py-4 font-medium text-foreground">
-                    <span className="hover:text-indigo-600 transition-colors">{task.title}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-muted-foreground">{project?.name}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge variant="outline" className="text-[10px]">
-                      {task.status.replace('_', ' ')}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`text-xs font-semibold ${getPriorityColor(task.priority)}`}>
-                      {task.priority}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-muted-foreground">
-                    {assignee?.name || 'Unassigned'}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
+              <tr>
+                <th className="px-6 py-4 font-medium w-16">Key</th>
+                <th className="px-6 py-4 font-medium">Title</th>
+                <th className="px-6 py-4 font-medium">Project</th>
+                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-6 py-4 font-medium">Priority</th>
+                <th className="px-6 py-4 font-medium">Assignee</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr><td colSpan={6} className="text-center py-10">Loading tasks...</td></tr>
+              ) : visibleTasks.map((task: any) => {
+                const project = projects.find((p: any) => p.id === task.projectId);
+                const assignee = TEAM_MEMBERS.find(m => m.id === task.assigneeId);
+                
+                return (
+                  <tr 
+                    key={task.id} 
+                    className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors cursor-pointer"
+                    onClick={() => setDrawerTaskId(task.id)}
+                  >
+                    <td className="px-6 py-4 font-mono text-xs text-muted-foreground">
+                      {task.key}
+                    </td>
+                    <td className="px-6 py-4 font-medium text-foreground">
+                      <span className="hover:text-indigo-600 transition-colors">{task.title}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-muted-foreground">{project?.name}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant="outline" className="text-[10px]">
+                        {task.status.replace('_', ' ')}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`text-xs font-semibold ${getPriorityColor(task.priority)}`}>
+                        {task.priority}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-muted-foreground">
+                      {assignee?.name || 'Unassigned'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
         
         {visibleTasks.length === 0 && !isLoading && (
           <div className="flex flex-col items-center justify-center py-20 text-center border-t border-border border-dashed">

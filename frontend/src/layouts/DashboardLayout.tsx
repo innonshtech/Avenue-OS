@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { 
@@ -89,6 +89,7 @@ export default function DashboardLayout() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const { data: notifications = [], isLoading: isLoadingNotifications } = useNotifications();
   const markRead = useMarkNotificationRead();
@@ -111,7 +112,73 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex overflow-hidden">
-      {/* Sidebar */}
+      {/* Mobile Sidebar Backdrop */}
+      {isMobileSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-50 md:hidden backdrop-blur-sm transition-opacity duration-300"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar Content Drawer */}
+      <aside className={`fixed inset-y-0 left-0 w-64 border-r border-border bg-background z-50 md:hidden flex flex-col transition-transform duration-300 transform ${
+        isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-border">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-lg tracking-tight">SprintOS</span>
+          </div>
+          <button 
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="text-muted-foreground hover:text-foreground focus:outline-none"
+            aria-label="Close sidebar menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto py-6 px-3 space-y-1.5">
+          {sidebarItems.map((item, i) => {
+            const isActive = location.pathname === item.path || (location.pathname === '/dashboard' && item.path === '/dashboard');
+            return (
+              <Link 
+                key={i} 
+                to={item.path}
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-md transition-colors relative ${
+                  isActive 
+                  ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium' 
+                  : 'hover:bg-accent/50 text-muted-foreground hover:text-foreground font-medium'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <item.icon className="w-5 h-5" />
+                  <span className="text-sm">{item.label}</span>
+                </div>
+                
+                {/* Notification Dots */}
+                {item.label === 'Chat' && unreadChatCount > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold text-white">
+                    {unreadChatCount}
+                  </span>
+                )}
+                
+                {/* Generic Notification Check based on notifications array */}
+                {item.label !== 'Chat' && item.path !== '/dashboard' && unreadNotifications.some((n: any) => n.linkUrl?.includes(item.path)) && (
+                  <span className="w-2 h-2 rounded-full bg-indigo-600" />
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      </aside>
+
+      {/* Desktop Sidebar */}
       <aside className="w-64 border-r border-border bg-card/30 hidden md:flex flex-col flex-shrink-0">
         <div className="h-16 flex items-center px-6 border-b border-border">
           <div className="flex items-center gap-2">
@@ -162,7 +229,11 @@ export default function DashboardLayout() {
         {/* Topbar */}
         <header className="h-16 border-b border-border bg-background flex items-center justify-between px-4 md:px-6 flex-shrink-0">
           <div className="flex items-center gap-4 w-full max-w-xl">
-            <button className="md:hidden text-muted-foreground hover:text-foreground">
+            <button 
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="md:hidden text-muted-foreground hover:text-foreground focus:outline-none"
+              aria-label="Open sidebar menu"
+            >
               <Menu className="w-6 h-6" />
             </button>
             <GlobalSearchBar />

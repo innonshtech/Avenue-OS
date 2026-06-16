@@ -143,46 +143,48 @@ export default function ProjectListPage() {
         </div>
       ) : (
         <div className="rounded-md border border-border bg-card">
-          <table className="w-full text-sm text-left">
-            <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
-              <tr>
-                <th className="px-6 py-4 font-medium">Project</th>
-                <th className="px-6 py-4 font-medium">Key</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium">Members</th>
-                <th className="px-6 py-4 font-medium text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProjects.map(project => (
-                <tr key={project.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-6 py-4 font-medium text-foreground">
-                    <Link to={`/dashboard/projects/${project.id}`} className="hover:text-indigo-600 transition-colors">{project.name}</Link>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{project.key}</td>
-                  <td className="px-6 py-4">
-                    <Badge variant={project.status === 'ACTIVE' ? 'default' : 'secondary'} className={project.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20' : ''}>
-                      {project.status.replace('_', ' ')}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex -space-x-2">
-                      {project.members.slice(0, 3).map((member, i) => (
-                        <div key={member.id} className="inline-block h-6 w-6 rounded-full ring-2 ring-background bg-muted flex items-center justify-center text-[10px] font-medium">
-                          {i}
-                        </div>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <Link to={`/dashboard/projects/${project.id}`}>
-                      <Button variant="ghost" size="sm">View</Button>
-                    </Link>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
+                <tr>
+                  <th className="px-6 py-4 font-medium">Project</th>
+                  <th className="px-6 py-4 font-medium">Key</th>
+                  <th className="px-6 py-4 font-medium">Status</th>
+                  <th className="px-6 py-4 font-medium">Members</th>
+                  <th className="px-6 py-4 font-medium text-right">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredProjects.map(project => (
+                  <tr key={project.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                    <td className="px-6 py-4 font-medium text-foreground">
+                      <Link to={`/dashboard/projects/${project.id}`} className="hover:text-indigo-600 transition-colors">{project.name}</Link>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{project.key}</td>
+                    <td className="px-6 py-4">
+                      <Badge variant={project.status === 'ACTIVE' ? 'default' : 'secondary'} className={project.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20' : ''}>
+                        {project.status.replace('_', ' ')}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex -space-x-2">
+                        {project.members.slice(0, 3).map((member, i) => (
+                          <div key={member.id} className="inline-block h-6 w-6 rounded-full ring-2 ring-background bg-muted flex items-center justify-center text-[10px] font-medium">
+                            {i}
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Link to={`/dashboard/projects/${project.id}`}>
+                        <Button variant="ghost" size="sm">View</Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
       

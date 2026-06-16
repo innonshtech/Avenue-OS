@@ -121,39 +121,41 @@ export default function SprintDetailsPage() {
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-4">Sprint Tasks Overview</h2>
         <div className="rounded-md border border-border bg-card">
-          <table className="w-full text-sm text-left">
-            <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
-              <tr>
-                <th className="px-6 py-4 font-medium">Task</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium text-center">Points</th>
-                <th className="px-6 py-4 font-medium text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sprintTasks.map(task => (
-                <tr key={task.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1">
-                      <span className="font-mono text-[10px] text-muted-foreground">{task.key}</span>
-                      <span className="font-medium text-foreground">{task.title}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Badge variant="outline" className="text-[10px]">
-                      {task.status.replace('_', ' ')}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 text-center font-mono">
-                    {task.storyPoints || '-'}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <Button variant="ghost" size="sm">Details</Button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
+                <tr>
+                  <th className="px-6 py-4 font-medium">Task</th>
+                  <th className="px-6 py-4 font-medium">Status</th>
+                  <th className="px-6 py-4 font-medium text-center">Points</th>
+                  <th className="px-6 py-4 font-medium text-right">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sprintTasks.map(task => (
+                  <tr key={task.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="font-mono text-[10px] text-muted-foreground">{task.key}</span>
+                        <span className="font-medium text-foreground">{task.title}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant="outline" className="text-[10px]">
+                        {task.status.replace('_', ' ')}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-center font-mono">
+                      {task.storyPoints || '-'}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Button variant="ghost" size="sm">Details</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {sprintTasks.length === 0 && (
              <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
               No tasks in this sprint yet.
