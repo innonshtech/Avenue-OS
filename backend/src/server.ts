@@ -1,11 +1,9 @@
+import 'dotenv/config';
 import http from 'http';
 import app from './app';
-import dotenv from 'dotenv';
 import prisma from './utils/prisma';
 import { initStandupReminderCron } from './jobs/standupReminderJob';
 import { initSocketServer } from './sockets/socket.server';
-
-dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 
