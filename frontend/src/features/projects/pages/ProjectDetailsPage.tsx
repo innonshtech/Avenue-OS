@@ -3,17 +3,20 @@ import { useProject } from '../api/projectApi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Clock, Activity, CheckCircle2, LayoutDashboard, Target } from 'lucide-react';
+import { ArrowLeft, Clock, Activity, CheckCircle2, LayoutDashboard, Target, Users, Settings } from 'lucide-react';
 import { ProjectActionDropdown } from '../components/ProjectActionDropdown';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSocket } from '@/features/realtime/SocketProvider';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { EditProjectModal } from '../components/EditProjectModal';
 
 export default function ProjectDetailsPage() {
   const { id } = useParams();
   const { data: project, isLoading } = useProject(id!);
   const { user } = useAuthStore();
   const { joinProject, leaveProject } = useSocket();
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -87,33 +90,68 @@ export default function ProjectDetailsPage() {
 
         <div className="space-y-6">
           <Card className="bg-card shadow-soft border-muted">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between">
               <CardTitle className="text-sm font-medium flex items-center text-muted-foreground">
-                <Target className="w-4 h-4 mr-2" />
-                Active Sprints
+                <Users className="w-4 h-4 mr-2" />
+                Team Members
               </CardTitle>
+              {user?.role === 'PRODUCT_MANAGER' && (
+                <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-2" onClick={() => setIsEditOpen(true)}>
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{projectSprints.filter(s => s.status === 'ACTIVE').length}</div>
+              <div className="flex flex-col gap-3 max-h-[160px] overflow-y-auto pr-1">
+                {project.members && project.members.length > 0 ? (
+                  project.members.map((member: any) => (
+                    <div key={member.id} className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>{member.user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col overflow-hidden">
+                        <span className="text-sm font-medium leading-none truncate">{member.user?.name}</span>
+                        <span className="text-xs text-muted-foreground mt-1">{member.role}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground">No team members assigned.</div>
+                )}
+              </div>
             </CardContent>
           </Card>
-          <Card className="bg-card shadow-soft border-muted">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center text-muted-foreground">
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                Total Tasks
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{totalTasks}</div>
-            </CardContent>
-          </Card>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <Card className="bg-card shadow-soft border-muted">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium flex items-center text-muted-foreground">
+                  <Target className="w-3 h-3 mr-1" />
+                  Active Sprints
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{projectSprints.filter((s: any) => s.status === 'ACTIVE').length}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-card shadow-soft border-muted">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-medium flex items-center text-muted-foreground">
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  Tasks
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalTasks}</div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
       <h2 className="text-xl font-semibold mt-10 mb-4">Sprints</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {projectSprints.map(sprint => (
+        {projectSprints.map((sprint: any) => (
           <Link key={sprint.id} to={`/dashboard/sprints/${sprint.id}`} className="group outline-none">
             <Card className="h-full bg-card shadow-soft hover:shadow-md transition-all duration-200 border-muted group-hover:border-indigo-500/30 group-focus-visible:ring-2 ring-indigo-500">
               <CardHeader className="pb-3">
@@ -145,6 +183,8 @@ export default function ProjectDetailsPage() {
           </div>
         )}
       </div>
+
+      <EditProjectModal open={isEditOpen} onOpenChange={setIsEditOpen} project={project} />
     </div>
   );
 }

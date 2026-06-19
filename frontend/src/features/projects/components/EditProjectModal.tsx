@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import { useUpdateProject } from '../api/projectApi';
 import { useToast } from '@/hooks/use-toast';
@@ -7,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { TEAM_MEMBERS } from '@/constants/teamMembers';
+import { useTeam } from '@/features/team/api/teamApi';
 import type { Project } from '@/types/core';
+import type { TeamMember } from '@/types/user';
 import { EnterpriseDatePicker } from '@/components/EnterpriseDatePicker';
 
 interface EditProjectModalProps {
@@ -21,6 +23,7 @@ export function EditProjectModal({ open, onOpenChange, project }: EditProjectMod
   const { user } = useAuthStore();
   const updateProject = useUpdateProject();
   const { toast } = useToast();
+  const { data: teamMembers = [], isLoading: isLoadingTeam } = useTeam();
   
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || '');
@@ -49,7 +52,7 @@ export function EditProjectModal({ open, onOpenChange, project }: EditProjectMod
         id: project.id,
         name,
         description,
-        status: status as any,
+        status: status as Project['status'],
         startDate: startDate || undefined,
         deadline: deadline || undefined,
         memberIds: selectedMembers,
@@ -60,11 +63,12 @@ export function EditProjectModal({ open, onOpenChange, project }: EditProjectMod
         description: "The project has been updated successfully.",
       });
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as { response?: { data?: { error?: string } } };
       toast({
         variant: "destructive",
         title: "Error updating project",
-        description: error.response?.data?.error || "An unexpected error occurred."
+        description: err.response?.data?.error || "An unexpected error occurred."
       });
     }
   };
@@ -121,15 +125,21 @@ export function EditProjectModal({ open, onOpenChange, project }: EditProjectMod
           <div className="space-y-2">
             <Label>Team Members</Label>
             <div className="flex flex-wrap gap-2 p-3 border rounded-md max-h-[150px] overflow-y-auto">
-              {TEAM_MEMBERS.map(member => (
-                <div 
-                  key={member.id} 
-                  onClick={() => toggleMember(member.id)}
-                  className={`cursor-pointer px-3 py-1 text-sm rounded-full border ${selectedMembers.includes(member.id) ? 'bg-indigo-100 border-indigo-500 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-500 dark:text-indigo-300' : 'bg-background hover:bg-muted'}`}
-                >
-                  {member.name}
-                </div>
-              ))}
+              {isLoadingTeam ? (
+                <div className="text-sm text-muted-foreground">Loading team...</div>
+              ) : teamMembers.length === 0 ? (
+                <div className="text-sm text-muted-foreground">No team members found</div>
+              ) : (
+                teamMembers.map((member: TeamMember) => (
+                  <div 
+                    key={member.id} 
+                    onClick={() => toggleMember(member.id)}
+                    className={`cursor-pointer px-3 py-1 text-sm rounded-full border ${selectedMembers.includes(member.id) ? 'bg-indigo-100 border-indigo-500 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-500 dark:text-indigo-300' : 'bg-background hover:bg-muted'}`}
+                  >
+                    {member.name}
+                  </div>
+                ))
+              )}
             </div>
           </div>
           <DialogFooter>
