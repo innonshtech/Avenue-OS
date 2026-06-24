@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Zap, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,76 +50,69 @@ export default function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-background p-8">
-        <div className="text-center space-y-4 max-w-md">
-          <h2 className="text-2xl font-bold">Invalid Link</h2>
-          <p className="text-muted-foreground">This password reset link is invalid or missing the token. Please request a new one.</p>
-          <Button onClick={() => navigate('/forgot-password')}>Request New Link</Button>
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 p-4">
+        <div className="w-full max-w-[480px] bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-8 text-center space-y-4">
+          <h2 className="text-xl font-bold tracking-tight text-slate-900">Invalid Link</h2>
+          <p className="text-sm font-medium text-slate-500 pb-2">This password reset link is invalid or missing the token. Please request a new one.</p>
+          <Button onClick={() => navigate('/forgot-password')} className="h-10 bg-[#564de6] hover:bg-[#4a40cc] text-white shadow-sm transition-all text-sm font-bold tracking-wide rounded-lg">Request New Link</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col md:flex-row bg-background">
-      <div className="hidden md:flex md:w-1/2 lg:w-5/12 bg-zinc-950 p-10 lg:p-14 flex-col justify-between relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-zinc-950 to-zinc-950 pointer-events-none" />
-        <div className="relative z-10 flex flex-col h-full justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-16">
-              <div className="bg-emerald-600 p-2 rounded-xl">
-                <Zap className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-white tracking-tight">Innonsh SprintOS</span>
-            </div>
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-8">
-              <div className="space-y-4">
-                <h1 className="text-4xl lg:text-5xl font-bold text-white leading-[1.1]">
-                  Set New<br />Password
-                </h1>
-                <p className="text-zinc-400 text-lg leading-relaxed max-w-md">
-                  Please enter a strong, secure password for your account.
-                </p>
-              </div>
-            </motion.div>
-          </div>
-        </div>
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 relative overflow-hidden p-4">
+      {/* Background radial gradient to mimic the soft glow */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[800px] h-[800px] bg-[#564de6]/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="w-full md:w-1/2 lg:w-7/12 flex items-center justify-center p-8 sm:p-12 lg:p-24 bg-background">
-        <div className="w-full max-w-[440px] space-y-8">
-          <div className="text-center md:text-left space-y-2">
-            <h2 className="text-3xl font-bold tracking-tight">Reset Password</h2>
-            <p className="text-muted-foreground">Enter your new password below.</p>
+      <div className="relative z-10 w-full max-w-[480px] flex flex-col items-center">
+        {/* Header Section */}
+        <div className="text-center mb-6 space-y-2">
+          <img src="/logo.png" alt="SprintOS Logo" className="h-10 w-auto object-contain mx-auto mb-1" />
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Set New Password</h1>
+          <p className="text-xs font-bold text-slate-400 tracking-widest uppercase">Internal Engineering Management Hub</p>
+        </div>
+
+        {/* Auth Card */}
+        <div className="w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 sm:p-8">
+          <div className="text-center md:text-left space-y-2 mb-6">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">Reset Password</h2>
+            <p className="text-sm font-medium text-slate-500">
+              Please enter a strong, secure password for your account.
+            </p>
           </div>
 
-          <form onSubmit={onSubmit} className="space-y-6">
+          <form onSubmit={onSubmit} className="space-y-5">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="password">New Password</Label>
+                <Label htmlFor="password" className="text-xs font-bold text-slate-500 uppercase tracking-wider">New Password</Label>
                 <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 bg-muted/50 border-muted focus-visible:ring-emerald-500"
+                  placeholder="••••••••••••"
+                  className="h-10 bg-slate-50/50 border-slate-200 focus-visible:ring-[#564de6] font-medium text-slate-700 tracking-widest placeholder:tracking-normal"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Label htmlFor="confirmPassword" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Confirm New Password</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="h-12 bg-muted/50 border-muted focus-visible:ring-emerald-500"
+                  placeholder="••••••••••••"
+                  className="h-10 bg-slate-50/50 border-slate-200 focus-visible:ring-[#564de6] font-medium text-slate-700 tracking-widest placeholder:tracking-normal"
                   required
                 />
               </div>
             </div>
 
-            <Button type="submit" disabled={isSubmitting} className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white shadow-soft transition-all text-base font-medium flex items-center justify-center gap-2">
+            <Button type="submit" disabled={isSubmitting} className="w-full h-10 bg-[#564de6] hover:bg-[#4a40cc] text-white shadow-sm transition-all text-sm font-bold tracking-wide flex items-center justify-center gap-2 rounded-lg">
               {isSubmitting ? 'Resetting...' : 'Set Password'}
               {!isSubmitting && <ChevronRight className="w-4 h-4" />}
             </Button>

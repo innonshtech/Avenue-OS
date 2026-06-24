@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Zap, ChevronRight, ArrowLeft } from 'lucide-react';
+import { ChevronRight, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,66 +35,55 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col md:flex-row bg-background">
-      <div className="hidden md:flex md:w-1/2 lg:w-5/12 bg-zinc-950 p-10 lg:p-14 flex-col justify-between relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-zinc-950 to-zinc-950 pointer-events-none" />
-        <div className="relative z-10 flex flex-col h-full justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-16">
-              <div className="bg-indigo-600 p-2 rounded-xl">
-                <Zap className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-2xl font-bold text-white tracking-tight">Innonsh SprintOS</span>
-            </div>
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-8">
-              <div className="space-y-4">
-                <h1 className="text-4xl lg:text-5xl font-bold text-white leading-[1.1]">
-                  Account<br />Recovery
-                </h1>
-                <p className="text-zinc-400 text-lg leading-relaxed max-w-md">
-                  Enter your email address to receive a secure password reset link.
-                </p>
-              </div>
-            </motion.div>
-          </div>
-        </div>
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 relative overflow-hidden p-4">
+      {/* Background radial gradient to mimic the soft glow */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[800px] h-[800px] bg-[#564de6]/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="w-full md:w-1/2 lg:w-7/12 flex items-center justify-center p-8 sm:p-12 lg:p-24 bg-background">
-        <div className="w-full max-w-[440px] space-y-8">
-          <div className="text-center md:text-left space-y-2">
-            <button onClick={() => navigate('/signin')} className="flex items-center text-sm text-muted-foreground hover:text-foreground mb-4">
+      <div className="relative z-10 w-full max-w-[480px] flex flex-col items-center">
+        {/* Header Section */}
+        <div className="text-center mb-6 space-y-2">
+          <img src="/logo.png" alt="SprintOS Logo" className="h-10 w-auto object-contain mx-auto mb-1" />
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Account Recovery</h1>
+          <p className="text-xs font-bold text-slate-400 tracking-widest uppercase">Internal Engineering Management Hub</p>
+        </div>
+
+        {/* Auth Card */}
+        <div className="w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 sm:p-8">
+          <div className="text-center md:text-left space-y-2 mb-6">
+            <button onClick={() => navigate('/signin')} className="flex items-center text-sm font-semibold text-slate-400 hover:text-[#564de6] transition-colors mb-4">
               <ArrowLeft className="w-4 h-4 mr-1" /> Back to Sign In
             </button>
-            <h2 className="text-3xl font-bold tracking-tight">Forgot Password</h2>
-            <p className="text-muted-foreground">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">Forgot Password</h2>
+            <p className="text-sm font-medium text-slate-500">
               {submitted ? "Check your email for a link to reset your password." : "We'll send you an email with a link to reset your password."}
             </p>
           </div>
 
           {!submitted ? (
-            <form onSubmit={onSubmit} className="space-y-6">
+            <form onSubmit={onSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email">Work Email</Label>
+                <Label htmlFor="email" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Work Email</Label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@innonsh.com"
-                  className="h-12 bg-muted/50 border-muted focus-visible:ring-indigo-500"
+                  className="h-10 bg-slate-50/50 border-slate-200 focus-visible:ring-[#564de6] font-medium text-slate-700"
                   required
                 />
               </div>
 
-              <Button type="submit" disabled={isSubmitting} className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white shadow-soft transition-all text-base font-medium flex items-center justify-center gap-2">
+              <Button type="submit" disabled={isSubmitting} className="w-full h-10 bg-[#564de6] hover:bg-[#4a40cc] text-white shadow-sm transition-all text-sm font-bold tracking-wide flex items-center justify-center gap-2 rounded-lg">
                 {isSubmitting ? 'Sending...' : 'Send Reset Link'}
                 {!isSubmitting && <ChevronRight className="w-4 h-4" />}
               </Button>
             </form>
           ) : (
-            <div className="bg-indigo-500/10 border border-indigo-500/20 p-6 rounded-xl text-center">
-              <p className="text-indigo-600 font-medium">A password reset link has been successfully sent to your email. Please check your inbox to proceed.</p>
+            <div className="bg-[#564de6]/10 border border-[#564de6]/20 p-6 rounded-xl text-center">
+              <p className="text-[#564de6] font-medium text-sm">A password reset link has been successfully sent to your email. Please check your inbox to proceed.</p>
             </div>
           )}
         </div>
