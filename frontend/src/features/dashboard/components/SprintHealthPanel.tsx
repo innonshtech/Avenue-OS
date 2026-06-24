@@ -9,7 +9,7 @@ interface SprintHealthProps {
 }
 
 export default function SprintHealthPanel({ health, isLoading }: SprintHealthProps) {
-  if (isLoading || !health) {
+  if (isLoading) {
     return (
       <Card className="h-full bg-card shadow-soft border-muted animate-pulse">
         <CardHeader><CardTitle className="bg-muted h-6 w-1/3 rounded"></CardTitle></CardHeader>
@@ -18,7 +18,7 @@ export default function SprintHealthPanel({ health, isLoading }: SprintHealthPro
     );
   }
 
-  if (health.activeSprint === null) {
+  if (!health || health.activeSprint === null) {
     return (
       <Card className="h-full bg-card shadow-soft border-muted flex flex-col justify-center items-center text-center p-6 text-muted-foreground">
         <Activity className="w-12 h-12 mb-4 opacity-20" />

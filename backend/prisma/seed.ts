@@ -8,6 +8,7 @@ const users = [
   { name: "Chetana", email: "chetana.innonsh@gmail.com", password: "chetana123", role: UserRole.DEVELOPER, department: "Engineering", avatar: "https://i.pravatar.cc/150?u=chetana" },
   { name: "Lokeek", email: "lokeek.innonsh@gmail.com", password: "lokeek123", role: UserRole.DEVELOPER, department: "Engineering", avatar: "https://i.pravatar.cc/150?u=lokeek" },
   { name: "Vaibhav", email: "vaibhav.innonsh@gmail.com", password: "vaibhav123", role: UserRole.DEVELOPER, department: "Engineering", avatar: "https://i.pravatar.cc/150?u=vaibhav" },
+  { name: "Yukta", email: "yukta.innonsh@gmail.com", password: "yukta123", role: UserRole.DEVELOPER, department: "Engineering", avatar: "https://i.pravatar.cc/150?u=yukta" },
   { name: "Aniket", email: "aniket.innonsh@gmail.com", password: "aniket123", role: UserRole.DEVELOPER, department: "Engineering", avatar: "https://i.pravatar.cc/150?u=aniket" },
   { name: "Tasmiya Shaikh", email: "tasmiya.shaikh@innonsh.com", password: "tasmiya123", role: UserRole.MARKETING, department: "Marketing", avatar: "https://i.pravatar.cc/150?u=tasmiya" },
   { name: "Reshma", email: "reshma.innonsh@gmail.com", password: "reshma123", role: UserRole.MARKETING, department: "Marketing", avatar: "https://i.pravatar.cc/150?u=reshma" },
@@ -36,6 +37,9 @@ async function main() {
   }
   const saket = createdUsers["Saket"];
   const lokeek = createdUsers["Lokeek"];
+  const chetana = createdUsers["Chetana"];
+  const yukta = createdUsers["Yukta"];
+  const vaibhav = createdUsers["Vaibhav"];
 
   if (!saket || !lokeek) {
     console.error("Users Saket or Lokeek not found, skipping mock data.");
@@ -63,7 +67,10 @@ async function main() {
   await prisma.projectMember.createMany({
     data: [
       { projectId: project.id, userId: saket.id, role: "LEAD" },
-      { projectId: project.id, userId: lokeek.id, role: "MEMBER" }
+      { projectId: project.id, userId: lokeek.id, role: "MEMBER" },
+      { projectId: project.id, userId: chetana.id, role: "MEMBER" },
+      { projectId: project.id, userId: yukta.id, role: "MEMBER" },
+      { projectId: project.id, userId: vaibhav.id, role: "MEMBER" }
     ],
     skipDuplicates: true
   });
@@ -84,7 +91,10 @@ async function main() {
   await prisma.sprintMember.createMany({
     data: [
       { sprintId: sprint1.id, userId: saket.id },
-      { sprintId: sprint1.id, userId: lokeek.id }
+      { sprintId: sprint1.id, userId: lokeek.id },
+      { sprintId: sprint1.id, userId: chetana.id },
+      { sprintId: sprint1.id, userId: yukta.id },
+      { sprintId: sprint1.id, userId: vaibhav.id }
     ],
     skipDuplicates: true
   });
@@ -94,8 +104,9 @@ async function main() {
     { key: "SPSM-1", title: "Setup PostgreSQL Database", description: "Initialize Prisma", type: "TASK", status: TaskStatus.DONE, priority: TaskPriority.HIGH, storyPoints: 3, projectId: project.id, sprintId: sprint1.id, assigneeId: lokeek.id, creatorId: saket.id },
     { key: "SPSM-2", title: "Build Auth Login Page", description: "Create SignInPage.tsx", type: "STORY", status: TaskStatus.IN_REVIEW, priority: TaskPriority.MEDIUM, storyPoints: 5, projectId: project.id, sprintId: sprint1.id, assigneeId: lokeek.id, creatorId: saket.id },
     { key: "SPSM-3", title: "Configure Zustand Stores", description: "Setup state management", type: "TASK", status: TaskStatus.IN_PROGRESS, priority: TaskPriority.HIGH, storyPoints: 5, projectId: project.id, sprintId: sprint1.id, assigneeId: saket.id, creatorId: lokeek.id },
-    { key: "SPSM-4", title: "DND Kit Kanban Board", description: "Implement drag and drop", type: "STORY", status: TaskStatus.TODO, priority: TaskPriority.URGENT, storyPoints: 8, projectId: project.id, sprintId: sprint1.id, assigneeId: lokeek.id, creatorId: saket.id },
-    { key: "SPSM-5", title: "Review Architecture", description: "Review system architecture", type: "TASK", status: TaskStatus.TODO, priority: TaskPriority.MEDIUM, storyPoints: 3, projectId: project.id, sprintId: sprint1.id, assigneeId: saket.id, creatorId: lokeek.id }
+    { key: "SPSM-4", title: "DND Kit Kanban Board", description: "Implement drag and drop", type: "STORY", status: TaskStatus.TODO, priority: TaskPriority.URGENT, storyPoints: 8, projectId: project.id, sprintId: sprint1.id, assigneeId: chetana.id, creatorId: saket.id },
+    { key: "SPSM-5", title: "Review Architecture", description: "Review system architecture", type: "TASK", status: TaskStatus.TODO, priority: TaskPriority.MEDIUM, storyPoints: 3, projectId: project.id, sprintId: sprint1.id, assigneeId: yukta.id, creatorId: lokeek.id },
+    { key: "SPSM-6", title: "Setup Email Service", description: "Integrate Sendgrid", type: "TASK", status: TaskStatus.TODO, priority: TaskPriority.HIGH, storyPoints: 5, projectId: project.id, sprintId: sprint1.id, assigneeId: vaibhav.id, creatorId: saket.id }
   ];
 
   const createdTasks: Record<string, any> = {};

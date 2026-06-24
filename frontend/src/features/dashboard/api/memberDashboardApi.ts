@@ -12,6 +12,17 @@ export const useMemberOverview = () => {
   });
 };
 
+export const useMemberSummary = () => {
+  return useQuery({
+    queryKey: ['dashboard', 'member-summary'],
+    queryFn: async () => {
+      const response = await api.get('/dashboard/member-summary');
+      return response.data;
+    },
+    refetchInterval: 60000,
+  });
+};
+
 export const useTodayFocus = () => {
   return useQuery({
     queryKey: ['dashboard', 'focus'],

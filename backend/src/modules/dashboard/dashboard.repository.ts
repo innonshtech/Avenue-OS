@@ -3,7 +3,8 @@ import { autoUpdateSprintStatuses } from '../../utils/sprintUpdater';
 
 export class DashboardRepository {
   async getSprint(sprintId?: string) {
-    await autoUpdateSprintStatuses();
+    // Run asynchronously to prevent blocking the dashboard load
+    autoUpdateSprintStatuses().catch(console.error);
     
     if (sprintId) {
       return prisma.sprint.findUnique({
@@ -94,6 +95,24 @@ export class DashboardRepository {
           }
         }
       }
+    });
+  }
+
+  async getActiveProjectsCount() {
+    return prisma.project.count({
+      where: { status: 'ACTIVE' }
+    });
+  }
+
+  async getGlobalBlockersCount() {
+    return prisma.blocker.count({
+      where: { isResolved: false }
+    });
+  }
+
+  async getTotalActiveTasksCount() {
+    return prisma.task.count({
+      where: { status: { not: 'DONE' } }
     });
   }
 }

@@ -46,3 +46,14 @@ export const getStandupMonitoring = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const getPMSummary = async (req: Request, res: Response) => {
+  try {
+    const sprintId = req.query.sprintId as string;
+    const data = await dashboardService.getPMSummary(sprintId);
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching PM summary:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

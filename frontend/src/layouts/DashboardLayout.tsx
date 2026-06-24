@@ -314,8 +314,12 @@ export default function DashboardLayout() {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer">Profile</DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">Settings</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/dashboard/settings')}>
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/dashboard/settings')}>
+                  Settings
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive" onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" />

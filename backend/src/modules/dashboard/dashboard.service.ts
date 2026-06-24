@@ -7,8 +7,8 @@ export class DashboardService {
     this.repo = new DashboardRepository();
   }
 
-  async getSprintHealth(sprintId?: string) {
-    const activeSprint = await this.repo.getSprint(sprintId);
+  async getSprintHealth(sprintId?: string, preloadedSprint?: any) {
+    const activeSprint = preloadedSprint || await this.repo.getSprint(sprintId);
     
     if (!activeSprint) {
       return {
@@ -71,9 +71,9 @@ export class DashboardService {
     };
   }
 
-  async getTeamWorkload(sprintId?: string) {
-    const activeSprint = await this.repo.getSprint(sprintId);
-    const members = await this.repo.getTeamMembers();
+  async getTeamWorkload(sprintId?: string, preloadedSprint?: any, preloadedMembers?: any) {
+    const activeSprint = preloadedSprint || await this.repo.getSprint(sprintId);
+    const members = preloadedMembers || await this.repo.getTeamMembers();
     
     if (!activeSprint) return [];
 
@@ -105,8 +105,8 @@ export class DashboardService {
     });
   }
 
-  async getBoardSnapshot(sprintId?: string) {
-    const activeSprint = await this.repo.getSprint(sprintId);
+  async getBoardSnapshot(sprintId?: string, preloadedSprint?: any) {
+    const activeSprint = preloadedSprint || await this.repo.getSprint(sprintId);
     if (!activeSprint) return null;
 
     const tasks = activeSprint.tasks || [];
@@ -130,12 +130,12 @@ export class DashboardService {
     };
   }
 
-  async getStandupMonitoring(sprintId?: string) {
-    const activeSprint = await this.repo.getSprint(sprintId);
+  async getStandupMonitoring(sprintId?: string, preloadedSprint?: any, preloadedMembers?: any) {
+    const activeSprint = preloadedSprint || await this.repo.getSprint(sprintId);
     if (!activeSprint) return [];
 
     const standups = await this.repo.getLatestStandups(activeSprint.id);
-    const members = await this.repo.getTeamMembers();
+    const members = preloadedMembers || await this.repo.getTeamMembers();
     
     // Group by member, get latest
     const latestStandups: any[] = [];
@@ -161,5 +161,48 @@ export class DashboardService {
     });
 
     return latestStandups;
+  }
+
+  async getPMSummary(sprintId?: string) {
+    const [activeSprint, members] = await Promise.all([
+      this.repo.getSprint(sprintId),
+      this.repo.getTeamMembers()
+    ]);
+    
+    if (!activeSprint) {
+      return {
+        health: null,
+        workload: [],
+        boardSnapshot: null,
+        standups: [],
+        kpis: {
+          activeProjects: 0,
+          totalActiveTasks: 0,
+          globalBlockers: 0,
+        }
+      };
+    }
+
+    const [health, workload, boardSnapshot, standups, activeProjects, globalBlockers, totalActiveTasks] = await Promise.all([
+      this.getSprintHealth(sprintId, activeSprint),
+      this.getTeamWorkload(sprintId, activeSprint, members),
+      this.getBoardSnapshot(sprintId, activeSprint),
+      this.getStandupMonitoring(sprintId, activeSprint, members),
+      this.repo.getActiveProjectsCount(),
+      this.repo.getGlobalBlockersCount(),
+      this.repo.getTotalActiveTasksCount()
+    ]);
+
+    return {
+      health,
+      workload,
+      boardSnapshot,
+      standups,
+      kpis: {
+        activeProjects,
+        totalActiveTasks,
+        globalBlockers
+      }
+    };
   }
 }

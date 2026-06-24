@@ -22,9 +22,12 @@ interface ChatSidebarProps {
   onSearchOpen: () => void;
 }
 
+import { useTeam } from '@/features/team/api/teamApi';
+
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onSearchOpen }) => {
   const { user: currentUser } = useAuthStore();
-  const { data: channels = [], isLoading } = useChannels();
+  const { data: channels = [], isLoading: isLoadingChannels } = useChannels();
+  const { data: teamMembers = [] } = useTeam();
   const { activeChannelId, setActiveChannelId, userPresences } = useChatStore();
 
   // Helper to extract DM recipient profile
@@ -68,7 +71,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onSearchOpen }) => {
 
       {/* Categories scroll area */}
       <div className="flex-1 overflow-y-auto p-3 space-y-5 scrollbar-thin">
-        {isLoading ? (
+        {isLoadingChannels ? (
           <div className="flex items-center justify-center py-10">
             <span className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
           </div>
@@ -244,7 +247,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onSearchOpen }) => {
               <div className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-wider px-2.5 mb-1.5">
                 Start DM with Member
               </div>
-              {TEAM_MEMBERS.filter((m) => m.id !== currentUser?.id).map((member) => (
+              {teamMembers.filter((m) => m.id !== currentUser?.id).map((member) => (
                 <button
                   key={member.id}
                   onClick={() => {

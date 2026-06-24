@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { ROLE_COLORS } from '@/constants/teamMembers';
 import api from '@/lib/api';
@@ -53,15 +52,7 @@ export default function TeamManagementPage() {
             {/* Online Status Indicator */}
             <div className={`absolute top-4 right-4 w-3 h-3 rounded-full ${member.isOnline ? 'bg-emerald-500' : 'bg-muted'} ring-2 ring-background`} />
             
-            <CardHeader className="text-center pb-2">
-              <div className="mx-auto w-20 h-20 mb-4 relative">
-                <Avatar className="w-full h-full border-4 border-background shadow-sm">
-                  <AvatarImage src={member.avatar} />
-                  <AvatarFallback className="text-xl bg-indigo-100 text-indigo-700">
-                    {member.name?.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
+            <CardHeader className="text-center pb-2 pt-6">
               <CardTitle className="text-lg">{member.name}</CardTitle>
               <CardDescription className="flex justify-center items-center gap-2 mt-1">
                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wider border ${ROLE_COLORS[member.role] || ''}`}>

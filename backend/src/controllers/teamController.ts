@@ -12,7 +12,6 @@ const checkPMRole = (req: Request, res: Response) => {
 };
 
 export const getTeam = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
   try {
     const team = await prisma.user.findMany({
       include: {

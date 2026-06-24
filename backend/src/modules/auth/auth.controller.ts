@@ -34,7 +34,7 @@ export class AuthController {
   static async login(req: Request, res: Response, next: NextFunction) {
     const ipAddress = (req.headers['x-forwarded-for'] as string) || req.ip || '';
     const userAgent = req.headers['user-agent'] || '';
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     const { browser, device } = parseUserAgent(userAgent);
     const deviceName = `${device} - ${browser}`;
@@ -146,29 +146,27 @@ export class AuthController {
       }
 
       // 4. Generate refresh token & session
-      // Create session first to get session ID
-      const session = await prisma.userSession.create({
+      const cryptoModule = await import('crypto');
+      const sessionId = cryptoModule.randomUUID();
+      const sessionExpiresIn = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000; // 30 days or 1 day in DB
+      
+      const refreshToken = TokenService.generateRefreshToken({
+        userId: user.id,
+        sessionId: sessionId,
+      });
+
+      const hash = cryptoModule.createHash('sha256').update(refreshToken).digest('hex');
+
+      await prisma.userSession.create({
         data: {
+          id: sessionId,
           userId: user.id,
-          refreshTokenHash: '', // Placeholder, will update below
+          refreshTokenHash: hash,
           ipAddress,
           userAgent,
           deviceName,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+          expiresAt: new Date(Date.now() + sessionExpiresIn),
         },
-      });
-
-      const refreshToken = TokenService.generateRefreshToken({
-        userId: user.id,
-        sessionId: session.id,
-      });
-
-      // Update session with hashed refresh token
-      const crypto = await import('crypto');
-      const hash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-      await prisma.userSession.update({
-        where: { id: session.id },
-        data: { refreshTokenHash: hash },
       });
 
       // 5. Generate access token
@@ -186,15 +184,20 @@ export class AuthController {
         maxAge: 15 * 60 * 1000, // 15 mins
       });
 
-      res.cookie('refreshToken', refreshToken, {
+      const refreshCookieOptions: any = {
         httpOnly: true,
         secure: COOKIE_SECURE,
-        sameSite: COOKIE_SAME_SITE as any,
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
+        sameSite: COOKIE_SAME_SITE,
+      };
+      
+      if (rememberMe) {
+        refreshCookieOptions.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+      }
+
+      res.cookie('refreshToken', refreshToken, refreshCookieOptions);
 
       // 7. Log login history & security audit
-      await prisma.loginHistory.create({
+      prisma.loginHistory.create({
         data: {
           userId: user.id,
           email: user.email,
@@ -203,9 +206,9 @@ export class AuthController {
           deviceName,
           status: 'SUCCESS',
         },
-      });
+      }).catch(console.error);
 
-      await prisma.securityAuditLog.create({
+      prisma.securityAuditLog.create({
         data: {
           userId: user.id,
           action: 'LOGIN_SUCCESS',
@@ -214,7 +217,7 @@ export class AuthController {
           userAgent,
           metadata: { deviceName },
         },
-      });
+      }).catch(console.error);
 
       return res.status(200).json({
         success: true,

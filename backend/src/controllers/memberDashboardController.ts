@@ -99,6 +99,101 @@ export const getMemberOverview = async (req: Request, res: Response) => {
   }
 };
 
+export const getMemberSummary = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // 1. Get active sprint
+    const activeSprint = await prisma.sprint.findFirst({
+      where: { status: 'ACTIVE' },
+      include: {
+        tasks: {
+          where: { assigneeId: userId }
+        }
+      }
+    });
+
+    // 2. Get user's tasks with full relations for the UI
+    const tasks = await prisma.task.findMany({
+      where: { assigneeId: userId },
+      include: { project: true, sprint: true, blockers: { where: { isResolved: false } } },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const pendingTasks = tasks.filter(t => t.status !== TaskStatus.DONE);
+    const completedTasks = tasks.filter(t => t.status === TaskStatus.DONE);
+    
+    // Sprint specific metrics
+    const tasksInActiveSprint = activeSprint ? activeSprint.tasks : [];
+    const completedThisSprint = tasksInActiveSprint.filter(t => t.status === TaskStatus.DONE).length;
+    
+    // Calculate story points (completed vs total pending)
+    const storyPoints = completedTasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
+
+    // Date calculations for due dates
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const dueToday = pendingTasks.filter(t => {
+      if (!t.dueDate) return false;
+      const dueDate = new Date(t.dueDate);
+      return dueDate >= today && dueDate < tomorrow;
+    });
+
+    const overdueTasks = pendingTasks.filter(t => {
+      if (!t.dueDate) return false;
+      return new Date(t.dueDate) < today;
+    });
+
+    const urgentTasks = pendingTasks.filter(t => t.priority === 'URGENT' || t.priority === 'CRITICAL');
+
+    // Review Queue
+    const reviewQueue = pendingTasks.filter(t => t.status === TaskStatus.IN_REVIEW);
+
+    // Active Blockers
+    const blockers = tasks.flatMap(t => t.blockers);
+
+    // Sprint Progress
+    let sprintProgress = 0;
+    if (activeSprint) {
+      const totalTasks = tasksInActiveSprint.length;
+      if (totalTasks > 0) {
+        sprintProgress = (completedThisSprint / totalTasks) * 100;
+      }
+    }
+
+    const overview = {
+      pendingTasks: pendingTasks.length,
+      dueToday: dueToday.length,
+      overdueTasks: overdueTasks.length,
+      urgentTasks: urgentTasks.length,
+      completedTasks: completedTasks.length,
+      completedThisSprint,
+      storyPoints,
+      activeSprint: activeSprint ? {
+        id: activeSprint.id,
+        name: activeSprint.name,
+        startDate: activeSprint.startDate,
+        endDate: activeSprint.endDate,
+      } : null,
+      sprintProgress: Math.round(sprintProgress),
+      blockers: blockers.length,
+      activeBlocker: blockers.length > 0 ? blockers[0] : null,
+      reviewQueue: reviewQueue.length
+    };
+
+    res.json({ overview, tasks });
+  } catch (error) {
+    console.error('Error fetching member summary:', error);
+    res.status(500).json({ error: 'Failed to fetch member summary' });
+  }
+};
+
 // ==========================================
 // TODAY FOCUS
 // ==========================================

@@ -7,10 +7,7 @@ import { ROLE_COLORS } from '@/constants/teamMembers';
 
 // New Operational PM Components
 import { 
-  useSprintHealth, 
-  useTeamWorkload, 
-  useBoardSnapshot, 
-  useStandupMonitoring 
+  usePMSummary 
 } from '@/features/dashboard/api/dashboardApi';
 import DashboardKPIs from '@/features/dashboard/components/DashboardKPIs';
 import SprintHealthPanel from '@/features/dashboard/components/SprintHealthPanel';
@@ -28,13 +25,8 @@ export default function DashboardPage() {
   const isPM = user?.role === 'PRODUCT_MANAGER';
 
   // DEV/MARKETING DATA
-  const { data: tasks = [] } = useTasks();
-  const { data: projects = [] } = useProjects();
   const { data: sprints = [] } = useSprints();
 
-  const myTasks = tasks.filter((t: any) => t.assigneeId === user?.id);
-  const myCompletedTasks = myTasks.filter((t: any) => t.status === 'DONE');
-  const myPendingTasks = myTasks.filter((t: any) => t.status !== 'DONE');
   const activeSprints = sprints.filter((s: any) => s.status === 'ACTIVE');
 
   // PM OPERATIONAL DATA
@@ -52,15 +44,12 @@ export default function DashboardPage() {
     }
   }, [sprints, selectedSprintId]);
 
-  const { data: sprintHealth, isLoading: isLoadingHealth } = useSprintHealth(selectedSprintId);
-  const { data: teamWorkload, isLoading: isLoadingWorkload } = useTeamWorkload(selectedSprintId);
-  const { data: boardSnapshot, isLoading: isLoadingBoard } = useBoardSnapshot(selectedSprintId);
-  const { data: standups, isLoading: isLoadingStandups } = useStandupMonitoring(selectedSprintId);
+  const { data: pmSummary, isLoading: isLoadingSummary } = usePMSummary(selectedSprintId);
 
   // Derived KPIs for PM
-  const activeProjectsCount = projects.filter((p: any) => p.status === 'ACTIVE').length;
-  const globalBlockersCount = tasks.flatMap((t: any) => t.blockers || []).filter((b: any) => !b.isResolved).length;
-  const totalActiveTasksCount = tasks.filter((t: any) => t.status !== 'DONE').length;
+  const activeProjectsCount = pmSummary?.kpis?.activeProjects || 0;
+  const globalBlockersCount = pmSummary?.kpis?.globalBlockers || 0;
+  const totalActiveTasksCount = pmSummary?.kpis?.totalActiveTasks || 0;
   const teamVelocityScore = 84; // Can be derived from previous sprint or analytics endpoint
 
   return (
@@ -110,26 +99,27 @@ export default function DashboardPage() {
             totalActiveTasks={totalActiveTasksCount}
             globalBlockers={globalBlockersCount}
             teamVelocity={teamVelocityScore}
+            isLoading={isLoadingSummary}
           />
 
           {/* Section 1 & 2: Health & Workload */}
           <div className="grid grid-cols-1 lg:grid-cols-7 gap-6 min-h-[400px]">
             <div className="lg:col-span-4">
-              <SprintHealthPanel health={sprintHealth} isLoading={isLoadingHealth} />
+              <SprintHealthPanel health={pmSummary?.health} isLoading={isLoadingSummary} />
             </div>
             <div className="lg:col-span-3">
-              <TeamWorkloadPanel workload={teamWorkload} isLoading={isLoadingWorkload} />
+              <TeamWorkloadPanel workload={pmSummary?.workload} isLoading={isLoadingSummary} />
             </div>
           </div>
 
           {/* Section 3: Board Snapshot */}
           <div className="pt-2">
-            <SprintBoardSnapshot snapshot={boardSnapshot} isLoading={isLoadingBoard} />
+            <SprintBoardSnapshot snapshot={pmSummary?.boardSnapshot} isLoading={isLoadingSummary} />
           </div>
 
           {/* Section 4: Standup Monitoring */}
           <div className="pt-2">
-            <TeamStandupMonitoring standups={standups} isLoading={isLoadingStandups} />
+            <TeamStandupMonitoring standups={pmSummary?.standups} isLoading={isLoadingSummary} />
           </div>
 
           {/* Section 5: Organization Audit */}

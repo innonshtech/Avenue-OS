@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Code2, Target, Users, Zap, Briefcase, ChevronRight, Activity, LayoutDashboard, Shield } from 'lucide-react';
+import { Code2, Target, Users, Zap, Briefcase, ChevronRight, Activity, LayoutDashboard, Shield, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { signInSchema } from '../validations/auth.schema';
 import type { SignInFormValues } from '../validations/auth.schema';
@@ -28,6 +29,7 @@ export default function SignInPage() {
   const location = useLocation();
   const { login } = useAuthStore();
   const { toast } = useToast();
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -67,6 +69,7 @@ export default function SignInPage() {
       const response = await AuthApi.login({
         email: data.email,
         password: data.password,
+        rememberMe: data.rememberMe,
       });
 
       if (response.success && response.user) {
@@ -268,20 +271,29 @@ export default function SignInPage() {
               {/* Password Field */}
               <div className="space-y-2 pt-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Security Key (Password)</Label>
+                  <Label htmlFor="password">Password</Label>
                   {selectedEmail && (
                     <Link to={`/forgot-password?email=${encodeURIComponent(selectedEmail)}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
                       Forgot Password?
                     </Link>
                   )}
                 </div>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your internal password"
-                  className="h-12 bg-muted/50 border-muted focus-visible:ring-indigo-500"
-                  {...register('password')}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your internal password"
+                    className="h-12 bg-muted/50 border-muted focus-visible:ring-indigo-500 pr-10"
+                    {...register('password')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 {errors.password && (
                   <p className="text-sm text-destructive">{errors.password.message as string}</p>
                 )}

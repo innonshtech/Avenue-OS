@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Download, Printer, FileText } from 'lucide-react';
 import api from '@/lib/api';
+import { exportToCSV, exportToPDF, type ExportColumn } from '@/utils/exportUtils';
 
 export default function ReportsPage() {
   const [sprintReports, setSprintReports] = useState<any[]>([]);
@@ -11,6 +12,43 @@ export default function ReportsPage() {
   const [projectReports, setProjectReports] = useState<any[]>([]);
   const [productivityReports, setProductivityReports] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('sprints');
+
+  const SPRINT_COLUMNS: ExportColumn[] = [
+    { header: 'Sprint Name', key: 'sprint.name' },
+    { header: 'Project', key: 'project.name' },
+    { header: 'Success Rate (%)', key: 'successRate' },
+    { header: 'Velocity (pts)', key: 'velocity' },
+    { header: 'Completed Tasks', key: 'completedTasks' },
+    { header: 'Blockers Encountered', key: 'blockerCount' },
+    { header: 'Summary', key: 'summary' }
+  ];
+
+  const TEAM_COLUMNS: ExportColumn[] = [
+    { header: 'Team Member', key: 'user.name' },
+    { header: 'Sprint', key: 'sprint.name' },
+    { header: 'Assigned Tasks', key: 'assignedTasks' },
+    { header: 'Completed', key: 'completedTasks' },
+    { header: 'Delayed', key: 'delayedTasks' },
+    { header: 'Blockers Raised', key: 'blockersRaised' },
+    { header: 'Standup Consistency (%)', key: 'standupConsistency' }
+  ];
+
+  const PROJECT_COLUMNS: ExportColumn[] = [
+    { header: 'Project Name', key: 'name' },
+    { header: 'Status', key: 'status' },
+    { header: 'Completion (%)', key: 'completionPercentage' },
+    { header: 'Total Tasks', key: 'totalTasks' },
+    { header: 'Completed Tasks', key: 'completedTasks' },
+    { header: 'Overdue Tasks', key: 'overdueTasks' }
+  ];
+
+  const PRODUCTIVITY_COLUMNS: ExportColumn[] = [
+    { header: 'Overall Velocity', key: 'overallVelocity' },
+    { header: 'Avg Completion Time (hrs)', key: 'averageCompletionTime' },
+    { header: 'Active Blockers', key: 'activeBlockers' },
+    { header: 'Standup Consistency (%)', key: 'standupConsistency' }
+  ];
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -35,13 +73,21 @@ export default function ReportsPage() {
   }, []);
 
   const handleExportCSV = () => {
-    // In a real app, this would generate and download a CSV file
-    alert('Exporting to CSV... (Mock)');
+    switch (activeTab) {
+      case 'sprints': exportToCSV(sprintReports, 'Sprint_Reports', SPRINT_COLUMNS); break;
+      case 'team': exportToCSV(teamReports, 'Team_Reports', TEAM_COLUMNS); break;
+      case 'projects': exportToCSV(projectReports, 'Project_Reports', PROJECT_COLUMNS); break;
+      case 'productivity': exportToCSV(productivityReports ? [productivityReports] : [], 'Productivity_Report', PRODUCTIVITY_COLUMNS); break;
+    }
   };
 
   const handleExportPDF = () => {
-    // In a real app, this would use a library like jspdf to generate PDF
-    alert('Exporting to PDF... (Mock)');
+    switch (activeTab) {
+      case 'sprints': exportToPDF('Sprint Performance Reports', 'Sprint_Reports', SPRINT_COLUMNS, sprintReports); break;
+      case 'team': exportToPDF('Team Performance Metrics', 'Team_Reports', TEAM_COLUMNS, teamReports); break;
+      case 'projects': exportToPDF('Project Status Reports', 'Project_Reports', PROJECT_COLUMNS, projectReports); break;
+      case 'productivity': exportToPDF('Overall Productivity Report', 'Productivity_Report', PRODUCTIVITY_COLUMNS, productivityReports ? [productivityReports] : []); break;
+    }
   };
 
   const handlePrint = () => {
@@ -73,7 +119,7 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="sprints" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full justify-start border-b rounded-none h-12 bg-transparent">
           <TabsTrigger value="sprints" className="data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 rounded-none bg-transparent">Sprint Reports</TabsTrigger>
           <TabsTrigger value="team" className="data-[state=active]:border-b-2 data-[state=active]:border-indigo-600 rounded-none bg-transparent">Team Reports</TabsTrigger>

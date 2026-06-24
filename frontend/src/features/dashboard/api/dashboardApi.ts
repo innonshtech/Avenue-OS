@@ -48,3 +48,15 @@ export const useStandupMonitoring = (sprintId?: string) => {
     refetchInterval: 60000,
   });
 };
+
+export const usePMSummary = (sprintId?: string) => {
+  return useQuery({
+    queryKey: ['dashboard', 'pm-summary', sprintId],
+    queryFn: async () => {
+      const url = sprintId ? `/dashboard/pm-summary?sprintId=${sprintId}` : '/dashboard/pm-summary';
+      const response = await api.get(url);
+      return response.data;
+    },
+    refetchInterval: 60000,
+  });
+};

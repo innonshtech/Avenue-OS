@@ -7,9 +7,10 @@ interface KPIsProps {
   totalActiveTasks: number;
   globalBlockers: number;
   teamVelocity: number;
+  isLoading?: boolean;
 }
 
-export default function DashboardKPIs({ activeProjects, totalActiveTasks, globalBlockers, teamVelocity }: KPIsProps) {
+export default function DashboardKPIs({ activeProjects, totalActiveTasks, globalBlockers, teamVelocity, isLoading }: KPIsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
@@ -21,7 +22,11 @@ export default function DashboardKPIs({ activeProjects, totalActiveTasks, global
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeProjects}</div>
+            {isLoading ? (
+              <div className="h-8 w-16 bg-muted animate-pulse rounded-md mt-1"></div>
+            ) : (
+              <div className="text-2xl font-bold">{activeProjects}</div>
+            )}
             <p className="text-xs text-muted-foreground mt-1">Across all teams</p>
           </CardContent>
         </Card>
@@ -36,7 +41,11 @@ export default function DashboardKPIs({ activeProjects, totalActiveTasks, global
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalActiveTasks}</div>
+            {isLoading ? (
+              <div className="h-8 w-16 bg-muted animate-pulse rounded-md mt-1"></div>
+            ) : (
+              <div className="text-2xl font-bold">{totalActiveTasks}</div>
+            )}
             <p className="text-xs text-muted-foreground mt-1">In progress globally</p>
           </CardContent>
         </Card>
@@ -51,7 +60,11 @@ export default function DashboardKPIs({ activeProjects, totalActiveTasks, global
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-500">{globalBlockers}</div>
+            {isLoading ? (
+              <div className="h-8 w-16 bg-red-500/20 animate-pulse rounded-md mt-1"></div>
+            ) : (
+              <div className="text-2xl font-bold text-red-500">{globalBlockers}</div>
+            )}
             <p className="text-xs text-red-500/70 mt-1">Requires immediate attention</p>
           </CardContent>
         </Card>
@@ -66,7 +79,11 @@ export default function DashboardKPIs({ activeProjects, totalActiveTasks, global
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{teamVelocity} pts</div>
+            {isLoading ? (
+              <div className="h-8 w-24 bg-muted animate-pulse rounded-md mt-1"></div>
+            ) : (
+              <div className="text-2xl font-bold">{teamVelocity} pts</div>
+            )}
             <p className="text-xs text-emerald-500 mt-1 font-medium flex items-center">
               <Activity className="w-3 h-3 mr-1" /> Trending upward
             </p>
