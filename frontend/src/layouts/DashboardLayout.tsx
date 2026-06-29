@@ -116,7 +116,7 @@ export default function DashboardLayout() {
   const sidebarItems = user ? (SIDEBAR_CONFIG[user.role] || []) : [];
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex overflow-hidden">
+    <div className="h-screen bg-background text-foreground flex overflow-hidden">
       {/* Mobile Sidebar Backdrop */}
       {isMobileSidebarOpen && (
         <div 
