@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { useStandups, useCreateStandup, useTeamStandups, useMyStandups } from '../api/standupApi';
+import { useMyProgressReports, useCreateProgressReport, useTeamProgressReports } from '../api/progressReportApi';
 import { useToast } from '@/hooks/use-toast';
-import { useSprints } from '@/features/sprints/api/sprintApi';
+import { useStages } from '@/features/stages/api/stageApi';
 import { useProjects } from '@/features/projects/api/projectApi';
 import { useTasks } from '@/features/tasks/api/taskApi';
 import { TEAM_MEMBERS } from '@/constants/teamMembers';
@@ -12,54 +12,53 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertCircle, Plus, MessagesSquare, CheckCircle2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import type { BlockerType, BlockerSeverity } from '@/types/core';
+import type { RFIType, RFISeverity } from '@/types/core';
 
-export default function StandupPage() {
+export default function ProgressReportPage() {
   const { user } = useAuthStore();
-  const { data: sprints = [] } = useSprints();
+  const { data: stages = [] } = useStages();
   const { data: projects = [] } = useProjects();
-  const activeSprintId = sprints.find((s: any) => s.status === 'ACTIVE')?.id;
+  const activeStageId = stages.find((s: any) => s.status === 'ACTIVE')?.id;
   
   const { toast } = useToast();
-  const isPM = user?.role === 'PRODUCT_MANAGER';
-  const [timeRange, setTimeRange] = useState<'sprint' | 'month' | 'year'>('sprint');
+  const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
+  const [timeRange, setTimeRange] = useState<'stage' | 'month' | 'year'>('stage');
 
-  const [selectedSprintId, setSelectedSprintId] = useState<string | undefined>(activeSprintId || sprints[0]?.id);
+  const [selectedStageId, setSelectedStageId] = useState<string | undefined>(activeStageId || stages[0]?.id);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [formSprintId, setFormSprintId] = useState<string>('');
+  const [formStageId, setFormStageId] = useState<string>('');
 
   useEffect(() => {
-    if (sprints.length > 0 && !selectedProjectId) {
-      const activeSprint = sprints.find((s: any) => s.status === 'ACTIVE');
-      if (activeSprint) {
-        setSelectedProjectId(activeSprint.projectId);
-        setFormSprintId(activeSprint.id);
+    if (stages.length > 0 && !selectedProjectId) {
+      const activeStage = stages.find((s: any) => s.status === 'ACTIVE');
+      if (activeStage) {
+        setSelectedProjectId(activeStage.projectId);
+        setFormStageId(activeStage.id);
       } else {
-        setSelectedProjectId(sprints[0].projectId);
-        setFormSprintId(sprints[0].id);
+        setSelectedProjectId(stages[0].projectId);
+        setFormStageId(stages[0].id);
       }
     }
-  }, [sprints, selectedProjectId]);
+  }, [stages, selectedProjectId]);
 
-  const filteredSprintsForForm = useMemo(() => {
+  const filteredStagesForForm = useMemo(() => {
     if (!selectedProjectId) return [];
-    return sprints.filter((s: any) => s.projectId === selectedProjectId);
-  }, [sprints, selectedProjectId]);
+    return stages.filter((s: any) => s.projectId === selectedProjectId);
+  }, [stages, selectedProjectId]);
 
-  // Update selectedSprintId if sprints load later
-  if (!selectedSprintId && sprints.length > 0) {
-    setSelectedSprintId(activeSprintId || sprints[0]?.id);
+  // Update selectedStageId if stages load later
+  if (!selectedStageId && stages.length > 0) {
+    setSelectedStageId(activeStageId || stages[0]?.id);
   }
 
-  const { data: myStandups = [], isLoading: isLoadingUser } = useMyStandups(selectedSprintId, { enabled: !isPM });
-  const { data: teamStandups = [], isLoading: isLoadingTeam } = useTeamStandups(timeRange === 'sprint' ? selectedSprintId : undefined, { enabled: isPM });
-  const createStandup = useCreateStandup(isPM);
-  const { data: tasks = [] } = useTasks(selectedSprintId ? { sprintId: selectedSprintId } : undefined);
+  const { data: myReports = [], isLoading: isLoadingUser } = useMyProgressReports(selectedStageId, { enabled: !isPM });
+  const { data: teamReports = [], isLoading: isLoadingTeam } = useTeamProgressReports(timeRange === 'stage' ? selectedStageId : undefined, { enabled: isPM });
+  const createReport = useCreateProgressReport(isPM);
+  const { data: tasks = [] } = useTasks(selectedStageId ? { stageId: selectedStageId } : undefined);
 
-  const standups = isPM ? teamStandups : myStandups;
-  const isLoadingStandups = isPM ? isLoadingTeam : isLoadingUser;
+  const reports = isPM ? teamReports : myReports;
+  const isLoadingReports = isPM ? isLoadingTeam : isLoadingUser;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -69,16 +68,15 @@ export default function StandupPage() {
   const [hasBlocker, setHasBlocker] = useState(false);
   const [blockerDesc, setBlockerDesc] = useState('');
   const [blockerTaskId, setBlockerTaskId] = useState('');
-  const [blockerType, setBlockerType] = useState<BlockerType>('TECHNICAL');
-  const [blockerSeverity, setBlockerSeverity] = useState<BlockerSeverity>('MEDIUM');
+  const [blockerType, setBlockerType] = useState<RFIType>('ARCHITECTURAL_CLARIFICATION');
+  const [blockerSeverity, setBlockerSeverity] = useState<RFISeverity>('MEDIUM');
   const [blockerHelper, setBlockerHelper] = useState('');
 
-  const visibleStandups = useMemo(() => {
-    if (!isPM) return standups;
+  const visibleReports = useMemo(() => {
+    if (!isPM) return reports;
     
-    // Filter PM standups locally based on timeRange if needed
     const now = new Date();
-    return standups.filter((s: any) => {
+    return reports.filter((s: any) => {
       const sDate = new Date(s.date);
       if (timeRange === 'month') {
         return sDate.getMonth() === now.getMonth() && sDate.getFullYear() === now.getFullYear();
@@ -86,40 +84,40 @@ export default function StandupPage() {
       if (timeRange === 'year') {
         return sDate.getFullYear() === now.getFullYear();
       }
-      return true; // 'sprint' is handled by API query
+      return true;
     });
-  }, [standups, isPM, timeRange]);
+  }, [reports, isPM, timeRange]);
 
-  // Group standups by Member for display
-  const groupedStandupsByMember = useMemo(() => {
-    const sorted = [...visibleStandups].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    return sorted.reduce((acc, standup) => {
-      const memberId = standup.userId;
+  // Group reports by Member for display
+  const groupedReportsByMember = useMemo(() => {
+    const sorted = [...visibleReports].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return sorted.reduce((acc, report) => {
+      const memberId = report.userId;
       if (!acc[memberId]) acc[memberId] = [];
-      acc[memberId].push(standup);
+      acc[memberId].push(report);
       return acc;
     }, {} as Record<string, any[]>);
-  }, [visibleStandups]);
+  }, [visibleReports]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     
-    if (!formSprintId) {
+    if (!formStageId) {
       toast({
-        title: "No Sprint Selected",
-        description: "Please select a project and sprint before submitting an update.",
+        title: "No Stage Selected",
+        description: "Please select a project and stage before submitting an update.",
         variant: "destructive"
       });
       return;
     }
 
-    await createStandup.mutateAsync({
+    await createReport.mutateAsync({
       yesterday,
       today,
       blockers: hasBlocker ? blockerDesc : null,
       userId: user.id,
-      sprintId: formSprintId,
+      stageId: formStageId,
       blockerDetails: hasBlocker && blockerTaskId ? {
         description: blockerDesc,
         severity: blockerSeverity,
@@ -134,11 +132,13 @@ export default function StandupPage() {
     setToday('');
     setHasBlocker(false);
     setBlockerDesc('');
+    setBlockerHelper('');
+    setBlockerTaskId('');
     setIsSubmitting(false);
     
     toast({
       title: "Update submitted",
-      description: "Your daily standup has been saved to your history.",
+      description: "Your daily progress report has been saved to your history.",
     });
   };
 
@@ -146,19 +146,19 @@ export default function StandupPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Daily Standup</h1>
-          <p className="text-muted-foreground">Sync with the team and escalate blockers immediately.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Daily Progress Reports</h1>
+          <p className="text-muted-foreground">Sync with the project team, record tasks worked, and raise RFIs.</p>
         </div>
         
         <div className="flex items-center gap-4">
-          <Select value={selectedSprintId} onValueChange={setSelectedSprintId}>
+          <Select value={selectedStageId} onValueChange={setSelectedStageId}>
             <SelectTrigger className="w-[200px] bg-background">
-              <SelectValue placeholder="Select Sprint" />
+              <SelectValue placeholder="Select Stage" />
             </SelectTrigger>
             <SelectContent>
-              {sprints.map((s: any, idx: number) => (
+              {stages.map((s: any, idx: number) => (
                 <SelectItem key={s.id} value={s.id}>
-                  Sprint {idx + 1}: {s.name}
+                  Stage {idx + 1}: {s.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -167,28 +167,28 @@ export default function StandupPage() {
           {!isPM && !isSubmitting && (
             <Button onClick={() => setIsSubmitting(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-soft">
               <Plus className="w-4 h-4 mr-2" />
-              Submit Update
+              Submit Report
             </Button>
           )}
         </div>
       </div>
 
-      {sprints.length === 0 && (
+      {stages.length === 0 && (
         <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
             <div>
-              <h4 className="text-sm font-semibold">No Sprints Found</h4>
-              <p className="text-sm mt-1">There are no sprints available to submit a standup for. Please ask the Product Manager to create a sprint.</p>
+              <h4 className="text-sm font-semibold">No Stages Found</h4>
+              <p className="text-sm mt-1">There are no stages available to submit a report for. Please ask the Project Manager to set up a project stage.</p>
             </div>
           </div>
         </div>
       )}
 
-      {isSubmitting && sprints.length > 0 && (
+      {isSubmitting && stages.length > 0 && (
         <Card className="bg-card shadow-soft border-indigo-500/20 ring-1 ring-indigo-500/20">
           <CardHeader>
-            <CardTitle>Submit Daily Update</CardTitle>
+            <CardTitle>Submit Progress Report</CardTitle>
             <CardDescription>What did you accomplish and what's next?</CardDescription>
           </CardHeader>
           <CardContent>
@@ -198,8 +198,8 @@ export default function StandupPage() {
                   <label className="text-sm font-semibold">Project</label>
                   <Select value={selectedProjectId} onValueChange={(val) => {
                     setSelectedProjectId(val);
-                    const firstSprintOfProject = sprints.find((s: any) => s.projectId === val);
-                    setFormSprintId(firstSprintOfProject?.id || '');
+                    const firstStageOfProject = stages.find((s: any) => s.projectId === val);
+                    setFormStageId(firstStageOfProject?.id || '');
                   }}>
                     <SelectTrigger className="w-full bg-background border-border">
                       <SelectValue placeholder="Select Project" />
@@ -215,13 +215,13 @@ export default function StandupPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold">Sprint</label>
-                  <Select value={formSprintId} onValueChange={setFormSprintId}>
+                  <label className="text-sm font-semibold">Stage</label>
+                  <Select value={formStageId} onValueChange={setFormStageId}>
                     <SelectTrigger className="w-full bg-background border-border">
-                      <SelectValue placeholder="Select Sprint" />
+                      <SelectValue placeholder="Select Stage" />
                     </SelectTrigger>
                     <SelectContent>
-                      {filteredSprintsForForm.map((s: any) => (
+                      {filteredStagesForForm.map((s: any) => (
                         <SelectItem key={s.id} value={s.id}>
                           {s.name}
                         </SelectItem>
@@ -235,7 +235,7 @@ export default function StandupPage() {
                 <label className="text-sm font-medium">What did you complete yesterday?</label>
                 <Textarea 
                   required
-                  placeholder="e.g. Finished the auth flow and merged PR #45" 
+                  placeholder="e.g. Completed framing analysis on standard column C1" 
                   value={yesterday}
                   onChange={e => setYesterday(e.target.value)}
                 />
@@ -245,7 +245,7 @@ export default function StandupPage() {
                 <label className="text-sm font-medium">What are you working on today?</label>
                 <Textarea 
                   required
-                  placeholder="e.g. Starting on the Kanban board drag-and-drop feature" 
+                  placeholder="e.g. Drafting reinforcement details for C1 on drawing D-101" 
                   value={today}
                   onChange={e => setToday(e.target.value)}
                 />
@@ -256,31 +256,31 @@ export default function StandupPage() {
                   <div>
                     <label className="text-sm font-semibold flex items-center text-foreground">
                       <AlertCircle className="w-4 h-4 mr-2 text-red-500" />
-                      Are you blocked on anything?
+                      Do you want to raise an RFI? (Query / Blocker)
                     </label>
-                    <p className="text-xs text-muted-foreground mt-1">Escalate immediately so Saket and the team can assist.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Escalate clarification queries to the architect, client, or team.</p>
                   </div>
                   <Button type="button" variant={hasBlocker ? "destructive" : "outline"} onClick={() => setHasBlocker(!hasBlocker)}>
-                    {hasBlocker ? 'Yes, I am blocked' : 'No blockers'}
+                    {hasBlocker ? 'Yes, raise RFI' : 'No RFI'}
                   </Button>
                 </div>
 
                 {hasBlocker && (
                   <div className="space-y-4 pt-4 border-t border-border">
                     <div className="space-y-2">
-                      <label className="text-xs font-medium text-red-500">Blocker Description</label>
+                      <label className="text-xs font-medium text-red-500">RFI Description / Query details</label>
                       <Textarea 
                         required
-                        placeholder="Explain the blocker in detail..." 
+                        placeholder="Explain the clarification or block in detail..." 
                         value={blockerDesc}
                         onChange={(e: any) => setBlockerDesc(e.target.value)}
                         className="border-red-500/30 focus-visible:ring-red-500/20"
                       />
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-xs font-medium">Which Task?</label>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-xs font-medium">Select Associated Task</label>
                         <Select value={blockerTaskId} onValueChange={setBlockerTaskId}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select task..." />
@@ -294,19 +294,48 @@ export default function StandupPage() {
                       </div>
                       
                       <div className="space-y-2">
-                        <label className="text-xs font-medium">Blocker Type</label>
-                        <Select value={blockerType} onValueChange={(v) => setBlockerType(v as BlockerType)}>
+                        <label className="text-xs font-medium">RFI Type</label>
+                        <Select value={blockerType} onValueChange={(v) => setBlockerType(v as RFIType)}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="TECHNICAL">Technical Issue</SelectItem>
-                            <SelectItem value="DEPENDENCY">Dependency Delay</SelectItem>
-                            <SelectItem value="INFRASTRUCTURE">Infrastructure</SelectItem>
-                            <SelectItem value="COMMUNICATION">Communication / Pending Reply</SelectItem>
+                            <SelectItem value="ARCHITECTURAL_CLARIFICATION">Architectural Clarification</SelectItem>
+                            <SelectItem value="CLIENT_APPROVAL_PENDING">Client Approval Pending</SelectItem>
+                            <SelectItem value="SITE_DISCREPANCY">Site Discrepancy</SelectItem>
+                            <SelectItem value="RESOURCE_UNAVAILABLE">Resource Unavailable</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium">RFI Severity</label>
+                        <Select value={blockerSeverity} onValueChange={(v) => setBlockerSeverity(v as RFISeverity)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="LOW">Low</SelectItem>
+                            <SelectItem value="MEDIUM">Medium</SelectItem>
+                            <SelectItem value="HIGH">High</SelectItem>
+                            <SelectItem value="CRITICAL">Critical</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium">Assign Helper / Reviewer</label>
+                      <Select value={blockerHelper} onValueChange={setBlockerHelper}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Assign teammate to resolve..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TEAM_MEMBERS.map((m: any) => (
+                            <SelectItem key={m.id} value={m.id}>{m.name} ({m.role.replace('_', ' ')})</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 )}
@@ -314,8 +343,8 @@ export default function StandupPage() {
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <Button type="button" variant="ghost" onClick={() => setIsSubmitting(false)}>Cancel</Button>
-                <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={createStandup.isPending}>
-                  {createStandup.isPending ? 'Submitting...' : 'Submit Update'}
+                <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700" disabled={createReport.isPending}>
+                  {createReport.isPending ? 'Submitting...' : 'Submit Update'}
                 </Button>
               </div>
             </form>
@@ -327,7 +356,7 @@ export default function StandupPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold flex items-center">
             <MessagesSquare className="w-5 h-5 mr-2 text-indigo-500" />
-            {isPM ? "Team Standups Timeline" : "My Recent Standups"}
+            {isPM ? "Team Progress Timeline" : "My Recent Updates"}
           </h2>
           
           {isPM && (
@@ -336,7 +365,7 @@ export default function StandupPage() {
                 <SelectValue placeholder="Time Range" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="sprint">Active Sprint</SelectItem>
+                <SelectItem value="stage">Active Stage</SelectItem>
                 <SelectItem value="month">This Month</SelectItem>
                 <SelectItem value="year">This Year</SelectItem>
               </SelectContent>
@@ -344,17 +373,17 @@ export default function StandupPage() {
           )}
         </div>
         
-        {isLoadingStandups ? (
-          <div className="flex justify-center p-10">Loading standups...</div>
-        ) : visibleStandups.length === 0 ? (
+        {isLoadingReports ? (
+          <div className="flex justify-center p-10">Loading updates...</div>
+        ) : visibleReports.length === 0 ? (
           <div className="p-12 text-center border border-dashed rounded-lg bg-card/50">
             <CheckCircle2 className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-foreground">No standups yet</h3>
+            <h3 className="text-lg font-medium text-foreground">No reports yet</h3>
             <p className="text-muted-foreground mt-1">Updates will appear here once submitted.</p>
           </div>
         ) : (
           <div className="space-y-8">
-            {Object.entries(groupedStandupsByMember).map(([memberId, memberStandups]) => {
+            {Object.entries(groupedReportsByMember).map(([memberId, memberReports]) => {
               const member = TEAM_MEMBERS.find(m => m.id === memberId);
               return (
                 <div key={memberId} className="space-y-4">
@@ -364,30 +393,30 @@ export default function StandupPage() {
                       <AvatarFallback>{member?.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <h3 className="text-sm font-semibold text-foreground tracking-wide">
-                      {member?.name || 'Unknown Member'}'s Standups
+                      {member?.name || 'Unknown Member'}'s Updates
                     </h3>
                   </div>
                   <div className="grid grid-cols-1 gap-4">
-                    {(memberStandups as any[]).map((standup: any) => (
-                      <Card key={standup.id} className={`bg-card shadow-sm hover:shadow-md transition-shadow border-l-4 ${standup.blockers ? 'border-l-red-500 border-red-500/20' : 'border-border'}`}>
+                    {(memberReports as any[]).map((report: any) => (
+                      <Card key={report.id} className={`bg-card shadow-sm hover:shadow-md transition-shadow border-l-4 ${report.blockers ? 'border-l-red-500 border-red-500/20' : 'border-border'}`}>
                         <CardHeader className="pb-3 flex flex-row items-start justify-between">
                           <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-xs font-semibold text-muted-foreground">
-                                {new Date(standup.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {new Date(standup.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                {new Date(report.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {new Date(report.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                               </span>
-                              {standup.sprint && (
+                              {report.stage && (
                                 <Badge variant="outline" className="text-[10px] bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border-indigo-200/50">
-                                  {standup.sprint.project?.name || 'Smart Parking System'} — {standup.sprint.name}
+                                  {report.stage.project?.name} — {report.stage.name}
                                 </Badge>
                               )}
                             </div>
                           </div>
-                          {standup.blockers && (
+                          {report.blockers && (
                             <div className="flex flex-col items-end gap-1">
-                              <Badge variant="destructive" className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-red-500/50 uppercase tracking-wider text-[10px] flex items-center gap-1">
+                              <Badge variant="destructive" className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-red-500/55 uppercase tracking-wider text-[10px] flex items-center gap-1">
                                 <AlertCircle className="w-3 h-3" />
-                                BLOCKED
+                                RFI
                               </Badge>
                             </div>
                           )}
@@ -395,19 +424,19 @@ export default function StandupPage() {
                         <CardContent className="space-y-4">
                           <div>
                             <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">What did you complete yesterday?</h5>
-                            <p className="text-sm font-medium text-foreground">{standup.yesterday}</p>
+                            <p className="text-sm font-medium text-foreground">{report.yesterday}</p>
                           </div>
                           <div>
                             <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">What are you working on today?</h5>
-                            <p className="text-sm font-medium text-foreground">{standup.today}</p>
+                            <p className="text-sm font-medium text-foreground">{report.today}</p>
                           </div>
-                          {standup.blockers && (
+                          {report.blockers && (
                             <div className="p-3 bg-red-500/5 border border-red-500/10 rounded-md">
                               <h5 className="text-xs font-bold text-red-500 uppercase tracking-wider mb-1 flex items-center">
                                 <AlertCircle className="w-3.5 h-3.5 mr-1" />
-                                Blocker
+                                RFI raised
                               </h5>
-                              <p className="text-sm text-red-600/90 dark:text-red-400/90">{standup.blockers}</p>
+                              <p className="text-sm text-red-600/90 dark:text-red-400/90">{report.blockers}</p>
                             </div>
                           )}
                         </CardContent>

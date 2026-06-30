@@ -1,9 +1,7 @@
 import React from 'react';
 import { useChannels, type Channel } from '../api/chatApi';
 import { useChatStore } from '../store/chatStore';
-import { TEAM_MEMBERS } from '@/constants/teamMembers';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { useMessages } from '../hooks/useMessages';
 import { OnlineStatus } from './OnlineStatus';
 import {
   MessageSquare,
@@ -17,12 +15,11 @@ import {
   Users,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useTeam } from '@/features/team/api/teamApi';
 
 interface ChatSidebarProps {
   onSearchOpen: () => void;
 }
-
-import { useTeam } from '@/features/team/api/teamApi';
 
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onSearchOpen }) => {
   const { user: currentUser } = useAuthStore();
@@ -34,7 +31,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onSearchOpen }) => {
   const getDMRecipient = (channel: Channel) => {
     const members = channel.members || [];
     const other = members.find((m) => m.userId !== currentUser?.id);
-    return other?.user || { name: 'Unknown Member', avatar: '' };
+    return other?.user || { id: '', name: 'Unknown Member', avatar: '' };
   };
 
   const sortByLatest = (a: Channel, b: Channel) => {
@@ -46,8 +43,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onSearchOpen }) => {
   const announcements = channels.filter((c) => c.type === 'ANNOUNCEMENT').sort(sortByLatest);
   const dms = channels.filter((c) => c.type === 'DIRECT').sort(sortByLatest);
   const projectChannels = channels.filter((c) => c.type === 'PROJECT').sort(sortByLatest);
-  const sprintChannels = channels.filter((c) => c.type === 'SPRINT').sort(sortByLatest);
-  const recentDiscussions = channels.filter((c) => c.type === 'TASK' || c.type === 'BLOCKER').sort(sortByLatest);
+  const stageChannels = channels.filter((c) => c.type === 'STAGE').sort(sortByLatest);
+  const recentDiscussions = channels.filter((c) => c.type === 'TASK' || c.type === 'RFI').sort(sortByLatest);
 
   return (
     <div className="w-64 border-r border-zinc-200 bg-white flex flex-col h-full overflow-hidden select-none">
@@ -134,16 +131,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onSearchOpen }) => {
               )}
             </div>
 
-            {/* Sprint Channels */}
+            {/* Stage Channels */}
             <div className="space-y-1">
               <div className="text-xs font-extrabold text-zinc-500 uppercase tracking-wider px-2.5 mb-1.5 flex items-center justify-between">
-                <span>Sprints</span>
+                <span>Stages</span>
                 <Layers className="w-3.5 h-3.5" />
               </div>
-              {sprintChannels.length === 0 ? (
-                <div className="text-xs text-zinc-400 italic px-2.5">No active sprint rooms</div>
+              {stageChannels.length === 0 ? (
+                <div className="text-xs text-zinc-400 italic px-2.5">No active stage rooms</div>
               ) : (
-                sprintChannels.map((c) => (
+                stageChannels.map((c) => (
                   <button
                     key={c.id}
                     onClick={() => setActiveChannelId(c.id)}
@@ -184,7 +181,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onSearchOpen }) => {
                         : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-transparent'
                     }`}
                   >
-                    {c.type === 'BLOCKER' ? (
+                    {c.type === 'RFI' ? (
                       <AlertOctagon className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" />
                     ) : (
                       <CheckCircle className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
@@ -248,15 +245,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onSearchOpen }) => {
                 <button
                   key={member.id}
                   onClick={() => {
-                    // Start DM using HTTP or direct selection
-                    // We'll create custom trigger in Page to start DM with member ID
                     const existingChannel = dms.find((c) =>
                       c.members?.some((m) => m.userId === member.id)
                     );
                     if (existingChannel) {
                       setActiveChannelId(existingChannel.id);
                     } else {
-                      // Trigger channel setup (page handles starting new DMs)
                       (window as any)._startDMUser?.(member.id);
                     }
                   }}

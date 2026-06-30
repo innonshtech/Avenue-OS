@@ -3,7 +3,7 @@ import prisma from './prisma';
 let lastUpdateRun = 0;
 const THROTTLE_MS = 60000; // 1 minute
 
-export const autoUpdateSprintStatuses = async () => {
+export const autoUpdateStageStatuses = async () => {
   const now = new Date();
   
   if (now.getTime() - lastUpdateRun < THROTTLE_MS) {
@@ -12,7 +12,7 @@ export const autoUpdateSprintStatuses = async () => {
   
   try {
     // 1. PLANNED -> ACTIVE (start date has arrived, and end date not passed)
-    await prisma.sprint.updateMany({
+    await prisma.stage.updateMany({
       where: {
         status: 'PLANNED',
         startDate: { lte: now },
@@ -22,7 +22,7 @@ export const autoUpdateSprintStatuses = async () => {
     });
 
     // 2. ACTIVE or PLANNED -> COMPLETED (end date has passed)
-    await prisma.sprint.updateMany({
+    await prisma.stage.updateMany({
       where: {
         status: { in: ['PLANNED', 'ACTIVE'] },
         endDate: { lt: now }
@@ -32,6 +32,6 @@ export const autoUpdateSprintStatuses = async () => {
     
     lastUpdateRun = now.getTime();
   } catch (error) {
-    console.error('Error auto-updating sprint statuses:', error);
+    console.error('Error auto-updating stage statuses:', error);
   }
 };

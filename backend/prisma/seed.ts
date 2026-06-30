@@ -1,18 +1,11 @@
-import { PrismaClient, UserRole, ProjectStatus, SprintStatus, TaskStatus, TaskPriority, BlockerSeverity, BlockerType } from '@prisma/client';
+import { PrismaClient, UserRole, ProjectStatus, StageStatus, TaskStatus, TaskPriority, RFISeverity, RFIType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 const users = [
-  { name: "Saket", email: "saket.innonsh@gmail.com", password: "saket123", role: UserRole.PRODUCT_MANAGER, department: "Product Management", avatar: "https://i.pravatar.cc/150?u=saket" },
-  { name: "Chetana", email: "chetana.innonsh@gmail.com", password: "chetana123", role: UserRole.DEVELOPER, department: "Engineering", avatar: "https://i.pravatar.cc/150?u=chetana" },
-  { name: "Lokeek", email: "lokeek.innonsh@gmail.com", password: "lokeek123", role: UserRole.DEVELOPER, department: "Engineering", avatar: "https://i.pravatar.cc/150?u=lokeek" },
-  { name: "Vaibhav", email: "vaibhav.innonsh@gmail.com", password: "vaibhav123", role: UserRole.DEVELOPER, department: "Engineering", avatar: "https://i.pravatar.cc/150?u=vaibhav" },
-  { name: "Yukta", email: "yukta.innonsh@gmail.com", password: "yukta123", role: UserRole.DEVELOPER, department: "Engineering", avatar: "https://i.pravatar.cc/150?u=yukta" },
-  { name: "Aniket", email: "aniket.innonsh@gmail.com", password: "aniket123", role: UserRole.DEVELOPER, department: "Engineering", avatar: "https://i.pravatar.cc/150?u=aniket" },
-  { name: "Tasmiya Shaikh", email: "tasmiya.shaikh@innonsh.com", password: "tasmiya123", role: UserRole.MARKETING, department: "Marketing", avatar: "https://i.pravatar.cc/150?u=tasmiya" },
-  { name: "Reshma", email: "reshma.innonsh@gmail.com", password: "reshma123", role: UserRole.MARKETING, department: "Marketing", avatar: "https://i.pravatar.cc/150?u=reshma" },
-  { name: "Nikheel", email: "nikheel.innonsh@gmail.com", password: "nikheel123", role: UserRole.ADMIN, department: "Executive", avatar: "https://i.pravatar.cc/150?u=nikheel" }
+  { name: "Sushil", email: "sushil@avenue.com", password: "sushil123", role: UserRole.PROJECT_MANAGER, department: "Project Management", avatar: "https://i.pravatar.cc/150?u=sushil" },
+  { name: "Sagar", email: "sagar@avenue.com", password: "sagar123", role: UserRole.ENGINEER, department: "Engineering", avatar: "https://i.pravatar.cc/150?u=sagar" }
 ];
 
 async function main() {
@@ -35,14 +28,11 @@ async function main() {
     });
     createdUsers[u.name] = user;
   }
-  const saket = createdUsers["Saket"];
-  const lokeek = createdUsers["Lokeek"];
-  const chetana = createdUsers["Chetana"];
-  const yukta = createdUsers["Yukta"];
-  const vaibhav = createdUsers["Vaibhav"];
+  const sushil = createdUsers["Sushil"];
+  const sagar = createdUsers["Sagar"];
 
-  if (!saket || !lokeek) {
-    console.error("Users Saket or Lokeek not found, skipping mock data.");
+  if (!sushil || !sagar) {
+    console.error("Users Sushil or Sagar not found, skipping mock data.");
     return;
   }
 
@@ -52,7 +42,7 @@ async function main() {
     name: "Smart Parking System",
     description: "IoT based smart parking management.",
     status: ProjectStatus.ACTIVE,
-    ownerId: saket.id,
+    ownerId: sushil.id,
     startDate: new Date(),
     deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   };
@@ -66,47 +56,41 @@ async function main() {
   // Project Members
   await prisma.projectMember.createMany({
     data: [
-      { projectId: project.id, userId: saket.id, role: "LEAD" },
-      { projectId: project.id, userId: lokeek.id, role: "MEMBER" },
-      { projectId: project.id, userId: chetana.id, role: "MEMBER" },
-      { projectId: project.id, userId: yukta.id, role: "MEMBER" },
-      { projectId: project.id, userId: vaibhav.id, role: "MEMBER" }
+      { projectId: project.id, userId: sushil.id, role: "LEAD" },
+      { projectId: project.id, userId: sagar.id, role: "MEMBER" }
     ],
     skipDuplicates: true
   });
 
-  console.log("Seeding mock sprints...");
-  const sprint1 = await prisma.sprint.create({
+  console.log("Seeding mock project stages...");
+  const stage1 = await prisma.stage.create({
     data: {
-      name: "SPS Sprint 1",
-      goal: "Setup basic infrastructure and authentication",
+      name: "Framing Stage",
+      goal: "Setup basic structural framing design",
       startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
       endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      status: SprintStatus.ACTIVE,
+      status: StageStatus.ACTIVE,
       projectId: project.id,
     }
   });
 
-  // Sprint Members
-  await prisma.sprintMember.createMany({
+  // Stage Members
+  await prisma.stageMember.createMany({
     data: [
-      { sprintId: sprint1.id, userId: saket.id },
-      { sprintId: sprint1.id, userId: lokeek.id },
-      { sprintId: sprint1.id, userId: chetana.id },
-      { sprintId: sprint1.id, userId: yukta.id },
-      { sprintId: sprint1.id, userId: vaibhav.id }
+      { stageId: stage1.id, userId: sushil.id },
+      { stageId: stage1.id, userId: sagar.id }
     ],
     skipDuplicates: true
   });
 
   console.log("Seeding mock tasks...");
   const tasks = [
-    { key: "SPSM-1", title: "Setup PostgreSQL Database", description: "Initialize Prisma", type: "TASK", status: TaskStatus.DONE, priority: TaskPriority.HIGH, storyPoints: 3, projectId: project.id, sprintId: sprint1.id, assigneeId: lokeek.id, creatorId: saket.id },
-    { key: "SPSM-2", title: "Build Auth Login Page", description: "Create SignInPage.tsx", type: "STORY", status: TaskStatus.IN_REVIEW, priority: TaskPriority.MEDIUM, storyPoints: 5, projectId: project.id, sprintId: sprint1.id, assigneeId: lokeek.id, creatorId: saket.id },
-    { key: "SPSM-3", title: "Configure Zustand Stores", description: "Setup state management", type: "TASK", status: TaskStatus.IN_PROGRESS, priority: TaskPriority.HIGH, storyPoints: 5, projectId: project.id, sprintId: sprint1.id, assigneeId: saket.id, creatorId: lokeek.id },
-    { key: "SPSM-4", title: "DND Kit Kanban Board", description: "Implement drag and drop", type: "STORY", status: TaskStatus.TODO, priority: TaskPriority.URGENT, storyPoints: 8, projectId: project.id, sprintId: sprint1.id, assigneeId: chetana.id, creatorId: saket.id },
-    { key: "SPSM-5", title: "Review Architecture", description: "Review system architecture", type: "TASK", status: TaskStatus.TODO, priority: TaskPriority.MEDIUM, storyPoints: 3, projectId: project.id, sprintId: sprint1.id, assigneeId: yukta.id, creatorId: lokeek.id },
-    { key: "SPSM-6", title: "Setup Email Service", description: "Integrate Sendgrid", type: "TASK", status: TaskStatus.TODO, priority: TaskPriority.HIGH, storyPoints: 5, projectId: project.id, sprintId: sprint1.id, assigneeId: vaibhav.id, creatorId: saket.id }
+    { key: "SPSM-1", title: "Setup Structural Framing Plan", description: "Create initial layout", type: "DESIGN", status: TaskStatus.DONE, priority: TaskPriority.HIGH, storyPoints: 3, drawingNumber: "DRW-F-001", revisionNumber: "R0", projectId: project.id, stageId: stage1.id, assigneeId: sagar.id, creatorId: sushil.id },
+    { key: "SPSM-2", title: "Drafting Footer Reinforcement Details", description: "RCC details for footing", type: "DRAFTING", status: TaskStatus.INTERNAL_REVIEW, priority: TaskPriority.MEDIUM, storyPoints: 5, drawingNumber: "DRW-D-002", revisionNumber: "R1", projectId: project.id, stageId: stage1.id, assigneeId: sagar.id, creatorId: sushil.id },
+    { key: "SPSM-3", title: "Analyze Framing Loading Calculations", description: "STAAD Pro load modeling", type: "ANALYSIS", status: TaskStatus.IN_PROGRESS, priority: TaskPriority.HIGH, storyPoints: 5, drawingNumber: "DRW-A-003", revisionNumber: "R0", projectId: project.id, stageId: stage1.id, assigneeId: sushil.id, creatorId: sagar.id },
+    { key: "SPSM-4", title: "RCC Design of Columns", description: "Column size finalization", type: "DESIGN", status: TaskStatus.PENDING, priority: TaskPriority.URGENT, storyPoints: 8, drawingNumber: "DRW-C-004", revisionNumber: "R0", projectId: project.id, stageId: stage1.id, assigneeId: sagar.id, creatorId: sushil.id },
+    { key: "SPSM-5", title: "Review Soil Strata Reports", description: "Check geotechnical reports", type: "REVIEW", status: TaskStatus.PENDING, priority: TaskPriority.MEDIUM, storyPoints: 3, drawingNumber: "DRW-R-005", revisionNumber: "R0", projectId: project.id, stageId: stage1.id, assigneeId: sagar.id, creatorId: sagar.id },
+    { key: "SPSM-6", title: "Site Inspection for Column Rebar", description: "Check site column spacing", type: "SITE_CHECK", status: TaskStatus.PENDING, priority: TaskPriority.HIGH, storyPoints: 5, drawingNumber: "DRW-S-006", revisionNumber: "R0", projectId: project.id, stageId: stage1.id, assigneeId: sagar.id, creatorId: sushil.id }
   ];
 
   const createdTasks: Record<string, any> = {};
@@ -122,64 +106,64 @@ async function main() {
   await prisma.comment.create({
     data: {
       taskId: createdTasks["SPSM-3"].id,
-      userId: lokeek.id,
-      content: "I have started working on the Zustand stores configuration.",
+      userId: sagar.id,
+      content: "I have started working on the STAAD load analysis.",
     }
   });
 
-  console.log("Seeding mock daily standups...");
-  await prisma.dailyStandup.create({
+  console.log("Seeding mock progress reports...");
+  await prisma.progressReport.create({
     data: {
       date: new Date(),
-      yesterday: "Worked on DB setup",
-      today: "Working on Auth login page",
-      blockers: "None",
-      userId: lokeek.id,
-      sprintId: sprint1.id,
+      yesterday: "Worked on framing layout",
+      today: "Starting loading analysis model",
+      blockers: "Waiting on architectural drawing updates",
+      userId: sagar.id,
+      stageId: stage1.id,
     }
   });
-  await prisma.dailyStandup.create({
+  await prisma.progressReport.create({
     data: {
       date: new Date(),
-      yesterday: "Reviewed PRs",
-      today: "Configuring Zustand",
+      yesterday: "Checked site dimensions",
+      today: "Reviewing calculations",
       blockers: "None",
-      userId: saket.id,
-      sprintId: sprint1.id,
+      userId: sushil.id,
+      stageId: stage1.id,
     }
   });
 
-  console.log("Seeding mock blockers...");
-  await prisma.blocker.create({
+  console.log("Seeding mock RFIs...");
+  await prisma.rFI.create({
     data: {
-      description: "CORS error on login API",
-      severity: BlockerSeverity.HIGH,
-      type: BlockerType.TECHNICAL,
+      description: "Discrepancy in center-line dimensions from grid lines",
+      severity: RFISeverity.HIGH,
+      type: RFIType.ARCHITECTURAL_CLARIFICATION,
       taskId: createdTasks["SPSM-2"].id,
-      reporterId: lokeek.id,
+      reporterId: sagar.id,
     }
   });
 
   console.log("Seeding mock feedback...");
   await prisma.feedback.create({
     data: {
-      content: "Sprint planning went well.",
-      wentWell: "Good communication",
-      wentWrong: "Slight delay in starting",
-      userId: lokeek.id,
-      sprintId: sprint1.id,
+      content: "Stage framing layout completed on time.",
+      wentWell: "Good communication with draftsman",
+      wentWrong: "Slight delay in receiving site reports",
+      userId: sagar.id,
+      stageId: stage1.id,
     }
   });
 
   console.log("Seeding mock performance metrics...");
   await prisma.teamPerformanceMetric.create({
     data: {
-      userId: lokeek.id,
-      sprintId: sprint1.id,
+      userId: sagar.id,
+      stageId: stage1.id,
       assignedTasks: 3,
       completedTasks: 1,
       delayedTasks: 0,
-      blockersRaised: 1,
+      rfisRaised: 1,
       avgCompletionTime: 4.5,
       standupConsistency: 100.0,
       utilizationRate: 80.0,
@@ -193,14 +177,14 @@ async function main() {
       description: "General discussion for SPS project",
       type: "PROJECT",
       projectId: project.id,
-      createdById: saket.id,
+      createdById: sushil.id,
     }
   });
 
   await prisma.chatMember.createMany({
     data: [
-      { channelId: channel.id, userId: saket.id },
-      { channelId: channel.id, userId: lokeek.id }
+      { channelId: channel.id, userId: sushil.id },
+      { channelId: channel.id, userId: sagar.id }
     ],
     skipDuplicates: true
   });
@@ -208,7 +192,7 @@ async function main() {
   await prisma.chatMessage.create({
     data: {
       channelId: channel.id,
-      senderId: saket.id,
+      senderId: sushil.id,
       content: "Welcome to the SPS project channel!",
       messageType: "TEXT",
     }
@@ -217,13 +201,13 @@ async function main() {
   await prisma.chatMessage.create({
     data: {
       channelId: channel.id,
-      senderId: lokeek.id,
-      content: "Thanks Saket! Ready to start.",
+      senderId: sagar.id,
+      content: "Thanks Sushil! Ready to start design calculations.",
       messageType: "TEXT",
     }
   });
 
-  console.log('Seed completed successfully with comprehensive mock data for Saket and Lokeek!');
+  console.log('Seed completed successfully with comprehensive mock data for Sushil and Sagar!');
 }
 
 main()

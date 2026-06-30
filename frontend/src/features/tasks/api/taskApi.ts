@@ -2,13 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import type { Task } from '@/types/core';
 
-export const useTasks = (filters?: { projectId?: string; sprintId?: string; assigneeId?: string }) => {
+export const useTasks = (filters?: { projectId?: string; stageId?: string; assigneeId?: string }) => {
   return useQuery<Task[]>({
     queryKey: ['tasks', filters],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.projectId) params.append('projectId', filters.projectId);
-      if (filters?.sprintId) params.append('sprintId', filters.sprintId);
+      if (filters?.stageId) params.append('stageId', filters.stageId);
       if (filters?.assigneeId) params.append('assigneeId', filters.assigneeId);
       
       const url = `/tasks${params.toString() ? `?${params.toString()}` : ''}`;
@@ -69,7 +69,7 @@ export const useUpdateTaskStatus = () => {
       
       queryClient.setQueriesData({ queryKey: ['tasks'] }, (old: Task[] | undefined) => {
         if (!old) return old;
-        return old.map(t => t.id === id ? { ...t, status } : t);
+        return old.map(t => t.id === id ? { ...t, status: status as any } : t);
       });
       
       return { previousTasks };
@@ -153,11 +153,11 @@ export const useAddAttachment = () => {
   });
 };
 
-export const useMoveTaskSprint = () => {
+export const useMoveTaskStage = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, sprintId }: { id: string; sprintId: string | null }) => {
-      const { data } = await api.patch(`/tasks/${id}/move-sprint`, { sprintId });
+    mutationFn: async ({ id, stageId }: { id: string; stageId: string | null }) => {
+      const { data } = await api.patch(`/tasks/${id}/move-stage`, { stageId });
       return data;
     },
     onSuccess: (data, variables) => {
@@ -193,11 +193,11 @@ export const useRestoreTask = () => {
   });
 };
 
-export const useResolveBlocker = () => {
+export const useResolveRFI = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ taskId, blockerId, resolutionNote }: { taskId: string; blockerId: string; resolutionNote: string }) => {
-      const { data } = await api.patch(`/tasks/${taskId}/blocker/${blockerId}/resolve`, { resolutionNote });
+      const { data } = await api.patch(`/tasks/${taskId}/rfi/${blockerId}/resolve`, { resolutionNote });
       return data;
     },
     onSuccess: (data, variables) => {

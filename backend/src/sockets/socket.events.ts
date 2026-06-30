@@ -8,9 +8,9 @@ export const SOCKET_EVENTS = {
   
   // Real-time updates
   TASK_UPDATED: 'task:updated',
-  BLOCKER_ADDED: 'blocker:added',
-  BLOCKER_RESOLVED: 'blocker:resolved',
-  STANDUP_SUBMITTED: 'standup:submitted',
+  RFI_ADDED: 'rfi:added',
+  RFI_RESOLVED: 'rfi:resolved',
+  PROGRESS_REPORT_SUBMITTED: 'progress_report:submitted',
   
   // Comments and reactions
   COMMENT_NEW: 'comment:new',

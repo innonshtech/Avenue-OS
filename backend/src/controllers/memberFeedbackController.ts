@@ -6,13 +6,13 @@ export const createFeedback = async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { sprintId, category, content, wentWell, wentWrong, improvement, realisticPlanning, achievableDeadlines, blockerPatterns } = req.body;
+    const { stageId, category, content, wentWell, wentWrong, improvement, realisticPlanning, achievableDeadlines, blockerPatterns } = req.body;
 
     const feedback = await prisma.feedback.create({
       data: {
         userId,
-        sprintId,
-        category: category || 'SPRINT',
+        stageId,
+        category: category || 'STAGE',
         content,
         wentWell,
         wentWrong,
@@ -22,7 +22,7 @@ export const createFeedback = async (req: Request, res: Response) => {
         blockerPatterns,
       },
       include: {
-        sprint: true,
+        stage: true,
         user: true,
       }
     });
@@ -41,7 +41,7 @@ export const getMyFeedbacks = async (req: Request, res: Response) => {
     const feedbacks = await prisma.feedback.findMany({
       where: { userId },
       include: {
-        sprint: true,
+        stage: true,
         user: true,
       },
       orderBy: { createdAt: 'desc' }
@@ -70,7 +70,7 @@ export const updateFeedback = async (req: Request, res: Response) => {
       where: { id },
       data: { content, category },
       include: {
-        sprint: true,
+        stage: true,
         user: true,
       }
     });

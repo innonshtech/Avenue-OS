@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTask, useUpdateTaskStatus, useAddSubtask, useUpdateSubtask, useArchiveTask, useRestoreTask, useDeleteTask, useResolveBlocker } from '../api/taskApi';
+import { useTask, useUpdateTaskStatus, useAddSubtask, useUpdateSubtask, useArchiveTask, useRestoreTask, useDeleteTask, useResolveRFI } from '../api/taskApi';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useToast } from '@/hooks/use-toast';
 import { TEAM_MEMBERS } from '@/constants/teamMembers';
@@ -46,7 +46,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
   const archiveTask = useArchiveTask();
   const restoreTask = useRestoreTask();
   const deleteTask = useDeleteTask();
-  const resolveBlocker = useResolveBlocker();
+  const resolveRFI = useResolveRFI();
   
   const { user } = useAuthStore();
   const { toast } = useToast();
@@ -62,12 +62,12 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
   if (!task) return null;
 
   const project = task.project;
-  const sprint = task.sprint;
+  const stage = task.stage;
   const assignee = TEAM_MEMBERS.find(m => m.id === task.assigneeId);
   const reporter = TEAM_MEMBERS.find(m => m.id === task.creatorId);
-  const blocker = task.blockers?.find((b: any) => !b.isResolved);
+  const rfi = task.rfis?.find((b: any) => !b.isResolved);
 
-  const canEdit = user?.role === 'PRODUCT_MANAGER' || user?.id === task.assigneeId;
+  const canEdit = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN' || user?.id === task.assigneeId;
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     updateTaskStatus.mutate({ id: task.id, status: e.target.value });
@@ -112,7 +112,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                   {task.priority}
                 </Badge>
                 
-                {user?.role === 'PRODUCT_MANAGER' && (
+                {(user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN') && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -136,7 +136,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onClick={() => {
-                        if (confirm('Are you sure you want to delete this task? This will remove board visibility, sprint linkage, and analytics contribution.')) {
+                        if (confirm('Are you sure you want to delete this task? This will remove board visibility, stage linkage, and analytics contribution.')) {
                           deleteTask.mutate(task.id, { onSuccess: () => { toast({ title: 'Task deleted' }); onClose(); }});
                         }
                       }}>
@@ -159,11 +159,12 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                   value={task.status}
                   onChange={handleStatusChange}
                 >
-                  <option value="TODO">TO DO</option>
+                  <option value="PENDING">PENDING</option>
                   <option value="IN_PROGRESS">IN PROGRESS</option>
-                  <option value="IN_REVIEW">IN REVIEW</option>
-                  <option value="BLOCKED">BLOCKED</option>
-                  <option value="TESTING">TESTING</option>
+                  <option value="INTERNAL_REVIEW">INTERNAL REVIEW</option>
+                  <option value="EXTERNAL_REVIEW">EXTERNAL REVIEW</option>
+                  <option value="MODIFICATION_REQUIRED">MODIFICATION REQUIRED</option>
+                  <option value="APPROVED">APPROVED</option>
                   <option value="DONE">DONE</option>
                 </select>
               ) : (
@@ -172,10 +173,17 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                 </Badge>
               )}
               
-              {task.storyPoints && (
+              {task.drawingNumber && (
                 <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-muted px-2 py-1.5 rounded-md border border-border">
-                  <Activity className="w-3.5 h-3.5 text-indigo-500" />
-                  {task.storyPoints} Points
+                  <span className="font-semibold text-indigo-500">DWG:</span>
+                  {task.drawingNumber}
+                  {task.revisionNumber && (
+                    <>
+                      <span className="text-muted-foreground">|</span>
+                      <span className="font-semibold text-indigo-500">REV:</span>
+                      {task.revisionNumber}
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -238,21 +246,21 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                 </div>
               </section>
 
-              {/* Blocker Alert */}
-              {blocker && (
+              {/* RFI Alert (was Blocker Alert) */}
+              {rfi && (
                 <section>
                   <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
                     <div className="flex items-start gap-3">
                       <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
                       <div>
-                        <h4 className="text-sm font-semibold text-red-600 dark:text-red-400">Blocked: {blocker.type}</h4>
-                        <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1 mb-2">{blocker.description}</p>
+                        <h4 className="text-sm font-semibold text-red-600 dark:text-red-400">RFI Raised: {rfi.type.replace('_', ' ')}</h4>
+                        <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1 mb-2">{rfi.description}</p>
                         
-                        {(user?.role === 'PRODUCT_MANAGER' || user?.role === 'ADMIN') && (
+                        {(user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN') && (
                           <div className="mt-3 border-t border-red-500/20 pt-3">
                             {!showResolveInput ? (
                               <Button size="sm" variant="outline" className="border-red-500 text-red-600 hover:bg-red-500 hover:text-white" onClick={() => setShowResolveInput(true)}>
-                                Resolve Blocker
+                                Resolve RFI
                               </Button>
                             ) : (
                               <div className="flex gap-2 items-center">
@@ -263,9 +271,9 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                                   className="h-8 text-sm"
                                 />
                                 <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white h-8" onClick={() => {
-                                  resolveBlocker.mutate({ taskId: task.id, blockerId: blocker.id, resolutionNote }, {
+                                  resolveRFI.mutate({ taskId: task.id, blockerId: rfi.id, resolutionNote }, {
                                     onSuccess: () => {
-                                      toast({ title: 'Blocker Resolved' });
+                                      toast({ title: 'RFI Resolved' });
                                       setShowResolveInput(false);
                                     }
                                   });
@@ -282,7 +290,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                 </section>
               )}
 
-              {/* Tabs for Comments / Activity / Standups */}
+              {/* Tabs for Comments / Activity / Progress Reports */}
               <section className="pt-4 border-t border-border/50">
                 <div className="flex border-b mb-4">
                   <button 
@@ -301,22 +309,22 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                     onClick={() => setActiveTab('standups')}
                     className={`px-4 py-2 border-b-2 font-medium text-sm ${activeTab === 'standups' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                   >
-                    Standup Updates ({task.standups?.length || 0})
+                    Progress Reports ({task.progressReports?.length || 0})
                   </button>
                 </div>
                 
                 {activeTab === 'comments' && (
-                  <TaskComments taskId={task.id} comments={task.comments} />
+                  <TaskComments taskId={task.id} comments={task.comments || []} />
                 )}
                 
                 {activeTab === 'history' && (
-                  <TaskActivityTimeline activities={task.activities} />
+                  <TaskActivityTimeline activities={task.activities || []} />
                 )}
                 
                 {activeTab === 'standups' && (
                   <div className="space-y-4">
-                    {task.standups?.length === 0 && <div className="text-sm text-muted-foreground py-4">No standup updates linked to this task.</div>}
-                    {task.standups?.map((s: any) => (
+                    {task.progressReports?.length === 0 && <div className="text-sm text-muted-foreground py-4">No progress reports linked to this task.</div>}
+                    {task.progressReports?.map((s: any) => (
                       <div key={s.id} className="p-4 rounded-lg border border-border bg-muted/20">
                         <div className="flex items-center gap-2 mb-2">
                           <Avatar className="w-6 h-6">
@@ -329,7 +337,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                         <div className="text-sm space-y-2">
                           <p><span className="font-semibold">Yesterday:</span> {s.yesterday}</p>
                           <p><span className="font-semibold">Today:</span> {s.today}</p>
-                          {s.blockers && <p className="text-red-600"><span className="font-semibold">Blockers:</span> {s.blockers}</p>}
+                          {s.blockers && <p className="text-red-600"><span className="font-semibold">RFIs/Blockers:</span> {s.blockers}</p>}
                         </div>
                       </div>
                     ))}
@@ -378,11 +386,11 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                     </div>
                   </div>
 
-                  {sprint && (
+                  {stage && (
                     <div>
-                      <span className="text-xs text-muted-foreground block mb-1.5">Sprint</span>
-                      <Link to={`/dashboard/sprints/${sprint.id}`} className="text-sm font-medium text-indigo-500 hover:underline">
-                        {sprint.name}
+                      <span className="text-xs text-muted-foreground block mb-1.5">Stage</span>
+                      <Link to={`/dashboard/stages/${stage.id}`} className="text-sm font-medium text-indigo-500 hover:underline">
+                        {stage.name}
                       </Link>
                     </div>
                   )}
@@ -394,7 +402,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                     </div>
                   )}
                   
-                  {task.completedAt && (user?.role === 'PRODUCT_MANAGER' || user?.role === 'ADMIN') && (
+                  {task.completedAt && (user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN') && (
                     <div className="pt-2 border-t border-border/50">
                       <span className="text-xs text-muted-foreground block mb-1.5">Completed On</span>
                       <span className="text-sm font-medium block">{new Date(task.completedAt).toLocaleDateString()} {new Date(task.completedAt).toLocaleTimeString()}</span>
@@ -402,7 +410,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                     </div>
                   )}
 
-                  {task.labels?.length > 0 && (
+                  {task.labels && task.labels.length > 0 && (
                     <div>
                       <span className="text-xs text-muted-foreground block mb-1.5">Labels</span>
                       <div className="flex flex-wrap gap-1">
@@ -427,20 +435,20 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                       </Button>
                       {canEdit && task.status !== 'DONE' && (
                         <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full justify-start text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200 dark:hover:bg-emerald-500/10 dark:border-emerald-500/20 transition-all"
-                          onClick={() => {
-                            updateTaskStatus.mutate({ id: task.id, status: 'DONE' }, {
-                              onSuccess: () => {
-                                toast({
-                                  title: "Task Completed",
-                                  description: `${task.key} has been marked as done.`
-                                });
-                                onClose();
-                              }
-                            });
-                          }}
+                           variant="outline" 
+                           size="sm" 
+                           className="w-full justify-start text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200 dark:hover:bg-emerald-500/10 dark:border-emerald-500/20 transition-all"
+                           onClick={() => {
+                             updateTaskStatus.mutate({ id: task.id, status: 'DONE' }, {
+                               onSuccess: () => {
+                                 toast({
+                                   title: "Task Completed",
+                                   description: `${task.key} has been marked as done.`
+                                 });
+                                 onClose();
+                               }
+                             });
+                           }}
                         >
                           <CheckCircle2 className="w-4 h-4 mr-2" />
                           Mark as Done

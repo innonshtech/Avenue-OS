@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useCreateSprint } from '../api/sprintApi';
+import { useCreateStage } from '../api/stageApi';
 import { useProjects } from '@/features/projects/api/projectApi';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,14 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-interface CreateSprintModalProps {
+interface CreateStageModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultProjectId?: string;
 }
 
-export function CreateSprintModal({ open, onOpenChange, defaultProjectId }: CreateSprintModalProps) {
-  const createSprint = useCreateSprint();
+export function CreateStageModal({ open, onOpenChange, defaultProjectId }: CreateStageModalProps) {
+  const createStage = useCreateStage();
   const { data: projects = [] } = useProjects();
   
   const [name, setName] = useState('');
@@ -28,7 +28,7 @@ export function CreateSprintModal({ open, onOpenChange, defaultProjectId }: Crea
     e.preventDefault();
     if (!projectId) return;
     
-    await createSprint.mutateAsync({
+    await createStage.mutateAsync({
       name,
       goal,
       startDate: startDate || new Date().toISOString(),
@@ -47,7 +47,7 @@ export function CreateSprintModal({ open, onOpenChange, defaultProjectId }: Crea
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Create New Sprint</DialogTitle>
+          <DialogTitle>Create New Stage</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
@@ -67,11 +67,11 @@ export function CreateSprintModal({ open, onOpenChange, defaultProjectId }: Crea
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">Name</Label>
-            <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3" required placeholder="e.g. Sprint 1 - Core Auth" />
+            <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3" required placeholder="e.g. Stage 1 - Structural Analysis" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="goal" className="text-right">Goal</Label>
-            <Textarea id="goal" value={goal} onChange={e => setGoal(e.target.value)} className="col-span-3" placeholder="Sprint goals..." />
+            <Textarea id="goal" value={goal} onChange={e => setGoal(e.target.value)} className="col-span-3" placeholder="Stage scope or deliverables..." />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="start" className="text-right">Start Date</Label>
@@ -83,8 +83,8 @@ export function CreateSprintModal({ open, onOpenChange, defaultProjectId }: Crea
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={createSprint.isPending}>
-              {createSprint.isPending ? 'Creating...' : 'Create Sprint'}
+            <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white" disabled={createStage.isPending}>
+              {createStage.isPending ? 'Creating...' : 'Create Stage'}
             </Button>
           </DialogFooter>
         </form>

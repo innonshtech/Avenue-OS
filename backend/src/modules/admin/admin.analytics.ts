@@ -35,13 +35,13 @@ export class AdminAnalytics {
       });
     }
 
-    // Check blockers
-    if (data.blockers) {
-      if (data.blockers.length > 5) {
+    // Check RFIs
+    if (data.rfis) {
+      if (data.rfis.length > 5) {
         insights.push({
           type: 'CRITICAL',
-          message: `Organization currently has ${data.blockers.length} unresolved blockers. Immediate attention required.`,
-          source: 'BLOCKERS'
+          message: `Organization currently has ${data.rfis.length} unresolved RFIs. Immediate attention required.`,
+          source: 'RFIs'
         });
       }
     }

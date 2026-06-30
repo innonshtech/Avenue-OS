@@ -1,5 +1,6 @@
 import { AlertTriangle, MessageSquare, ArrowRight } from 'lucide-react';
 import { ROLE_COLORS } from '@/constants/teamMembers';
+import type { UserRole } from '@/types/user';
 
 interface StandupUpdateCardProps {
   update: {
@@ -29,7 +30,7 @@ export default function StandupUpdateCard({ update }: StandupUpdateCardProps) {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="font-bold">{update.member}</span>
-            <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-sm border ${ROLE_COLORS[update.role] || ''}`}>
+            <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-sm border ${ROLE_COLORS[update.role as UserRole] || ''}`}>
               {update.role.replace('_', ' ')}
             </span>
           </div>

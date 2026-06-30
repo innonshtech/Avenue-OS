@@ -5,15 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import api from '@/lib/api';
-import { useQueryClient } from '@tanstack/react-query';
 
 export default function OnboardEmployeeModal({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
-  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: 'DEVELOPER',
+    role: 'ENGINEER',
     department: '',
     password: '',
     avatar: ''
@@ -25,7 +23,6 @@ export default function OnboardEmployeeModal({ open, onOpenChange }: { open: boo
     try {
       await api.post('/team-members', formData);
       onOpenChange(false);
-      // We would normally invalidate team query here, but team page uses raw fetch. We can trigger a reload.
       window.location.reload();
     } catch (error) {
       console.error('Failed to create member', error);
@@ -60,11 +57,12 @@ export default function OnboardEmployeeModal({ open, onOpenChange }: { open: boo
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="PRODUCT_MANAGER">Product Manager</SelectItem>
-                <SelectItem value="DEVELOPER">Developer</SelectItem>
-                <SelectItem value="MARKETING">Marketing</SelectItem>
-                <SelectItem value="HR">HR</SelectItem>
-                <SelectItem value="QA">QA</SelectItem>
+                <SelectItem value="PROJECT_MANAGER">Project Manager</SelectItem>
+                <SelectItem value="PRINCIPAL_ENGINEER">Principal Engineer</SelectItem>
+                <SelectItem value="ENGINEER">Engineer</SelectItem>
+                <SelectItem value="DRAFTSMAN">Draftsman</SelectItem>
+                <SelectItem value="ARCHITECT">Architect</SelectItem>
+                <SelectItem value="CLIENT">Client</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -11,10 +11,8 @@ import {
   MessageSquare,
   Users,
   Bell,
-  Search,
   Menu,
   LogOut,
-  Zap,
   Briefcase,
   Activity,
   ShieldCheck,
@@ -41,14 +39,14 @@ import { useChannels } from '@/features/chat/api/chatApi';
 
 // Access Control config
 const SIDEBAR_CONFIG: Record<UserRole, { icon: any, label: string, path: string }[]> = {
-  PRODUCT_MANAGER: [
+  PROJECT_MANAGER: [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: CheckSquare, label: 'Projects', path: '/dashboard/projects' },
-    { icon: Clock, label: 'Sprints', path: '/dashboard/sprints' },
+    { icon: Clock, label: 'Stages', path: '/dashboard/stages' },
     { icon: CheckSquare, label: 'Tasks', path: '/dashboard/tasks' },
     { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
     { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
-    { icon: Users, label: 'Standups', path: '/dashboard/standups' },
+    { icon: Users, label: 'Progress Reports', path: '/dashboard/standups' },
     { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
     { icon: BarChart, label: 'Analytics', path: '/dashboard/analytics' },
     { icon: BarChart, label: 'Reports', path: '/dashboard/reports' },
@@ -58,26 +56,60 @@ const SIDEBAR_CONFIG: Record<UserRole, { icon: any, label: string, path: string 
     { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
   ],
-  DEVELOPER: [
+  PRINCIPAL_ENGINEER: [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: CheckSquare, label: 'My Tasks', path: '/dashboard/my-tasks' },
     { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
     { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
-    { icon: Users, label: 'Standups', path: '/dashboard/standups' },
+    { icon: Users, label: 'Progress Reports', path: '/dashboard/standups' },
     { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
     { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
-    { icon: BarChart, label: 'Sprint Reports', path: '/dashboard/sprint-reports' },
+    { icon: BarChart, label: 'Stage Reports', path: '/dashboard/stage-reports' },
     { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
     { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
   ],
-  MARKETING: [
+  ENGINEER: [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: Briefcase, label: 'Campaign Tasks', path: '/dashboard/campaign-tasks' },
+    { icon: CheckSquare, label: 'My Tasks', path: '/dashboard/my-tasks' },
+    { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
     { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
-    { icon: Users, label: 'Standups', path: '/dashboard/standups' },
+    { icon: Users, label: 'Progress Reports', path: '/dashboard/standups' },
     { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
     { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
+    { icon: BarChart, label: 'Stage Reports', path: '/dashboard/stage-reports' },
+    { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
+    { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
+    { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
+  ],
+  DRAFTSMAN: [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: CheckSquare, label: 'My Tasks', path: '/dashboard/my-tasks' },
+    { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
+    { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
+    { icon: Users, label: 'Progress Reports', path: '/dashboard/standups' },
+    { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
+    { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
+    { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
+    { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
+    { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
+  ],
+  ARCHITECT: [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: CheckSquare, label: 'My Tasks', path: '/dashboard/my-tasks' },
+    { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
+    { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
+    { icon: Users, label: 'Progress Reports', path: '/dashboard/standups' },
+    { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
+    { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
+    { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
+    { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
+    { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
+  ],
+  CLIENT: [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
+    { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
     { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
     { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
@@ -131,8 +163,8 @@ export default function DashboardLayout() {
       }`}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-border">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Innonsh Logo" className="w-8 h-8 object-contain rounded-md" />
-            <span className="font-bold text-lg tracking-tight">Innonsh SprintOS</span>
+            <img src="/logo.png" alt="Avenue Logo" className="w-8 h-8 object-contain rounded-md" />
+            <span className="font-bold text-lg tracking-tight">Avenue Projects</span>
           </div>
           <button 
             onClick={() => setIsMobileSidebarOpen(false)}
@@ -185,8 +217,8 @@ export default function DashboardLayout() {
       <aside className="w-64 border-r border-border bg-card/30 hidden md:flex flex-col flex-shrink-0">
         <div className="h-16 flex items-center px-6 border-b border-border">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Innonsh Logo" className="w-8 h-8 object-contain rounded-md" />
-            <span className="font-bold text-lg tracking-tight">Innonsh SprintOS</span>
+            <img src="/logo.png" alt="Avenue Logo" className="w-8 h-8 object-contain rounded-md" />
+            <span className="font-bold text-lg tracking-tight">Avenue Projects</span>
           </div>
         </div>
         
@@ -278,7 +310,7 @@ export default function DashboardLayout() {
                       <DropdownMenuItem 
                         key={notif.id} 
                         onSelect={(e) => {
-                          e.preventDefault(); // Prevents the dropdown from closing on click
+                          e.preventDefault();
                           if (!notif.isRead) markRead.mutate(notif.id);
                           if (notif.linkUrl) navigate(notif.linkUrl);
                         }}

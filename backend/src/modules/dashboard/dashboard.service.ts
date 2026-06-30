@@ -7,86 +7,86 @@ export class DashboardService {
     this.repo = new DashboardRepository();
   }
 
-  async getSprintHealth(sprintId?: string, preloadedSprint?: any) {
-    const activeSprint = preloadedSprint || await this.repo.getSprint(sprintId);
+  async getStageHealth(stageId?: string, preloadedStage?: any) {
+    const activeStage = preloadedStage || await this.repo.getStage(stageId);
     
-    if (!activeSprint) {
+    if (!activeStage) {
       return {
-        activeSprint: null,
-        message: 'No active sprint found'
+        activeStage: null,
+        message: 'No active stage found'
       };
     }
 
-    const tasks = activeSprint.tasks || [];
+    const tasks = activeStage.tasks || [];
     const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(t => t.status === 'DONE').length;
+    const completedTasks = tasks.filter((t: any) => t.status === 'DONE').length;
     const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-    const startDate = new Date(activeSprint.startDate);
-    const endDate = new Date(activeSprint.endDate);
+    const startDate = new Date(activeStage.startDate);
+    const endDate = new Date(activeStage.endDate);
     const today = new Date();
     
     const totalDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
     const daysElapsed = Math.max(0, Math.ceil((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
     const daysRemaining = Math.max(0, totalDays - daysElapsed);
 
-    const blockedTasksRaw = await this.repo.getBlockedTasks(activeSprint.id);
-    const blockedTasks = blockedTasksRaw.map(t => ({
+    const rfiTasksRaw = await this.repo.getRFITasks(activeStage.id);
+    const blockedTasks = rfiTasksRaw.map((t: any) => ({
       id: t.id,
       title: t.title,
       assignee: t.assignee?.name || 'Unassigned',
-      blockerReason: t.blockers[0]?.description || 'Unknown reason',
-      severity: 'HIGH', // Can be dynamic based on Priority
-      timeBlocked: `${Math.ceil((today.getTime() - new Date(t.blockers[0]?.createdAt).getTime()) / (1000 * 60 * 60 * 24))} days`
+      blockerReason: t.rfis[0]?.description || 'Unknown reason',
+      severity: 'HIGH',
+      timeBlocked: `${Math.ceil((today.getTime() - new Date(t.rfis[0]?.createdAt).getTime()) / (1000 * 60 * 60 * 24))} days`
     }));
 
-    const overdueTasks = tasks.filter(t => t.status !== 'DONE' && t.dueDate && new Date(t.dueDate) < today).length;
+    const overdueTasks = tasks.filter((t: any) => t.status !== 'DONE' && t.dueDate && new Date(t.dueDate) < today).length;
 
-    let sprintStatus = 'HEALTHY';
+    let stageStatus = 'HEALTHY';
     if (blockedTasks.length > 2 || overdueTasks > 3) {
-      sprintStatus = 'AT RISK';
+      stageStatus = 'AT RISK';
     }
     if (daysRemaining <= 2 && completionPercentage < 70) {
-      sprintStatus = 'DELAYED';
+      stageStatus = 'DELAYED';
     }
 
     const riskIndicators = [];
-    if (blockedTasks.length > 0) riskIndicators.push(`⚠ High blocker count (${blockedTasks.length})`);
+    if (blockedTasks.length > 0) riskIndicators.push(`⚠ High RFI count (${blockedTasks.length})`);
     if (overdueTasks > 0) riskIndicators.push(`⚠ ${overdueTasks} tasks overdue`);
     if (completionPercentage < (daysElapsed/totalDays)*100 - 15) riskIndicators.push(`⚠ Velocity dropping behind schedule`);
 
     return {
-      activeSprint: activeSprint.name,
+      activeStage: activeStage.name,
       completedTasks,
       totalTasks,
       completionPercentage,
-      sprintGoal: activeSprint.goal || 'Complete scheduled tasks',
-      sprintStartDate: activeSprint.startDate,
-      sprintEndDate: activeSprint.endDate,
+      stageGoal: activeStage.goal || 'Complete scheduled tasks',
+      stageStartDate: activeStage.startDate,
+      stageEndDate: activeStage.endDate,
       daysRemaining,
       totalDays,
-      status: sprintStatus,
+      status: stageStatus,
       riskIndicators,
       blockedTasks
     };
   }
 
-  async getTeamWorkload(sprintId?: string, preloadedSprint?: any, preloadedMembers?: any) {
-    const activeSprint = preloadedSprint || await this.repo.getSprint(sprintId);
+  async getTeamWorkload(stageId?: string, preloadedStage?: any, preloadedMembers?: any) {
+    const activeStage = preloadedStage || await this.repo.getStage(stageId);
     const members = preloadedMembers || await this.repo.getTeamMembers();
     
-    if (!activeSprint) return [];
+    if (!activeStage) return [];
 
-    const tasks = activeSprint.tasks || [];
+    const tasks = activeStage.tasks || [];
     
-    return members.map(member => {
-      const memberTasks = tasks.filter(t => t.assigneeId === member.id);
+    return members.map((member: any) => {
+      const memberTasks = tasks.filter((t: any) => t.assigneeId === member.id);
       const assignedTasks = memberTasks.length;
-      const completedTasks = memberTasks.filter(t => t.status === 'DONE').length;
+      const completedTasks = memberTasks.filter((t: any) => t.status === 'DONE').length;
       const pendingTasks = assignedTasks - completedTasks;
-      const blockers = memberTasks.filter(t => t.blockers && t.blockers.some((b: any) => !b.isResolved)).length;
+      const blockers = memberTasks.filter((t: any) => t.rfis && t.rfis.some((b: any) => !b.isResolved)).length;
       
-      const utilization = Math.min(100, assignedTasks === 0 ? 0 : Math.round((assignedTasks / 8) * 100)); // Assuming 8 is max capacity per sprint
+      const utilization = Math.min(100, assignedTasks === 0 ? 0 : Math.round((assignedTasks / 8) * 100)); // Assuming 8 is max capacity
       
       let status = 'Healthy';
       if (utilization > 90) status = 'Overloaded';
@@ -105,71 +105,72 @@ export class DashboardService {
     });
   }
 
-  async getBoardSnapshot(sprintId?: string, preloadedSprint?: any) {
-    const activeSprint = preloadedSprint || await this.repo.getSprint(sprintId);
-    if (!activeSprint) return null;
+  async getBoardSnapshot(stageId?: string, preloadedStage?: any) {
+    const activeStage = preloadedStage || await this.repo.getStage(stageId);
+    if (!activeStage) return null;
 
-    const tasks = activeSprint.tasks || [];
+    const tasks = activeStage.tasks || [];
     
     const getColData = (statusStr: string) => {
-      const colTasks = tasks.filter(t => t.status === statusStr);
+      const colTasks = tasks.filter((t: any) => t.status === statusStr);
       return {
         count: colTasks.length,
-        storyPoints: colTasks.reduce((acc, t) => acc + (t.storyPoints || 0), 0),
-        members: [...new Set(colTasks.map(t => t.assignee?.avatar || t.assignee?.name?.charAt(0)).filter(Boolean))]
+        storyPoints: colTasks.reduce((acc: number, t: any) => acc + (t.storyPoints || 0), 0),
+        members: [...new Set(colTasks.map((t: any) => t.assignee?.avatar || t.assignee?.name?.charAt(0)).filter(Boolean))]
       };
     };
 
     return {
-      todo: getColData('TODO'),
+      pending: getColData('PENDING'),
       inProgress: getColData('IN_PROGRESS'),
-      review: getColData('IN_REVIEW'),
-      testing: getColData('IN_TESTING'),
+      internalReview: getColData('INTERNAL_REVIEW'),
+      externalReview: getColData('EXTERNAL_REVIEW'),
+      modificationRequired: getColData('MODIFICATION_REQUIRED'),
+      approved: getColData('APPROVED'),
       done: getColData('DONE'),
-      totalStoryPoints: tasks.reduce((acc, t) => acc + (t.storyPoints || 0), 0)
+      totalStoryPoints: tasks.reduce((acc: number, t: any) => acc + (t.storyPoints || 0), 0)
     };
   }
 
-  async getStandupMonitoring(sprintId?: string, preloadedSprint?: any, preloadedMembers?: any) {
-    const activeSprint = preloadedSprint || await this.repo.getSprint(sprintId);
-    if (!activeSprint) return [];
+  async getProgressReportMonitoring(stageId?: string, preloadedStage?: any, preloadedMembers?: any) {
+    const activeStage = preloadedStage || await this.repo.getStage(stageId);
+    if (!activeStage) return [];
 
-    const standups = await this.repo.getLatestStandups(activeSprint.id);
+    const reports = await this.repo.getLatestProgressReports(activeStage.id);
     const members = preloadedMembers || await this.repo.getTeamMembers();
     
-    // Group by member, get latest
-    const latestStandups: any[] = [];
+    const latestReports: any[] = [];
     
-    members.forEach(member => {
-      const memberStandups = standups.filter(s => s.userId === member.id);
-      const latest = memberStandups[0]; // ordered desc by date
+    members.forEach((member: any) => {
+      const memberReports = reports.filter((s: any) => s.userId === member.id);
+      const latest = memberReports[0]; // ordered desc by date
       
       if (latest) {
-        latestStandups.push({
+        latestReports.push({
           member: member.name,
           role: member.role,
-          task: 'Working on sprint tasks',
+          task: 'Working on stage tasks',
           todayWork: latest.today,
           blockers: latest.blockers || 'None',
           hasBlocker: !!latest.blockers && latest.blockers.trim() !== 'None' && latest.blockers.trim() !== '',
           helperRequired: 'Not specified',
           submittedAt: latest.date,
-          projectName: latest.sprint?.project?.name || 'Smart Parking System',
-          sprintName: latest.sprint?.name || 'Sprint 3'
+          projectName: latest.stage?.project?.name || 'Avenue Project',
+          sprintName: latest.stage?.name || 'Framing'
         });
       }
     });
 
-    return latestStandups;
+    return latestReports;
   }
 
-  async getPMSummary(sprintId?: string) {
-    const [activeSprint, members] = await Promise.all([
-      this.repo.getSprint(sprintId),
+  async getPMSummary(stageId?: string) {
+    const [activeStage, members] = await Promise.all([
+      this.repo.getStage(stageId),
       this.repo.getTeamMembers()
     ]);
     
-    if (!activeSprint) {
+    if (!activeStage) {
       return {
         health: null,
         workload: [],
@@ -184,12 +185,12 @@ export class DashboardService {
     }
 
     const [health, workload, boardSnapshot, standups, activeProjects, globalBlockers, totalActiveTasks] = await Promise.all([
-      this.getSprintHealth(sprintId, activeSprint),
-      this.getTeamWorkload(sprintId, activeSprint, members),
-      this.getBoardSnapshot(sprintId, activeSprint),
-      this.getStandupMonitoring(sprintId, activeSprint, members),
+      this.getStageHealth(stageId, activeStage),
+      this.getTeamWorkload(stageId, activeStage, members),
+      this.getBoardSnapshot(stageId, activeStage),
+      this.getProgressReportMonitoring(stageId, activeStage, members),
       this.repo.getActiveProjectsCount(),
-      this.repo.getGlobalBlockersCount(),
+      this.repo.getGlobalRFIsCount(),
       this.repo.getTotalActiveTasksCount()
     ]);
 

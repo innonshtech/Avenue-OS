@@ -1,9 +1,9 @@
 export type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'ARCHIVED';
-export type SprintStatus = 'PLANNED' | 'ACTIVE' | 'COMPLETED' | 'CANCELED';
-export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'BLOCKED' | 'TESTING' | 'DONE';
+export type StageStatus = 'PLANNED' | 'ACTIVE' | 'COMPLETED' | 'CANCELED';
+export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'INTERNAL_REVIEW' | 'EXTERNAL_REVIEW' | 'MODIFICATION_REQUIRED' | 'APPROVED' | 'DONE';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT' | 'CRITICAL';
-export type BlockerSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-export type BlockerType = 'TECHNICAL' | 'REQUIREMENT' | 'DEPENDENCY' | 'INFRASTRUCTURE' | 'COMMUNICATION' | 'TESTING';
+export type RFISeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type RFIType = 'ARCHITECTURAL_CLARIFICATION' | 'CLIENT_APPROVAL_PENDING' | 'SITE_DISCREPANCY' | 'RESOURCE_UNAVAILABLE';
 
 export interface ProjectMember {
   id: string;
@@ -22,18 +22,24 @@ export interface Project {
   members: ProjectMember[];
   createdAt: string;
   updatedAt: string;
+  startDate?: string | null;
+  deadline?: string | null;
+  stages?: Stage[];
+  tasks?: Task[];
 }
 
-export interface Sprint {
+export interface Stage {
   id: string;
   name: string;
   goal: string | null;
   startDate: string;
   endDate: string;
-  status: SprintStatus;
+  status: StageStatus;
   projectId: string;
   createdAt: string;
   updatedAt: string;
+  project?: Project;
+  tasks?: Task[];
 }
 
 export interface Task {
@@ -41,24 +47,46 @@ export interface Task {
   key: string;
   title: string;
   description: string | null;
-  type: string; // STORY, BUG, TASK, EPIC
+  type: string; // DESIGN, DRAFTING, MODELING, ANALYSIS, SITE_CHECK, REVIEW
   status: TaskStatus;
   priority: TaskPriority;
   storyPoints: number | null;
+  drawingNumber: string | null;
+  revisionNumber: string | null;
   projectId: string;
-  sprintId: string | null;
+  stageId: string | null;
   assigneeId: string | null;
   creatorId: string;
   createdAt: string;
   updatedAt: string;
+
+  // Optional relations and extra fields returned by API
+  project?: Project;
+  stage?: Stage;
+  assignee?: any;
+  creator?: any;
+  comments?: any[];
+  activities?: any[];
+  attachments?: any[];
+  rfis?: RFI[];
+  subtasks?: any[];
+  progressReports?: ProgressReport[];
+  isArchived?: boolean;
+  archivedAt?: string | null;
+  archivedById?: string | null;
+  completedAt?: string | null;
+  completedById?: string | null;
+  dueDate?: string | null;
+  labels?: string[];
+  acceptanceCriteria?: string | null;
 }
 
-export interface Blocker {
+export interface RFI {
   id: string;
   description: string;
   isResolved: boolean;
-  severity: BlockerSeverity;
-  type: BlockerType;
+  severity: RFISeverity;
+  type: RFIType;
   estimatedResolutionDate: string | null;
   helperId: string | null;
   taskId: string;
@@ -67,16 +95,16 @@ export interface Blocker {
   updatedAt: string;
 }
 
-export interface DailyStandup {
+export interface ProgressReport {
   id: string;
   date: string;
   yesterday: string;
   today: string;
   blockers: string | null;
   userId: string;
-  sprintId: string;
+  stageId: string;
   createdAt: string;
-  sprint?: Sprint & { project?: Project };
+  stage?: Stage & { project?: Project };
   task?: Task;
-  reportedBlockers?: Blocker[];
+  reportedRFIs?: RFI[];
 }

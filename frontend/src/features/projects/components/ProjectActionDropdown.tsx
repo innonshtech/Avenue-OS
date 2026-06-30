@@ -7,10 +7,10 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit, Archive, Trash2, Plus, Calendar } from 'lucide-react';
+import { MoreVertical, Edit, Trash2, Plus, Calendar } from 'lucide-react';
 import { EditProjectModal } from './EditProjectModal';
 import { DeleteProjectDialog } from './DeleteProjectDialog';
-import { CreateSprintModal } from '@/features/sprints/components/CreateSprintModal';
+import { CreateStageModal } from '@/features/stages/components/CreateStageModal';
 import { CreateTaskModal } from '@/features/tasks/components/CreateTaskModal';
 import type { Project } from '@/types/core';
 
@@ -21,7 +21,7 @@ interface ProjectActionDropdownProps {
 export function ProjectActionDropdown({ project }: ProjectActionDropdownProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isSprintOpen, setIsSprintOpen] = useState(false);
+  const [isStageOpen, setIsStageOpen] = useState(false);
   const [isTaskOpen, setIsTaskOpen] = useState(false);
 
   return (
@@ -37,9 +37,9 @@ export function ProjectActionDropdown({ project }: ProjectActionDropdownProps) {
             <Edit className="mr-2 h-4 w-4" />
             <span>Edit Project</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setIsSprintOpen(true)} className="cursor-pointer">
+          <DropdownMenuItem onClick={() => setIsStageOpen(true)} className="cursor-pointer">
             <Calendar className="mr-2 h-4 w-4" />
-            <span>Add Sprint</span>
+            <span>Add Stage</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setIsTaskOpen(true)} className="cursor-pointer">
             <Plus className="mr-2 h-4 w-4" />
@@ -55,8 +55,8 @@ export function ProjectActionDropdown({ project }: ProjectActionDropdownProps) {
 
       <EditProjectModal open={isEditOpen} onOpenChange={setIsEditOpen} project={project} />
       <DeleteProjectDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen} project={project} />
-      <CreateSprintModal open={isSprintOpen} onOpenChange={setIsSprintOpen} projectId={project.id} />
-      <CreateTaskModal open={isTaskOpen} onOpenChange={setIsTaskOpen} initialProjectId={project.id} />
+      <CreateStageModal open={isStageOpen} onOpenChange={setIsStageOpen} defaultProjectId={project.id} />
+      <CreateTaskModal open={isTaskOpen} onOpenChange={setIsTaskOpen} defaultProjectId={project.id} />
     </>
   );
 }

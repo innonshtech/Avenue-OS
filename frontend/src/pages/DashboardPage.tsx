@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { useTasks } from '@/features/tasks/api/taskApi';
-import { useProjects } from '@/features/projects/api/projectApi';
-import { useSprints } from '@/features/sprints/api/sprintApi';
+import { useStages } from '@/features/stages/api/stageApi';
 import { ROLE_COLORS } from '@/constants/teamMembers';
 
 // New Operational PM Components
@@ -22,35 +20,33 @@ import MemberDashboard from '@/features/dashboard/member/MemberDashboard';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  const isPM = user?.role === 'PRODUCT_MANAGER';
+  const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
 
   // DEV/MARKETING DATA
-  const { data: sprints = [] } = useSprints();
-
-  const activeSprints = sprints.filter((s: any) => s.status === 'ACTIVE');
+  const { data: stages = [] } = useStages();
 
   // PM OPERATIONAL DATA
-  const [selectedSprintId, setSelectedSprintId] = useState<string>('');
+  const [selectedStageId, setSelectedStageId] = useState<string>('');
 
-  // Set default to first active sprint if available
+  // Set default to first active stage if available
   useEffect(() => {
-    if (sprints.length > 0 && !selectedSprintId) {
-      const activeSprint = sprints.find((s: any) => s.status === 'ACTIVE');
-      if (activeSprint) {
-        setSelectedSprintId(activeSprint.id);
+    if (stages.length > 0 && !selectedStageId) {
+      const activeStage = stages.find((s: any) => s.status === 'ACTIVE');
+      if (activeStage) {
+        setSelectedStageId(activeStage.id);
       } else {
-        setSelectedSprintId(sprints[0].id);
+        setSelectedStageId(stages[0].id);
       }
     }
-  }, [sprints, selectedSprintId]);
+  }, [stages, selectedStageId]);
 
-  const { data: pmSummary, isLoading: isLoadingSummary } = usePMSummary(selectedSprintId);
+  const { data: pmSummary, isLoading: isLoadingSummary } = usePMSummary(selectedStageId);
 
   // Derived KPIs for PM
   const activeProjectsCount = pmSummary?.kpis?.activeProjects || 0;
   const globalBlockersCount = pmSummary?.kpis?.globalBlockers || 0;
   const totalActiveTasksCount = pmSummary?.kpis?.totalActiveTasks || 0;
-  const teamVelocityScore = 84; // Can be derived from previous sprint or analytics endpoint
+  const teamVelocityScore = 84; // Can be derived from previous stage or analytics endpoint
 
   return (
     <div className="space-y-6 pb-12">
@@ -65,14 +61,14 @@ export default function DashboardPage() {
               </span>
             )}
             
-            {isPM && sprints.length > 0 && (
+            {isPM && stages.length > 0 && (
               <div className="ml-2 flex items-center">
-                <Select value={selectedSprintId} onValueChange={setSelectedSprintId}>
+                <Select value={selectedStageId} onValueChange={setSelectedStageId}>
                   <SelectTrigger className="w-[200px] h-8 bg-card border-indigo-200 shadow-soft">
-                    <SelectValue placeholder="Select Sprint" />
+                    <SelectValue placeholder="Select Stage" />
                   </SelectTrigger>
                   <SelectContent>
-                    {sprints.map((s: any) => (
+                    {stages.map((s: any) => (
                       <SelectItem key={s.id} value={s.id}>
                         {s.name} <span className="text-[10px] text-muted-foreground ml-2">({s.status})</span>
                       </SelectItem>
@@ -83,14 +79,14 @@ export default function DashboardPage() {
             )}
           </div>
           <p className="text-muted-foreground">
-            Welcome back, <span className="font-medium text-foreground">{user?.name}</span>. Operational overview for current active sprint.
+            Welcome back, <span className="font-medium text-foreground">{user?.name}</span>. Operational overview for current active stage.
           </p>
         </div>
       </div>
 
       {isPM ? (
         // ==========================================
-        // PRODUCT MANAGER COMMAND CENTER LAYOUT
+        // PROJECT MANAGER COMMAND CENTER LAYOUT
         // ==========================================
         <div className="space-y-6">
           {/* Top KPI Row */}

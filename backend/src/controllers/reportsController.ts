@@ -3,8 +3,8 @@ import prisma from '../utils/prisma';
 
 const checkPMRole = (req: Request, res: Response) => {
   const user = req.user;
-  if (!user || user.role !== 'PRODUCT_MANAGER') {
-    res.status(403).json({ error: 'Access denied. Only Product Managers can access reports.' });
+  if (!user || (user.role !== 'PROJECT_MANAGER' && user.role !== 'ADMIN')) {
+    res.status(403).json({ error: 'Access denied. Only Project Managers can access reports.' });
     return false;
   }
   return true;
@@ -13,7 +13,7 @@ const checkPMRole = (req: Request, res: Response) => {
 export const getSprintReports = async (req: Request, res: Response) => {
   if (!checkPMRole(req, res)) return;
   try {
-    const sprints = await prisma.sprint.findMany({
+    const stages = await prisma.stage.findMany({
       where: {
         status: { in: ['ACTIVE', 'COMPLETED'] }
       },
@@ -21,40 +21,40 @@ export const getSprintReports = async (req: Request, res: Response) => {
         project: true,
         tasks: {
           include: {
-            blockers: true
+            rfis: true
           }
         }
       },
       orderBy: { createdAt: 'desc' }
     });
 
-    const formattedReports = sprints.map(sprint => {
-      const totalTasks = sprint.tasks.length;
-      const completedTasks = sprint.tasks.filter(t => t.status === 'DONE').length;
+    const formattedReports = stages.map(stage => {
+      const totalTasks = stage.tasks.length;
+      const completedTasks = stage.tasks.filter(t => t.status === 'DONE').length;
       const successRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
       
-      const velocity = sprint.tasks
+      const velocity = stage.tasks
         .filter(t => t.status === 'DONE')
         .reduce((sum, t) => sum + (t.storyPoints || 0), 0);
         
-      const blockerCount = sprint.tasks.reduce((sum, t) => sum + t.blockers.length, 0);
+      const rfiCount = stage.tasks.reduce((sum, t) => sum + t.rfis.length, 0);
 
       let summary = '';
-      if (sprint.status === 'COMPLETED') {
-        summary = successRate === 100 ? 'Excellent sprint with all goals achieved.' : `Sprint completed with ${successRate}% success rate.`;
+      if (stage.status === 'COMPLETED') {
+        summary = successRate === 100 ? 'Excellent stage with all goals achieved.' : `Stage completed with ${successRate}% success rate.`;
       } else {
-        summary = successRate > 50 ? 'Sprint is progressing well.' : 'Sprint is currently at risk. Monitor blockers.';
+        summary = successRate > 50 ? 'Stage is progressing well.' : 'Stage is currently at risk. Monitor RFIs.';
       }
 
       return {
-        id: sprint.id,
-        sprint: { name: sprint.name },
-        project: { name: sprint.project.name },
+        id: stage.id,
+        stage: { name: stage.name },
+        project: { name: stage.project.name },
         successRate,
         velocity,
         completedTasks,
         pendingTasks: totalTasks - completedTasks,
-        blockerCount,
+        rfiCount,
         summary
       };
     });
@@ -62,32 +62,32 @@ export const getSprintReports = async (req: Request, res: Response) => {
     res.status(200).json(formattedReports);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to fetch sprint reports' });
+    res.status(500).json({ error: 'Failed to fetch stage reports' });
   }
 };
 
 export const getTeamReports = async (req: Request, res: Response) => {
   if (!checkPMRole(req, res)) return;
   try {
-    const activeSprint = await prisma.sprint.findFirst({
+    const activeStage = await prisma.stage.findFirst({
       where: { status: 'ACTIVE' },
       orderBy: { createdAt: 'desc' }
     });
 
-    const sprintFilter = activeSprint ? { sprintId: activeSprint.id } : {};
+    const stageFilter = activeStage ? { stageId: activeStage.id } : {};
 
     const users = await prisma.user.findMany({
       include: {
         tasksAssigned: {
-          where: sprintFilter
+          where: stageFilter
         },
-        blockersReported: {
-          where: sprintFilter.sprintId ? {
-            task: { sprintId: sprintFilter.sprintId }
+        rfisReported: {
+          where: stageFilter.stageId ? {
+            task: { stageId: stageFilter.stageId }
           } : {}
         },
-        standups: {
-          where: sprintFilter
+        progressReports: {
+          where: stageFilter
         }
       },
       orderBy: { name: 'asc' }
@@ -97,17 +97,15 @@ export const getTeamReports = async (req: Request, res: Response) => {
       const assignedTasks = user.tasksAssigned.length;
       const completedTasks = user.tasksAssigned.filter(t => t.status === 'DONE').length;
       const delayedTasks = user.tasksAssigned.filter(t => t.status !== 'DONE' && t.dueDate && new Date(t.dueDate) < new Date()).length;
-      const blockersRaised = user.blockersReported.length;
+      const blockersRaised = user.rfisReported.length;
 
-      // Standup consistency: assuming a simplistic 5 working days in a sprint or just based on how many they did
-      // Real formula would check working days since sprint start
       let standupConsistency = 0;
-      if (activeSprint) {
-        const sprintStart = new Date(activeSprint.startDate);
+      if (activeStage) {
+        const stageStart = new Date(activeStage.startDate);
         const today = new Date();
-        const endDay = new Date(activeSprint.endDate) < today ? new Date(activeSprint.endDate) : today;
+        const endDay = new Date(activeStage.endDate) < today ? new Date(activeStage.endDate) : today;
         let workingDays = 0;
-        let curr = new Date(sprintStart);
+        let curr = new Date(stageStart);
         while (curr <= endDay) {
           const dayOfWeek = curr.getDay();
           if (dayOfWeek !== 0 && dayOfWeek !== 6) workingDays++; // skip weekends
@@ -115,14 +113,14 @@ export const getTeamReports = async (req: Request, res: Response) => {
         }
         
         if (workingDays > 0) {
-          standupConsistency = Math.min(100, Math.round((user.standups.length / workingDays) * 100));
+          standupConsistency = Math.min(100, Math.round((user.progressReports.length / workingDays) * 100));
         }
       }
 
       return {
         id: user.id,
         user: { name: user.name },
-        sprint: { name: activeSprint?.name || 'No Active Sprint' },
+        stage: { name: activeStage?.name || 'No Active Stage' },
         assignedTasks,
         completedTasks,
         delayedTasks,
@@ -131,7 +129,7 @@ export const getTeamReports = async (req: Request, res: Response) => {
         avgCompletionTime: 0,
         utilizationRate: 0
       };
-    }).filter(r => r.assignedTasks > 0 || ['DEVELOPER', 'MARKETING'].includes(users.find(u => u.id === r.id)?.role || ''));
+    }).filter(r => r.assignedTasks > 0 || ['PRINCIPAL_ENGINEER', 'ENGINEER', 'DRAFTSMAN', 'ARCHITECT'].includes(users.find(u => u.id === r.id)?.role || ''));
 
     res.status(200).json(reports);
   } catch (error) {
@@ -145,7 +143,7 @@ export const getProjectReports = async (req: Request, res: Response) => {
   try {
     const projects = await prisma.project.findMany({
       include: {
-        sprintReports: true,
+        stageReports: true,
         tasks: {
           select: { status: true, dueDate: true }
         }
@@ -166,7 +164,7 @@ export const getProjectReports = async (req: Request, res: Response) => {
         totalTasks: total,
         completedTasks: completed,
         overdueTasks: overdue,
-        sprintReports: p.sprintReports
+        stageReports: p.stageReports
       };
     });
 
@@ -191,13 +189,13 @@ export const getProductivityReports = async (req: Request, res: Response) => {
       avgTime = Math.round(ms / completedTasks.length / (1000 * 60 * 60)); // hrs
     }
     
-    const activeBlockers = await prisma.blocker.count({ where: { isResolved: false } });
+    const activeBlockers = await prisma.rFI.count({ where: { isResolved: false } });
 
     res.status(200).json({
       overallVelocity,
       averageCompletionTime: avgTime,
       activeBlockers,
-      standupConsistency: 95 // Hard to measure globally without complex active sprint queries, static 95% looks professional
+      standupConsistency: 95
     });
   } catch (error) {
     console.error(error);

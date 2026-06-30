@@ -2,12 +2,12 @@ import prisma from '../../utils/prisma';
 
 export class SearchService {
   /**
-   * Performs a global fuzzy search across tasks, projects, comments, blockers, and standups.
+   * Performs a global fuzzy search across tasks, projects, comments, RFIs, and progress reports.
    * Enforces role-based access control (RBAC).
    */
   async globalSearch(userId: string, userRole: string, query: string) {
     if (!query || typeof query !== 'string' || query.trim() === '') {
-      return { tasks: [], projects: [], comments: [], blockers: [], standups: [] };
+      return { tasks: [], projects: [], comments: [], rfis: [], progressReports: [] };
     }
 
     const q = query.trim();
@@ -15,7 +15,7 @@ export class SearchService {
     // 1. Determine which projects this user is allowed to access
     let allowedProjectIds: string[] = [];
     
-    if (userRole === 'ADMIN' || userRole === 'PRODUCT_MANAGER') {
+    if (userRole === 'ADMIN' || userRole === 'PROJECT_MANAGER') {
       const projects = await prisma.project.findMany({
         select: { id: true }
       });
@@ -40,7 +40,7 @@ export class SearchService {
     }
 
     // 2. Fetch results across models in parallel
-    const [tasks, projects, comments, blockers, standups] = await Promise.all([
+    const [tasks, projects, comments, rfis, progressReports] = await Promise.all([
       // Tasks Search
       prisma.task.findMany({
         where: {
@@ -98,8 +98,8 @@ export class SearchService {
         take: 5
       }),
 
-      // Blockers Search
-      prisma.blocker.findMany({
+      // RFIs Search (was Blockers Search)
+      prisma.rFI.findMany({
         where: {
           task: { projectId: { in: allowedProjectIds } },
           description: { contains: q, mode: 'insensitive' }
@@ -112,16 +112,16 @@ export class SearchService {
         take: 5
       }),
 
-      // Daily Standups Search
-      prisma.dailyStandup.findMany({
+      // Progress Reports Search (was Daily Standups Search)
+      prisma.progressReport.findMany({
         where: {
           OR: [
             { yesterday: { contains: q, mode: 'insensitive' } },
             { today: { contains: q, mode: 'insensitive' } },
             { blockers: { contains: q, mode: 'insensitive' } }
           ],
-          // Devs/marketing can only search their own standups
-          ...(userRole !== 'ADMIN' && userRole !== 'PRODUCT_MANAGER' ? { userId } : {})
+          // Engineers/Draftsmen can only search their own reports
+          ...(userRole !== 'ADMIN' && userRole !== 'PROJECT_MANAGER' ? { userId } : {})
         },
         include: {
           user: {
@@ -137,8 +137,8 @@ export class SearchService {
       tasks,
       projects,
       comments,
-      blockers,
-      standups
+      rfis,
+      progressReports
     };
   }
 
@@ -154,7 +154,7 @@ export class SearchService {
 
     // 1. Allowed Project IDs
     let allowedProjectIds: string[] = [];
-    if (userRole === 'ADMIN' || userRole === 'PRODUCT_MANAGER') {
+    if (userRole === 'ADMIN' || userRole === 'PROJECT_MANAGER') {
       const projects = await prisma.project.findMany({ select: { id: true } });
       allowedProjectIds = projects.map((p) => p.id);
     } else {

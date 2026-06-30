@@ -5,19 +5,19 @@ export const createFeedback = async (req: Request, res: Response) => {
   try {
     const { 
       content, sentiment, category, wentWell, wentWrong, improvement, 
-      realisticPlanning, achievableDeadlines, fairDistribution, blockerPatterns, sprintId 
+      realisticPlanning, achievableDeadlines, fairDistribution, blockerPatterns, stageId 
     } = req.body;
     const userId = req.user?.id;
 
-    if (!userId || !sprintId) {
-      return res.status(400).json({ error: 'User ID and Sprint ID are required' });
+    if (!userId || !stageId) {
+      return res.status(400).json({ error: 'User ID and Stage ID are required' });
     }
 
     const feedback = await prisma.feedback.create({
       data: {
         content,
         sentiment,
-        category: category || 'SPRINT',
+        category: category || 'STAGE',
         wentWell,
         wentWrong,
         improvement,
@@ -26,7 +26,7 @@ export const createFeedback = async (req: Request, res: Response) => {
         fairDistribution,
         blockerPatterns,
         userId,
-        sprintId
+        stageId
       }
     });
 
@@ -40,21 +40,21 @@ export const createFeedback = async (req: Request, res: Response) => {
 export const getFeedbacks = async (req: Request, res: Response) => {
   try {
     const user = req.user;
-    if (user?.role !== 'PRODUCT_MANAGER') {
-      return res.status(403).json({ error: 'Only PMs can view all feedbacks' });
+    if (user?.role !== 'PROJECT_MANAGER' && user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only Project Managers or Admins can view all feedbacks' });
     }
 
-    const { sprintId, category } = req.query;
+    const { stageId, category } = req.query;
 
     const filters: any = {};
-    if (sprintId) filters.sprintId = String(sprintId);
+    if (stageId) filters.stageId = String(stageId);
     if (category) filters.category = String(category);
 
     const feedbacks = await prisma.feedback.findMany({
       where: filters,
       include: {
         user: true,
-        sprint: true
+        stage: true
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -68,42 +68,41 @@ export const getFeedbacks = async (req: Request, res: Response) => {
 export const getComparison = async (req: Request, res: Response) => {
   try {
     const user = req.user;
-    if (user?.role !== 'PRODUCT_MANAGER') {
-      return res.status(403).json({ error: 'Only PMs can view comparisons' });
+    if (user?.role !== 'PROJECT_MANAGER' && user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only Project Managers or Admins can view comparisons' });
     }
 
-    // Get last two completed sprints
-    const sprints = await prisma.sprint.findMany({
+    // Get last two completed stages
+    const stages = await prisma.stage.findMany({
       where: { status: { in: ['COMPLETED', 'ACTIVE'] } },
       orderBy: { startDate: 'desc' },
       take: 2,
       include: { feedbacks: true, tasks: true }
     });
 
-    if (sprints.length < 2) {
-      return res.status(200).json({ message: 'Not enough sprints for comparison' });
+    if (stages.length < 2) {
+      return res.status(200).json({ message: 'Not enough stages for comparison' });
     }
 
-    const currentSprint = sprints[0];
-    const previousSprint = sprints[1];
+    const currentStage = stages[0];
+    const previousStage = stages[1];
 
-    // Dummy comparison logic based on tasks and feedbacks count
     const comparisonData = {
       improvedAreas: ['Communication', 'Requirement Clarity'],
       recurringProblems: ['Testing delays'],
       deadlineIssues: 'Reduced by 24%',
       teamCollaborationImprovements: 'Positive trend observed in feedbacks',
       blockerReductions: true,
-      sprintHealthChanges: 'Improved compared to ' + previousSprint.name,
+      stageHealthChanges: 'Improved compared to ' + previousStage.name,
       currentSprintData: {
-        id: currentSprint.id,
-        name: currentSprint.name,
-        feedbackCount: currentSprint.feedbacks.length,
+        id: currentStage.id,
+        name: currentStage.name,
+        feedbackCount: currentStage.feedbacks.length,
       },
       previousSprintData: {
-        id: previousSprint.id,
-        name: previousSprint.name,
-        feedbackCount: previousSprint.feedbacks.length,
+        id: previousStage.id,
+        name: previousStage.name,
+        feedbackCount: previousStage.feedbacks.length,
       }
     };
 

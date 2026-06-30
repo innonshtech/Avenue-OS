@@ -10,17 +10,17 @@ export class AdminService {
     const productivityScore = stats.totalTasks > 0 
       ? Math.round((stats.completedTasks / stats.totalTasks) * 100) 
       : 100;
-      
-    const sprintSuccessRate = 85; // This could be calculated from past sprint reports
-    const standupCompliance = 92; // Could be calculated from daily standup logs vs active members
+       
+    const stageSuccessRate = 85; // This could be calculated from past stage reports
+    const progressReportCompliance = 92; // Could be calculated from progress report logs vs active members
     
     return {
       ...stats,
       productivityScore,
-      sprintSuccessRate,
-      standupCompliance,
-      pendingReviews: Math.floor(stats.activeSprints * 3), // mock
-      qaDelays: Math.floor(stats.activeSprints * 1.5), // mock
+      stageSuccessRate,
+      progressReportCompliance,
+      pendingReviews: Math.floor(stats.activeStages * 3), // mock
+      qaDelays: Math.floor(stats.activeStages * 1.5), // mock
     };
   }
 
@@ -42,7 +42,7 @@ export class AdminService {
         name: p.name,
         status: p.status,
         owner: p.owner?.name,
-        activeSprint: p.sprints[0]?.name || 'None',
+        activeStage: p.stages[0]?.name || 'None',
         completionPercent,
         totalTasks,
         completedTasks,
@@ -53,9 +53,9 @@ export class AdminService {
     });
   }
 
-  async getSprints() {
-    const sprints = await adminRepository.getAllSprints();
-    return sprints.map((s: any) => {
+  async getStages() {
+    const stages = await adminRepository.getAllStages();
+    return stages.map((s: any) => {
       const completedTasks = s.tasks.filter((t: any) => t.status === 'DONE').length;
       const totalTasks = s.tasks.length;
       const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
@@ -70,7 +70,7 @@ export class AdminService {
         completionPercent,
         totalTasks,
         completedTasks,
-        standupsCount: s.standups.length,
+        progressReportsCount: s.progressReports.length,
       };
     });
   }
@@ -81,8 +81,8 @@ export class AdminService {
       const completedTasks = m.tasksAssigned.filter((t: any) => t.status === 'DONE').length;
       const totalTasks = m.tasksAssigned.length;
       const overdueTasks = m.tasksAssigned.filter((t: any) => t.status !== 'DONE' && new Date(t.dueDate) < new Date()).length;
-      const blockersCount = m.blockersReported.length;
-      const standupConsistency = Math.min(100, Math.round((m.standups.length / 5) * 100)); // assuming 5 workdays
+      const blockersCount = m.rfisReported.length;
+      const standupConsistency = Math.min(100, Math.round((m.progressReports.length / 5) * 100)); // assuming 5 workdays
       
       let productivityStatus = 'Healthy';
       if (overdueTasks > 3 || blockersCount > 2) productivityStatus = 'At Risk';
@@ -111,8 +111,8 @@ export class AdminService {
     return adminRepository.getWorkload();
   }
 
-  async getBlockers() {
-    return adminRepository.getActiveBlockers();
+  async getRFIs() {
+    return adminRepository.getActiveRFIs();
   }
 
   async getActivityFeed() {
@@ -124,13 +124,13 @@ export class AdminService {
   }
 
   async getIntelligenceInsights() {
-    const [projects, workload, blockers] = await Promise.all([
+    const [projects, workload, rfis] = await Promise.all([
       this.getProjects(),
       this.getWorkload(),
-      this.getBlockers(),
+      this.getRFIs(),
     ]);
 
-    return adminAnalytics.generateInsights({ projects, workload, blockers });
+    return adminAnalytics.generateInsights({ projects, workload, rfis });
   }
 
   async getSecurityMetrics() {

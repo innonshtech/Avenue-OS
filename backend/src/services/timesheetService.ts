@@ -8,7 +8,7 @@ export class TimesheetService {
    * - Other roles see their OWN timesheets + PRODUCT_MANAGER's timesheets.
    */
   static async getVisibleTimesheets(userId: string, userRole: UserRole) {
-    if (userRole === 'ADMIN' || userRole === 'PRODUCT_MANAGER') {
+    if (userRole === 'ADMIN' || userRole === 'PROJECT_MANAGER') {
       return prisma.timesheet.findMany({
         include: {
           user: {
@@ -24,7 +24,7 @@ export class TimesheetService {
       where: {
         OR: [
           { userId },
-          { user: { role: 'PRODUCT_MANAGER' } }
+          { user: { role: 'PROJECT_MANAGER' } }
         ]
       },
       include: {

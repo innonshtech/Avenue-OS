@@ -113,7 +113,7 @@ export const registerChatHandlers = (socket: AuthenticatedSocket) => {
       try {
         const message = await ChatRepository.findMessageById(data.messageId);
         if (!message) throw new Error('Message not found');
-        if (message.senderId !== userId && user.role !== 'ADMIN' && user.role !== 'PRODUCT_MANAGER') {
+        if (message.senderId !== userId && user.role !== 'ADMIN' && user.role !== 'PROJECT_MANAGER') {
           throw new Error('Unauthorized to edit this message');
         }
 
@@ -134,7 +134,7 @@ export const registerChatHandlers = (socket: AuthenticatedSocket) => {
     try {
       const message = await ChatRepository.findMessageById(messageId);
       if (!message) throw new Error('Message not found');
-      if (message.senderId !== userId && user.role !== 'ADMIN' && user.role !== 'PRODUCT_MANAGER') {
+      if (message.senderId !== userId && user.role !== 'ADMIN' && user.role !== 'PROJECT_MANAGER') {
         throw new Error('Unauthorized to delete this message');
       }
 

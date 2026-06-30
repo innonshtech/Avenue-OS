@@ -1,4 +1,4 @@
-export type ChannelType = 'DIRECT' | 'PROJECT' | 'SPRINT' | 'TASK' | 'BLOCKER' | 'ANNOUNCEMENT';
+export type ChannelType = 'DIRECT' | 'PROJECT' | 'STAGE' | 'TASK' | 'RFI' | 'ANNOUNCEMENT';
 export type MessageType = 'TEXT' | 'SYSTEM' | 'TASK_REFERENCE';
 export type UserPresenceStatus = 'ONLINE' | 'AWAY' | 'BUSY' | 'OFFLINE';
 
@@ -8,9 +8,9 @@ export interface ChatChannelData {
   description?: string | null;
   type: ChannelType;
   projectId?: string | null;
-  sprintId?: string | null;
+  stageId?: string | null;
   taskId?: string | null;
-  blockerId?: string | null;
+  rfiId?: string | null;
   createdById: string;
   isArchived: boolean;
   createdAt: Date;

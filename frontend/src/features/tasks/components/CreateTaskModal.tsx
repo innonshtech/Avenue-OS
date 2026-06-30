@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useCreateTask, useAddAttachment } from '../api/taskApi';
 import { useToast } from '@/hooks/use-toast';
 import { useProjects } from '@/features/projects/api/projectApi';
-import { useSprints } from '@/features/sprints/api/sprintApi';
+import { useStages } from '@/features/stages/api/stageApi';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,16 +31,17 @@ export function CreateTaskModal({ open, onOpenChange, defaultProjectId, defaultS
   const { data: teamMembers = [] } = useTeam();
   
   const [projectId, setProjectId] = useState(defaultProjectId || '');
-  const { data: sprints = [] } = useSprints(projectId);
+  const { data: stages = [] } = useStages(projectId);
 
   const [title, setTitle] = useState(defaultTitle);
   const [key, setKey] = useState('');
   const [description, setDescription] = useState(defaultDescription);
-  const [type, setType] = useState('STORY');
+  const [type, setType] = useState('DESIGN');
   const [priority, setPriority] = useState('MEDIUM');
-  const [sprintId, setSprintId] = useState(defaultSprintId || 'none');
+  const [stageId, setStageId] = useState(defaultSprintId || 'none');
   const [assigneeId, setAssigneeId] = useState('none');
-  const [storyPoints, setStoryPoints] = useState('');
+  const [drawingNumber, setDrawingNumber] = useState('');
+  const [revisionNumber, setRevisionNumber] = useState('');
   
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -50,7 +51,7 @@ export function CreateTaskModal({ open, onOpenChange, defaultProjectId, defaultS
       setTitle(defaultTitle);
       setDescription(defaultDescription);
       if (defaultProjectId) setProjectId(defaultProjectId);
-      if (defaultSprintId) setSprintId(defaultSprintId);
+      if (defaultSprintId) setStageId(defaultSprintId);
       setFiles([]);
     }
   }, [open, defaultTitle, defaultDescription, defaultProjectId, defaultSprintId]);
@@ -65,11 +66,12 @@ export function CreateTaskModal({ open, onOpenChange, defaultProjectId, defaultS
         title,
         description,
         type,
-        status: 'TODO',
-        priority,
-        storyPoints: storyPoints ? parseInt(storyPoints) : undefined,
+        status: 'PENDING',
+        priority: priority as any,
+        drawingNumber: drawingNumber || undefined,
+        revisionNumber: revisionNumber || undefined,
         projectId,
-        sprintId: sprintId !== 'none' ? sprintId : undefined,
+        stageId: stageId !== 'none' ? stageId : undefined,
         assigneeId: assigneeId !== 'none' ? assigneeId : undefined,
         creatorId: user.id,
       });
@@ -78,7 +80,8 @@ export function CreateTaskModal({ open, onOpenChange, defaultProjectId, defaultS
       setTitle('');
       setKey('');
       setDescription('');
-      setStoryPoints('');
+      setDrawingNumber('');
+      setRevisionNumber('');
       setFiles([]);
 
       const createdTaskId = response.task?.id || response.id;
@@ -140,14 +143,14 @@ export function CreateTaskModal({ open, onOpenChange, defaultProjectId, defaultS
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="sprint">Sprint</Label>
-              <Select value={sprintId} onValueChange={setSprintId} disabled={!projectId}>
+              <Label htmlFor="stage">Stage</Label>
+              <Select value={stageId} onValueChange={setStageId} disabled={!projectId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select sprint" />
+                  <SelectValue placeholder="Select stage" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Backlog (No Sprint)</SelectItem>
-                  {sprints.map((s: any) => (
+                  <SelectItem value="none">Backlog (No Stage)</SelectItem>
+                  {stages.map((s: any) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -163,10 +166,12 @@ export function CreateTaskModal({ open, onOpenChange, defaultProjectId, defaultS
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="STORY">Story</SelectItem>
-                  <SelectItem value="TASK">Task</SelectItem>
-                  <SelectItem value="BUG">Bug</SelectItem>
-                  <SelectItem value="EPIC">Epic</SelectItem>
+                  <SelectItem value="DESIGN">Design</SelectItem>
+                  <SelectItem value="DRAFTING">Drafting</SelectItem>
+                  <SelectItem value="MODELING">Modeling</SelectItem>
+                  <SelectItem value="ANALYSIS">Analysis</SelectItem>
+                  <SelectItem value="SITE_CHECK">Site Check</SelectItem>
+                  <SelectItem value="REVIEW">Review</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -187,14 +192,18 @@ export function CreateTaskModal({ open, onOpenChange, defaultProjectId, defaultS
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="key">Task Key</Label>
               <Input id="key" value={key} onChange={e => setKey(e.target.value)} required placeholder="e.g. PROJ-123" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="points">Story Points</Label>
-              <Input id="points" type="number" value={storyPoints} onChange={e => setStoryPoints(e.target.value)} placeholder="e.g. 5" />
+              <Label htmlFor="drawingNumber">Drawing Number</Label>
+              <Input id="drawingNumber" value={drawingNumber} onChange={e => setDrawingNumber(e.target.value)} placeholder="e.g. D-101" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="revisionNumber">Revision Number</Label>
+              <Input id="revisionNumber" value={revisionNumber} onChange={e => setRevisionNumber(e.target.value)} placeholder="e.g. R0" />
             </div>
           </div>
 
@@ -205,7 +214,7 @@ export function CreateTaskModal({ open, onOpenChange, defaultProjectId, defaultS
           
           <div className="space-y-2">
             <Label htmlFor="desc">Description</Label>
-            <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} placeholder="Provide task details, acceptance criteria, etc." className="min-h-[100px]" />
+            <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} placeholder="Provide task details, drawing specs, etc." className="min-h-[100px]" />
           </div>
 
           <div className="space-y-2">

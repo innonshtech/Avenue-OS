@@ -5,7 +5,7 @@ import { useChatStore } from '../store/chatStore';
 export const useTypingIndicator = () => {
   const { socket } = useSocket();
   const { activeChannelId } = useChatStore();
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeoutRef = useRef<any | null>(null);
   const isTypingRef = useRef<boolean>(false);
 
   // Send typing status to server

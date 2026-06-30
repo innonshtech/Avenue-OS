@@ -8,9 +8,9 @@ export class ChatRepository {
     description?: string;
     type: ChannelType;
     projectId?: string;
-    sprintId?: string;
+    stageId?: string;
     taskId?: string;
-    blockerId?: string;
+    rfiId?: string;
     createdById: string;
   }) {
     return prisma.chatChannel.create({
@@ -19,9 +19,9 @@ export class ChatRepository {
         description: data.description,
         type: data.type,
         projectId: data.projectId || null,
-        sprintId: data.sprintId || null,
+        stageId: data.stageId || null,
         taskId: data.taskId || null,
-        blockerId: data.blockerId || null,
+        rfiId: data.rfiId || null,
         createdById: data.createdById,
       },
       include: {
@@ -41,9 +41,9 @@ export class ChatRepository {
           },
         },
         project: true,
-        sprint: true,
+        stage: true,
         task: true,
-        blocker: true,
+        rfi: true,
       },
     });
   }
@@ -51,9 +51,9 @@ export class ChatRepository {
   static async findChannelByEntity(type: ChannelType, entityId: string) {
     const query: any = { type, isArchived: false };
     if (type === 'PROJECT') query.projectId = entityId;
-    else if (type === 'SPRINT') query.sprintId = entityId;
+    else if (type === 'STAGE') query.stageId = entityId;
     else if (type === 'TASK') query.taskId = entityId;
-    else if (type === 'BLOCKER') query.blockerId = entityId;
+    else if (type === 'RFI') query.rfiId = entityId;
 
     return prisma.chatChannel.findFirst({
       where: query,

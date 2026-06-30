@@ -16,8 +16,8 @@ export class ChatService {
     const channel = await ChatRepository.findChannelById(channelId);
     if (!channel) return false;
 
-    // Product Manager (Saket) has access to all operational channels (not private DMs of others)
-    if (user.role === 'PRODUCT_MANAGER' && channel.type !== 'DIRECT') {
+    // Project Manager (Saket) has access to all operational channels (not private DMs of others)
+    if (user.role === 'PROJECT_MANAGER' && channel.type !== 'DIRECT') {
       return true;
     }
 
@@ -33,9 +33,9 @@ export class ChatService {
       return !!pm;
     }
 
-    if (channel.type === 'SPRINT' && channel.sprintId) {
-      const sm = await prisma.sprintMember.findUnique({
-        where: { sprintId_userId: { sprintId: channel.sprintId, userId } },
+    if (channel.type === 'STAGE' && channel.stageId) {
+      const sm = await prisma.stageMember.findUnique({
+        where: { stageId_userId: { stageId: channel.stageId, userId } },
       });
       return !!sm;
     }
@@ -44,7 +44,7 @@ export class ChatService {
       const task = await prisma.task.findUnique({ where: { id: channel.taskId } });
       if (!task) return false;
       
-      // Developer/QA can access if they are assigned, created, or belong to the project
+      // Engineer/Draftsman can access if they are assigned, created, or belong to the project
       if (task.assigneeId === userId || task.creatorId === userId) return true;
 
       const pm = await prisma.projectMember.findUnique({
@@ -53,18 +53,18 @@ export class ChatService {
       return !!pm;
     }
 
-    if (channel.type === 'BLOCKER' && channel.blockerId) {
-      const blocker = await prisma.blocker.findUnique({
-        where: { id: channel.blockerId },
+    if (channel.type === 'RFI' && channel.rfiId) {
+      const rfi = await prisma.rFI.findUnique({
+        where: { id: channel.rfiId },
         include: { task: true },
       });
-      if (!blocker) return false;
+      if (!rfi) return false;
 
       // Access allowed to reporter, helper, or project members
-      if (blocker.reporterId === userId || blocker.helperId === userId) return true;
+      if (rfi.reporterId === userId || rfi.helperId === userId) return true;
 
       const pm = await prisma.projectMember.findUnique({
-        where: { projectId_userId: { projectId: blocker.task.projectId, userId } },
+        where: { projectId_userId: { projectId: rfi.task.projectId, userId } },
       });
       return !!pm;
     }
@@ -125,21 +125,21 @@ export class ChatService {
     description?: string;
     type: ChannelType;
     projectId?: string;
-    sprintId?: string;
+    stageId?: string;
     taskId?: string;
-    blockerId?: string;
+    rfiId?: string;
     createdById: string;
     memberIds?: string[];
   }) {
     const user = await prisma.user.findUnique({ where: { id: data.createdById } });
     if (!user) throw new Error('Creator not found');
 
-    // Role verification for Announcement channel: Only Nikheel (Admin) or Saket (Product Manager)
+    // Role verification for Announcement channel: Only Admin or Project Manager
     if (data.type === 'ANNOUNCEMENT') {
-      const allowedEmails = ['saket.innonsh@gmail.com', 'nikheel.innonsh@gmail.com'];
-      const allowedRoles = ['ADMIN', 'PRODUCT_MANAGER'];
+      const allowedEmails = ['sushil@avenue.com', 'sagar@avenue.com'];
+      const allowedRoles = ['ADMIN', 'PROJECT_MANAGER', 'ENGINEER'];
       if (!allowedRoles.includes(user.role) || !allowedEmails.includes(user.email)) {
-        throw new Error('Unauthorized: Only Nikheel and Saket can post announcements');
+        throw new Error('Unauthorized: Only authorized members can post announcements');
       }
     }
 
@@ -185,7 +185,7 @@ export class ChatService {
       description: `Discussion for task: ${task.title}`,
       type: 'TASK',
       projectId: task.projectId,
-      sprintId: task.sprintId || undefined,
+      stageId: task.stageId || undefined,
       taskId: task.id,
       createdById: task.creatorId,
     });
@@ -205,44 +205,44 @@ export class ChatService {
     return channel;
   }
 
-  static async createAutoBlockerChannel(blockerId: string) {
-    const blocker = await prisma.blocker.findUnique({
-      where: { id: blockerId },
+  static async createAutoRFIChannel(rfiId: string) {
+    const rfi = await prisma.rFI.findUnique({
+      where: { id: rfiId },
       include: { task: true, reporter: true },
     });
-    if (!blocker) return null;
+    if (!rfi) return null;
 
-    const existing = await ChatRepository.findChannelByEntity('BLOCKER', blockerId);
+    const existing = await ChatRepository.findChannelByEntity('RFI', rfiId);
     if (existing) return existing;
 
     const channel = await ChatRepository.createChannel({
-      name: `blocker:${blocker.task.key}`,
-      description: `Blocker Escalation: ${blocker.description}`,
-      type: 'BLOCKER',
-      projectId: blocker.task.projectId,
-      sprintId: blocker.task.sprintId || undefined,
-      taskId: blocker.taskId,
-      blockerId: blocker.id,
-      createdById: blocker.reporterId,
+      name: `rfi:${rfi.task.key}`,
+      description: `RFI Escalation: ${rfi.description}`,
+      type: 'RFI',
+      projectId: rfi.task.projectId,
+      stageId: rfi.task.stageId || undefined,
+      taskId: rfi.taskId,
+      rfiId: rfi.id,
+      createdById: rfi.reporterId,
     });
 
     // Add reporter, assignee, and helper (if set)
-    await ChatRepository.addMemberToChannel(channel.id, blocker.reporterId);
-    if (blocker.helperId) {
-      await ChatRepository.addMemberToChannel(channel.id, blocker.helperId);
+    await ChatRepository.addMemberToChannel(channel.id, rfi.reporterId);
+    if (rfi.helperId) {
+      await ChatRepository.addMemberToChannel(channel.id, rfi.helperId);
     }
-    if (blocker.task.assigneeId) {
-      await ChatRepository.addMemberToChannel(channel.id, blocker.task.assigneeId);
+    if (rfi.task.assigneeId) {
+      await ChatRepository.addMemberToChannel(channel.id, rfi.task.assigneeId);
     }
 
     // Log escalation chat
     await ActivityTrackerService.logActivity({
-      userId: blocker.reporterId,
-      actionType: 'BLOCKER_ESCALATED',
-      entityType: 'BLOCKER',
-      entityId: blocker.id,
-      title: 'Blocker Escalation Discussion Created',
-      description: `Escalation room for blocker on task ${blocker.task.key}`,
+      userId: rfi.reporterId,
+      actionType: 'RFI_ESCALATED',
+      entityType: 'RFI',
+      entityId: rfi.id,
+      title: 'RFI Escalation Discussion Created',
+      description: `Escalation room for RFI on task ${rfi.task.key}`,
     });
 
     return channel;
@@ -262,14 +262,14 @@ export class ChatService {
       throw new Error('Unauthorized access to this chat channel');
     }
 
-    // 2. Announcements verification: Only Nikheel and Saket can post in ANNOUNCEMENT channels
+    // 2. Announcements verification: Only Admin and Project Manager can post in ANNOUNCEMENT channels
     const channel = await ChatRepository.findChannelById(data.channelId);
     if (channel?.type === 'ANNOUNCEMENT') {
       const sender = await prisma.user.findUnique({ where: { id: data.senderId } });
-      const allowedEmails = ['saket.innonsh@gmail.com', 'nikheel.innonsh@gmail.com'];
-      const allowedRoles = ['ADMIN', 'PRODUCT_MANAGER'];
+      const allowedEmails = ['sushil@avenue.com', 'sagar@avenue.com'];
+      const allowedRoles = ['ADMIN', 'PROJECT_MANAGER', 'ENGINEER'];
       if (!sender || !allowedRoles.includes(sender.role) || !allowedEmails.includes(sender.email)) {
-        throw new Error('Only Saket or Nikheel can send messages in announcements');
+        throw new Error('Only authorized members can send messages in announcements');
       }
     }
 

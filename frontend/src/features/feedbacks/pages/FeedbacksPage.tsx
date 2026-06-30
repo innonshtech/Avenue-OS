@@ -9,18 +9,19 @@ import MemberFeedbacksPage from '../../member/feedbacks/pages/MemberFeedbacksPag
 
 export default function FeedbacksPage() {
   const { user } = useAuthStore();
+  const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
   
-  if (user?.role !== 'PRODUCT_MANAGER') {
+  if (!isPM) {
     return <MemberFeedbacksPage />;
   }
 
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [comparison, setComparison] = useState<any>(null);
-  const [sprints, setSprints] = useState<any[]>([]);
+  const [stages, setStages] = useState<any[]>([]);
   
   // Form state
-  const [selectedSprint, setSelectedSprint] = useState('');
-  const [category, setCategory] = useState('SPRINT');
+  const [selectedStage, setSelectedStage] = useState('');
+  const [category, setCategory] = useState('STAGE');
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -30,11 +31,11 @@ export default function FeedbacksPage() {
         const [fb, comp, sp] = await Promise.all([
           api.get('/feedbacks').then(res => res.data).catch(() => []),
           api.get('/feedbacks/comparison').then(res => res.data).catch(() => null),
-          api.get('/sprints').then(res => res.data).catch(() => []),
+          api.get('/stages').then(res => res.data).catch(() => []),
         ]);
         setFeedbacks(fb);
         setComparison(comp);
-        setSprints(sp.filter((s: any) => s.status === 'COMPLETED' || s.status === 'ACTIVE'));
+        setStages(sp);
       } catch (error) {
         console.error('Failed to fetch feedback data', error);
       } finally {
@@ -46,10 +47,10 @@ export default function FeedbacksPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSprint || !content) return;
+    if (!selectedStage || !content) return;
     try {
       const newFb = await api.post('/feedbacks', {
-        sprintId: selectedSprint,
+        stageId: selectedStage,
         category,
         content
       });
@@ -67,13 +68,13 @@ export default function FeedbacksPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Retrospectives & Feedback</h1>
-        <p className="text-muted-foreground mt-2">Continuous improvement and sprint analysis.</p>
+        <p className="text-muted-foreground mt-2">Continuous improvement and stage analysis.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Comparison Engine - Only for PM */}
-        {user?.role === 'PRODUCT_MANAGER' && comparison && !comparison.message && (
+        {isPM && comparison && !comparison.message && (
           <div className="lg:col-span-3">
             <Card className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent border-indigo-500/20">
               <CardHeader>
@@ -105,7 +106,7 @@ export default function FeedbacksPage() {
                     <p className="font-semibold text-emerald-600">{comparison.deadlineIssues}</p>
                   </div>
                   <div className="p-4 bg-background/50 rounded-lg backdrop-blur-sm border">
-                    <p className="text-sm text-muted-foreground mb-1">Sprint Health</p>
+                    <p className="text-sm text-muted-foreground mb-1">Stage Health</p>
                     <p className="font-semibold text-indigo-600">{comparison.sprintHealthChanges}</p>
                   </div>
                 </div>
@@ -119,18 +120,18 @@ export default function FeedbacksPage() {
           <Card>
             <CardHeader>
               <CardTitle>Submit Feedback</CardTitle>
-              <CardDescription>Share your thoughts on the sprint</CardDescription>
+              <CardDescription>Share your thoughts on the stage</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Select Sprint</label>
-                  <Select value={selectedSprint} onValueChange={setSelectedSprint}>
+                  <label className="text-sm font-medium">Select Stage</label>
+                  <Select value={selectedStage} onValueChange={setSelectedStage}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Sprint" />
+                      <SelectValue placeholder="Select Stage" />
                     </SelectTrigger>
                     <SelectContent>
-                      {sprints.map(s => (
+                      {stages.map(s => (
                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -144,7 +145,7 @@ export default function FeedbacksPage() {
                       <SelectValue placeholder="Select Category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="SPRINT">Sprint Overall</SelectItem>
+                      <SelectItem value="STAGE">Stage Overall</SelectItem>
                       <SelectItem value="TASK_ASSIGNMENT">Task Assignment</SelectItem>
                       <SelectItem value="DEADLINE">Deadlines</SelectItem>
                       <SelectItem value="COMMUNICATION">Communication</SelectItem>
@@ -189,7 +190,7 @@ export default function FeedbacksPage() {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold">{fb.user?.name}</span>
-                        <span className="text-xs text-muted-foreground">• {fb.sprint?.name}</span>
+                        <span className="text-xs text-muted-foreground">• {fb.stage?.name}</span>
                         <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{fb.category}</span>
                       </div>
                       <p className="text-sm">{fb.content}</p>

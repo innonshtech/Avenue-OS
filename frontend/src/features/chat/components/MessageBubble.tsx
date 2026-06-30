@@ -76,7 +76,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onConvert
     // Matches PROJECT-SPS or PROJECT-HRMS
     // Matches @Name
     const tokens: React.ReactNode[] = [];
-    const entityRegex = /(@[a-zA-Z0-9_\-\.]+)|(PROJECT-[A-Z0-9]+)|(SPRINT-[A-Z0-9\-]+)|([A-Z]+-[0-9]+)/gi;
+    const entityRegex = /(@[a-zA-Z0-9_\-\.]+)|(PROJECT-[A-Z0-9]+)|(STAGE-[A-Z0-9\-]+)|([A-Z]+-[0-9]+)/gi;
 
     let lastIndex = 0;
     let match;
@@ -108,11 +108,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onConvert
             {matchText}
           </Link>
         );
-      } else if (matchText.toUpperCase().startsWith('SPRINT-')) {
+      } else if (matchText.toUpperCase().startsWith('STAGE-')) {
         tokens.push(
           <Link
             key={matchIndex}
-            to={`/dashboard/sprints`}
+            to={`/dashboard/stages`}
             className="px-1.5 py-0.5 rounded bg-amber-600/10 text-amber-400 border border-amber-500/20 hover:bg-amber-600/20 transition-all font-bold text-xs"
           >
             {matchText}
@@ -310,7 +310,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onConvert
             </button>
 
             {/* Convert to Task */}
-            {user?.role !== 'MARKETING' && (
+            {user?.role !== 'CLIENT' && (
               <button
                 onClick={() => onConvertTask(message)}
                 className="text-zinc-500 hover:text-indigo-600 p-1 hover:bg-indigo-50 rounded focus:outline-none"

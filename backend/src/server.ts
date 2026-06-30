@@ -2,7 +2,7 @@ import 'dotenv/config';
 import http from 'http';
 import app from './app';
 import prisma from './utils/prisma';
-import { initStandupReminderCron } from './jobs/standupReminderJob';
+import { initProgressReportReminderCron } from './jobs/progressReportReminderJob';
 import { initSocketServer } from './sockets/socket.server';
 
 const PORT = process.env.PORT || 5000;
@@ -18,9 +18,9 @@ async function startServer() {
     await prisma.$connect();
     console.log('Connected to PostgreSQL Database via Prisma.');
 
-    // Initialize daily standup reminder cron job
-    initStandupReminderCron();
-    console.log('Daily standup reminder cron job initialized.');
+    // Initialize daily progress report reminder cron job
+    initProgressReportReminderCron();
+    console.log('Daily progress report reminder cron job initialized.');
     console.log('Daily slack cron job initialized.');
 
     server.listen(PORT, () => {

@@ -1,8 +1,11 @@
 export type UserRole = 
   | "ADMIN"
-  | "PRODUCT_MANAGER"
-  | "DEVELOPER"
-  | "MARKETING";
+  | "PROJECT_MANAGER"
+  | "PRINCIPAL_ENGINEER"
+  | "ENGINEER"
+  | "DRAFTSMAN"
+  | "ARCHITECT"
+  | "CLIENT";
 
 export interface TeamMember {
   id: string;

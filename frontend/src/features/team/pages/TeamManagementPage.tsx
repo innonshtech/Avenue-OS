@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ROLE_COLORS } from '@/constants/teamMembers';
+import type { UserRole } from '@/types/user';
 import api from '@/lib/api';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ export default function TeamManagementPage() {
   const [loading, setLoading] = useState(true);
   const [onboardModalOpen, setOnboardModalOpen] = useState(false);
   const { user } = useAuthStore();
-  const isPM = user?.role === 'PRODUCT_MANAGER';
+  const isPM = user?.role === 'PROJECT_MANAGER';
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -55,7 +56,7 @@ export default function TeamManagementPage() {
             <CardHeader className="text-center pb-2 pt-6">
               <CardTitle className="text-lg">{member.name}</CardTitle>
               <CardDescription className="flex justify-center items-center gap-2 mt-1">
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wider border ${ROLE_COLORS[member.role] || ''}`}>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wider border ${ROLE_COLORS[member.role as UserRole] || ''}`}>
                   {member.role?.replace('_', ' ')}
                 </span>
                 <span className="text-[11px] uppercase tracking-wider">{member.department}</span>
@@ -89,11 +90,11 @@ export default function TeamManagementPage() {
                 />
               </div>
 
-              {member.activeSprint && (
+              {member.activeStage && (
                 <div className="pt-2">
-                  <p className="text-xs text-muted-foreground mb-1">Active Sprint</p>
+                  <p className="text-xs text-muted-foreground mb-1">Active Stage</p>
                   <div className="bg-muted px-3 py-1.5 rounded-md text-sm font-medium truncate">
-                    {member.activeSprint}
+                    {member.activeStage}
                   </div>
                 </div>
               )}

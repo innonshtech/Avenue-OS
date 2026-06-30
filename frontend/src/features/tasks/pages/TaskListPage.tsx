@@ -26,7 +26,7 @@ export default function TaskListPage() {
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>(initialFilterState);
 
   // Filter tasks based on user role
-  const isPM = user?.role === 'PRODUCT_MANAGER';
+  const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
   
   const visibleTasks = useMemo(() => {
     return tasks.filter((t: any) => {
@@ -54,10 +54,10 @@ export default function TaskListPage() {
         if (new Date(t.dueDate) >= new Date()) return false;
       }
 
-      // Blocked filter
+      // Blocked (RFI) filter
       if (advancedFilters.isBlocked) {
-        const hasActiveBlockers = t.blockers && t.blockers.some((b: any) => !b.isResolved);
-        if (t.status !== 'BLOCKED' && !hasActiveBlockers) return false;
+        const hasActiveRFIs = t.rfis && t.rfis.some((b: any) => !b.isResolved);
+        if (!hasActiveRFIs) return false;
       }
 
       return true;

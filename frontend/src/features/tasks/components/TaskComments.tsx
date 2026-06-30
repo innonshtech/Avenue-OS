@@ -291,7 +291,7 @@ export default function TaskComments({ taskId }: CommentProps) {
           fetchedComments.map((comment: any) => {
             const isEditing = editingId === comment.id;
             const isOwner = comment.userId === currentUser?.id;
-            const canManage = isOwner || currentUser?.role === 'ADMIN' || currentUser?.role === 'PRODUCT_MANAGER';
+            const canManage = isOwner || currentUser?.role === 'ADMIN' || currentUser?.role === 'PROJECT_MANAGER';
 
             return (
               <div key={comment.id} className="group flex gap-3.5 items-start">
@@ -450,7 +450,7 @@ export default function TaskComments({ taskId }: CommentProps) {
                     <div className="pl-4 mt-3 border-l border-zinc-800 space-y-4">
                       {comment.replies.map((reply: any) => {
                         const isReplyOwner = reply.userId === currentUser?.id;
-                        const canManageReply = isReplyOwner || currentUser?.role === 'ADMIN' || currentUser?.role === 'PRODUCT_MANAGER';
+                        const canManageReply = isReplyOwner || currentUser?.role === 'ADMIN' || currentUser?.role === 'PROJECT_MANAGER';
 
                         return (
                           <div key={reply.id} className="group/reply flex gap-3 items-start">
@@ -519,10 +519,10 @@ export default function TaskComments({ taskId }: CommentProps) {
                         )}
 
                         <div className="flex justify-end gap-2 mt-2">
-                          <Button size="xs" variant="ghost" className="h-6 text-zinc-500 hover:text-zinc-300" onClick={() => setReplyToId(null)}>
+                          <Button size="sm" variant="ghost" className="h-6 text-zinc-500 hover:text-zinc-300" onClick={() => setReplyToId(null)}>
                             Cancel
                           </Button>
-                          <Button size="xs" className="h-6 bg-indigo-600 hover:bg-indigo-700 text-white font-medium" onClick={() => handlePostReply(comment.id)}>
+                          <Button size="sm" className="h-6 bg-indigo-600 hover:bg-indigo-700 text-white font-medium" onClick={() => handlePostReply(comment.id)}>
                             Reply
                           </Button>
                         </div>

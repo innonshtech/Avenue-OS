@@ -94,7 +94,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ channel, onConvertTask }
       </header>
 
       {/* Contextual Header for Tasks/Blockers */}
-      {(channel.type === 'TASK' || channel.type === 'BLOCKER') && channel.taskId && (
+      {(channel.type === 'TASK' || channel.type === 'RFI') && channel.taskId && (
         <ChatContextualHeader channel={channel} />
       )}
 

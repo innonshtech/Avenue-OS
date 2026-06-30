@@ -23,11 +23,11 @@ export const getProjects = async (req: Request, res: Response) => {
 
 export const getSprints = async (req: Request, res: Response) => {
   try {
-    const sprints = await adminService.getSprints();
-    res.json(sprints);
+    const stages = await adminService.getStages();
+    res.json(stages);
   } catch (error: any) {
     console.error(error);
-    res.status(500).json({ error: error.message || 'Failed to fetch admin sprints' });
+    res.status(500).json({ error: error.message || 'Failed to fetch admin stages' });
   }
 };
 
@@ -52,10 +52,10 @@ export const getWorkload = async (req: Request, res: Response) => {
 
 export const getBlockers = async (req: Request, res: Response) => {
   try {
-    const blockers = await adminService.getBlockers();
-    res.json(blockers);
+    const rfis = await adminService.getRFIs();
+    res.json(rfis);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch admin blockers' });
+    res.status(500).json({ error: 'Failed to fetch admin RFIs' });
   }
 };
 

@@ -4,15 +4,15 @@ export class AdminRepository {
   async getOverviewStats() {
     const [
       totalProjects,
-      activeSprints,
+      activeStages,
       totalTasks,
       completedTasks,
       delayedTasks,
-      activeBlockers,
+      activeRFIs,
       activeMembers,
     ] = await Promise.all([
       prisma.project.count(),
-      prisma.sprint.count({ where: { status: 'ACTIVE' } }),
+      prisma.stage.count({ where: { status: 'ACTIVE' } }),
       prisma.task.count(),
       prisma.task.count({ where: { status: 'DONE' } }),
       prisma.task.count({
@@ -21,17 +21,17 @@ export class AdminRepository {
           dueDate: { lt: new Date() },
         },
       }),
-      prisma.blocker.count({ where: { isResolved: false } }),
+      prisma.rFI.count({ where: { isResolved: false } }),
       prisma.user.count({ where: { isActive: true } }),
     ]);
 
     return {
       totalProjects,
-      activeSprints,
+      activeStages,
       totalTasks,
       completedTasks,
       delayedTasks,
-      activeBlockers,
+      activeRFIs,
       activeMembers,
     };
   }
@@ -43,7 +43,7 @@ export class AdminRepository {
         tasks: {
           select: { status: true, dueDate: true }
         },
-        sprints: {
+        stages: {
           where: { status: 'ACTIVE' },
           take: 1,
         },
@@ -54,14 +54,14 @@ export class AdminRepository {
     });
   }
 
-  async getAllSprints() {
-    return prisma.sprint.findMany({
+  async getAllStages() {
+    return prisma.stage.findMany({
       include: {
         project: true,
         tasks: {
           select: { status: true }
         },
-        standups: true,
+        progressReports: true,
       },
       orderBy: {
         startDate: 'desc'
@@ -75,10 +75,10 @@ export class AdminRepository {
         tasksAssigned: {
           select: { status: true, dueDate: true }
         },
-        blockersReported: {
+        rfisReported: {
           where: { isResolved: false }
         },
-        standups: {
+        progressReports: {
           where: {
             date: { gte: new Date(new Date().setDate(new Date().getDate() - 7)) } // Last 7 days
           }
@@ -105,12 +105,12 @@ export class AdminRepository {
     });
   }
 
-  async getActiveBlockers() {
-    return prisma.blocker.findMany({
+  async getActiveRFIs() {
+    return prisma.rFI.findMany({
       where: { isResolved: false },
       include: {
         task: {
-          include: { project: true, sprint: true }
+          include: { project: true, stage: true }
         },
         reporter: true,
       },

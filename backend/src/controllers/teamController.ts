@@ -4,8 +4,8 @@ import bcrypt from 'bcryptjs';
 
 const checkPMRole = (req: Request, res: Response) => {
   const user = req.user;
-  if (!user || user.role !== 'PRODUCT_MANAGER') {
-    res.status(403).json({ error: 'Access denied. Only Product Managers can access team management.' });
+  if (!user || (user.role !== 'PROJECT_MANAGER' && user.role !== 'ADMIN')) {
+    res.status(403).json({ error: 'Access denied. Only Project Managers can access team management.' });
     return false;
   }
   return true;
@@ -18,11 +18,11 @@ export const getTeam = async (req: Request, res: Response) => {
         tasksAssigned: {
           select: { status: true }
         },
-        blockersReported: {
+        rfisReported: {
           where: { isResolved: false }
         },
-        sprintMembers: {
-          include: { sprint: true }
+        stageMembers: {
+          include: { stage: true }
         }
       }
     });
@@ -30,7 +30,7 @@ export const getTeam = async (req: Request, res: Response) => {
     const formattedTeam = team.map(u => {
       const assignedTasks = u.tasksAssigned.length;
       const completedTasks = u.tasksAssigned.filter(t => t.status === 'DONE').length;
-      const activeSprint = u.sprintMembers.find(sm => sm.sprint.status === 'ACTIVE')?.sprint;
+      const activeStage = u.stageMembers.find(sm => sm.stage.status === 'ACTIVE')?.stage;
       
       // Calculate utilization based on relative scale of active tasks
       const activeTasks = u.tasksAssigned.filter(t => t.status !== 'DONE').length;
@@ -46,8 +46,8 @@ export const getTeam = async (req: Request, res: Response) => {
         avatar: u.avatar,
         assignedTasks,
         completedTasks,
-        activeSprint: activeSprint ? activeSprint.name : null,
-        blockersCount: u.blockersReported.length,
+        activeStage: activeStage ? activeStage.name : null,
+        blockersCount: u.rfisReported.length,
         utilizationPercent: Math.round(utilizationPercent),
         isOnline: Math.random() > 0.5 // mock online status
       };
@@ -55,6 +55,7 @@ export const getTeam = async (req: Request, res: Response) => {
 
     res.status(200).json(formattedTeam);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Failed to fetch team' });
   }
 };
@@ -67,9 +68,9 @@ export const getTeamMember = async (req: Request, res: Response) => {
       where: { id },
       include: {
         tasksAssigned: true,
-        sprintMembers: { include: { sprint: true } },
-        blockersReported: true,
-        standups: true,
+        stageMembers: { include: { stage: true } },
+        rfisReported: true,
+        progressReports: true,
         projectMembers: { include: { project: true } }
       }
     });
@@ -138,18 +139,18 @@ export const assignSprint = async (req: Request, res: Response) => {
   if (!checkPMRole(req, res)) return;
   try {
     const { id } = req.params;
-    const { sprintId } = req.body;
+    const { stageId } = req.body;
 
-    const sm = await prisma.sprintMember.create({
+    const sm = await prisma.stageMember.create({
       data: {
         userId: id,
-        sprintId
+        stageId
       }
     });
 
     res.status(200).json(sm);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to assign sprint' });
+    res.status(500).json({ error: 'Failed to assign stage' });
   }
 };
 
@@ -165,7 +166,7 @@ export const createTeamMember = async (req: Request, res: Response) => {
       data: {
         name,
         email,
-        role: role || 'DEVELOPER',
+        role: role || 'ENGINEER',
         department: department || 'Engineering',
         password: hashedPassword,
         avatar
@@ -227,7 +228,6 @@ export const deleteTeamMember = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
-    // In many enterprise systems we deactivate instead of delete
     const user = await prisma.user.update({
       where: { id },
       data: { isActive: false }

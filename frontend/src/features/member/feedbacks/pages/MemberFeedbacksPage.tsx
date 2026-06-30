@@ -3,21 +3,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useSprints } from '@/features/sprints/api/sprintApi';
+import { useStages } from '@/features/stages/api/stageApi';
 import { useMyFeedbacks, useSubmitFeedback, useDeleteFeedback } from '../api/memberFeedbacksApi';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MessageSquare, Trash2, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function MemberFeedbacksPage() {
-  const { data: sprints = [] } = useSprints();
+  const { data: stages = [] } = useStages();
   const { data: feedbacks = [] } = useMyFeedbacks();
   const submitFeedback = useSubmitFeedback();
   const deleteFeedback = useDeleteFeedback();
   const { toast } = useToast();
   
-  const [selectedSprint, setSelectedSprint] = useState('');
-  const [category, setCategory] = useState('SPRINT');
+  const [selectedStage, setSelectedStage] = useState('');
+  const [category, setCategory] = useState('STAGE');
   const [content, setContent] = useState('');
   const [wentWell, setWentWell] = useState('');
   const [wentWrong, setWentWrong] = useState('');
@@ -29,10 +29,10 @@ export default function MemberFeedbacksPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSprint || !content) return;
+    if (!selectedStage || !content) return;
 
     submitFeedback.mutate({
-      sprintId: selectedSprint,
+      stageId: selectedStage,
       category,
       content,
       wentWell,
@@ -63,7 +63,7 @@ export default function MemberFeedbacksPage() {
     <div className="space-y-8 pb-12">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Personal Retrospectives</h1>
-        <p className="text-muted-foreground mt-2">Submit your feedback directly to Saket. This is private to you and the Product Manager.</p>
+        <p className="text-muted-foreground mt-2">Submit your feedback. This is private to you and the Project Manager / Administrator.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -74,22 +74,22 @@ export default function MemberFeedbacksPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-indigo-500" />
-                Sprint Feedback Form
+                Stage Feedback Form
               </CardTitle>
-              <CardDescription>Share your thoughts on the sprint execution, planning, and team collaboration.</CardDescription>
+              <CardDescription>Share your thoughts on the stage execution, planning, and team collaboration.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Select Sprint</label>
-                    <Select value={selectedSprint} onValueChange={setSelectedSprint}>
+                    <label className="text-sm font-medium">Select Stage</label>
+                    <Select value={selectedStage} onValueChange={setSelectedStage}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Sprint" />
+                        <SelectValue placeholder="Select Stage" />
                       </SelectTrigger>
                       <SelectContent>
-                        {sprints.map((s: any) => (
+                        {stages.map((s: any) => (
                           <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -103,7 +103,7 @@ export default function MemberFeedbacksPage() {
                         <SelectValue placeholder="Select Category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="SPRINT">Sprint Overall</SelectItem>
+                        <SelectItem value="STAGE">Stage Overall</SelectItem>
                         <SelectItem value="TASK_ASSIGNMENT">Task Assignment</SelectItem>
                         <SelectItem value="DEADLINE">Deadlines</SelectItem>
                         <SelectItem value="COMMUNICATION">Communication</SelectItem>
@@ -118,7 +118,7 @@ export default function MemberFeedbacksPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Overall Summary <span className="text-red-500">*</span></label>
                     <Textarea 
-                      placeholder="General thoughts about the sprint..."
+                      placeholder="General thoughts about the stage..."
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
                       required
@@ -137,7 +137,7 @@ export default function MemberFeedbacksPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">What went wrong?</label>
                     <Textarea 
-                      placeholder="Bottlenecks, miscommunications, technical debt..."
+                      placeholder="Bottlenecks, miscommunications, site issues..."
                       value={wentWrong}
                       onChange={(e) => setWentWrong(e.target.value)}
                     />
@@ -146,20 +146,21 @@ export default function MemberFeedbacksPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Suggestions for Improvement</label>
                     <Textarea 
-                      placeholder="How can we do better next sprint?"
+                      placeholder="How can we do better next stage?"
                       value={improvement}
                       onChange={(e) => setImprovement(e.target.value)}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Did you notice any blocker patterns?</label>
+                    <label className="text-sm font-medium">Did you notice any RFI/blocker patterns?</label>
                     <Textarea 
-                      placeholder="e.g., Frequently waiting on APIs, slow PR reviews..."
+                      placeholder="e.g., Frequently waiting on architect details, slow approval reviews..."
                       value={blockerPatterns}
                       onChange={(e) => setBlockerPatterns(e.target.value)}
                     />
                   </div>
+
                 </div>
 
                 <div className="flex gap-6 p-4 bg-muted/30 rounded-lg border">
@@ -177,7 +178,7 @@ export default function MemberFeedbacksPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={submitFeedback.isPending || !content || !selectedSprint}>
+                <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={submitFeedback.isPending || !content || !selectedStage}>
                   <Send className="w-4 h-4 mr-2" />
                   {submitFeedback.isPending ? 'Submitting...' : 'Submit Feedback'}
                 </Button>
@@ -200,7 +201,7 @@ export default function MemberFeedbacksPage() {
                   <CardHeader className="p-4 pb-2">
                     <div className="flex justify-between items-start">
                       <div>
-                        <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-1">{fb.sprint?.name}</div>
+                        <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-1">{fb.stage?.name}</div>
                         <div className="text-xs bg-muted px-2 py-0.5 rounded-full inline-block">{fb.category}</div>
                       </div>
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-500" onClick={() => handleDelete(fb.id)}>

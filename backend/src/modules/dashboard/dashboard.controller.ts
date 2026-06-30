@@ -5,8 +5,8 @@ const dashboardService = new DashboardService();
 
 export const getSprintHealth = async (req: Request, res: Response) => {
   try {
-    const sprintId = req.query.sprintId as string;
-    const data = await dashboardService.getSprintHealth(sprintId);
+    const stageId = req.query.stageId as string || req.query.sprintId as string;
+    const data = await dashboardService.getStageHealth(stageId);
     res.json(data);
   } catch (error: any) {
     console.error(error);
@@ -16,8 +16,8 @@ export const getSprintHealth = async (req: Request, res: Response) => {
 
 export const getTeamWorkload = async (req: Request, res: Response) => {
   try {
-    const sprintId = req.query.sprintId as string;
-    const data = await dashboardService.getTeamWorkload(sprintId);
+    const stageId = req.query.stageId as string || req.query.sprintId as string;
+    const data = await dashboardService.getTeamWorkload(stageId);
     res.json(data);
   } catch (error) {
     console.error('Error fetching team workload:', error);
@@ -27,8 +27,8 @@ export const getTeamWorkload = async (req: Request, res: Response) => {
 
 export const getBoardSnapshot = async (req: Request, res: Response) => {
   try {
-    const sprintId = req.query.sprintId as string;
-    const data = await dashboardService.getBoardSnapshot(sprintId);
+    const stageId = req.query.stageId as string || req.query.sprintId as string;
+    const data = await dashboardService.getBoardSnapshot(stageId);
     res.json(data);
   } catch (error) {
     console.error('Error fetching board snapshot:', error);
@@ -38,19 +38,19 @@ export const getBoardSnapshot = async (req: Request, res: Response) => {
 
 export const getStandupMonitoring = async (req: Request, res: Response) => {
   try {
-    const sprintId = req.query.sprintId as string;
-    const data = await dashboardService.getStandupMonitoring(sprintId);
+    const stageId = req.query.stageId as string || req.query.sprintId as string;
+    const data = await dashboardService.getProgressReportMonitoring(stageId);
     res.json(data);
   } catch (error) {
-    console.error('Error fetching standup monitoring:', error);
+    console.error('Error fetching progress report monitoring:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
 
 export const getPMSummary = async (req: Request, res: Response) => {
   try {
-    const sprintId = req.query.sprintId as string;
-    const data = await dashboardService.getPMSummary(sprintId);
+    const stageId = req.query.stageId as string || req.query.sprintId as string;
+    const data = await dashboardService.getPMSummary(stageId);
     res.json(data);
   } catch (error) {
     console.error('Error fetching PM summary:', error);

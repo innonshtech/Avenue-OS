@@ -1,15 +1,15 @@
 import { Router } from 'express';
 import { getProjects, getProjectById, createProject, updateProject, deleteProject, archiveProject } from '../controllers/projectController';
 
-import { requireProductManager } from '../middleware/requireProductManager';
+import { requireProjectManager } from '../middleware/requireProjectManager';
 
 const router = Router();
 
 router.get('/', getProjects);
 router.get('/:id', getProjectById);
-router.post('/', requireProductManager, createProject);
-router.put('/:id', requireProductManager, updateProject);
-router.delete('/:id', requireProductManager, deleteProject);
-router.patch('/:id/archive', requireProductManager, archiveProject);
+router.post('/', requireProjectManager, createProject);
+router.put('/:id', requireProjectManager, updateProject);
+router.delete('/:id', requireProjectManager, deleteProject);
+router.patch('/:id/archive', requireProjectManager, archiveProject);
 
 export default router;

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient, TaskStatus, BlockerSeverity } from '@prisma/client';
+import { TaskStatus } from '@prisma/client';
 import prisma from '../utils/prisma';
 
 // ==========================================
@@ -12,8 +12,8 @@ export const getMemberOverview = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // 1. Get active sprint
-    const activeSprint = await prisma.sprint.findFirst({
+    // 1. Get active stage
+    const activeStage = await prisma.stage.findFirst({
       where: { status: 'ACTIVE' },
       include: {
         tasks: {
@@ -25,15 +25,15 @@ export const getMemberOverview = async (req: Request, res: Response) => {
     // 2. Get user's tasks
     const allAssignedTasks = await prisma.task.findMany({
       where: { assigneeId: userId },
-      include: { blockers: { where: { isResolved: false } } }
+      include: { rfis: { where: { isResolved: false } } }
     });
 
     const pendingTasks = allAssignedTasks.filter(t => t.status !== TaskStatus.DONE);
     const completedTasks = allAssignedTasks.filter(t => t.status === TaskStatus.DONE);
     
-    // Sprint specific metrics
-    const tasksInActiveSprint = activeSprint ? activeSprint.tasks : [];
-    const completedThisSprint = tasksInActiveSprint.filter(t => t.status === TaskStatus.DONE).length;
+    // Stage specific metrics
+    const tasksInActiveStage = activeStage ? activeStage.tasks : [];
+    const completedThisStage = tasksInActiveStage.filter(t => t.status === TaskStatus.DONE).length;
     
     // Calculate story points (completed vs total pending)
     const storyPoints = completedTasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
@@ -58,17 +58,17 @@ export const getMemberOverview = async (req: Request, res: Response) => {
     const urgentTasks = pendingTasks.filter(t => t.priority === 'URGENT' || t.priority === 'CRITICAL');
 
     // Review Queue
-    const reviewQueue = pendingTasks.filter(t => t.status === TaskStatus.IN_REVIEW);
+    const reviewQueue = pendingTasks.filter(t => t.status === TaskStatus.INTERNAL_REVIEW || t.status === TaskStatus.EXTERNAL_REVIEW);
 
-    // Active Blockers
-    const blockers = allAssignedTasks.flatMap(t => t.blockers);
+    // Active RFIs
+    const blockers = allAssignedTasks.flatMap(t => t.rfis);
 
-    // Sprint Progress
-    let sprintProgress = 0;
-    if (activeSprint) {
-      const totalTasks = tasksInActiveSprint.length;
+    // Stage Progress
+    let stageProgress = 0;
+    if (activeStage) {
+      const totalTasks = tasksInActiveStage.length;
       if (totalTasks > 0) {
-        sprintProgress = (completedThisSprint / totalTasks) * 100;
+        stageProgress = (completedThisStage / totalTasks) * 100;
       }
     }
 
@@ -78,15 +78,15 @@ export const getMemberOverview = async (req: Request, res: Response) => {
       overdueTasks: overdueTasks.length,
       urgentTasks: urgentTasks.length,
       completedTasks: completedTasks.length,
-      completedThisSprint,
+      completedThisSprint: completedThisStage,
       storyPoints,
-      activeSprint: activeSprint ? {
-        id: activeSprint.id,
-        name: activeSprint.name,
-        startDate: activeSprint.startDate,
-        endDate: activeSprint.endDate,
+      activeSprint: activeStage ? {
+        id: activeStage.id,
+        name: activeStage.name,
+        startDate: activeStage.startDate,
+        endDate: activeStage.endDate,
       } : null,
-      sprintProgress: Math.round(sprintProgress),
+      sprintProgress: Math.round(stageProgress),
       blockers: blockers.length,
       activeBlocker: blockers.length > 0 ? blockers[0] : null,
       reviewQueue: reviewQueue.length
@@ -106,8 +106,8 @@ export const getMemberSummary = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // 1. Get active sprint
-    const activeSprint = await prisma.sprint.findFirst({
+    // 1. Get active stage
+    const activeStage = await prisma.stage.findFirst({
       where: { status: 'ACTIVE' },
       include: {
         tasks: {
@@ -119,16 +119,16 @@ export const getMemberSummary = async (req: Request, res: Response) => {
     // 2. Get user's tasks with full relations for the UI
     const tasks = await prisma.task.findMany({
       where: { assigneeId: userId },
-      include: { project: true, sprint: true, blockers: { where: { isResolved: false } } },
+      include: { project: true, stage: true, rfis: { where: { isResolved: false } } },
       orderBy: { createdAt: 'desc' }
     });
 
     const pendingTasks = tasks.filter(t => t.status !== TaskStatus.DONE);
     const completedTasks = tasks.filter(t => t.status === TaskStatus.DONE);
     
-    // Sprint specific metrics
-    const tasksInActiveSprint = activeSprint ? activeSprint.tasks : [];
-    const completedThisSprint = tasksInActiveSprint.filter(t => t.status === TaskStatus.DONE).length;
+    // Stage specific metrics
+    const tasksInActiveStage = activeStage ? activeStage.tasks : [];
+    const completedThisStage = tasksInActiveStage.filter(t => t.status === TaskStatus.DONE).length;
     
     // Calculate story points (completed vs total pending)
     const storyPoints = completedTasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
@@ -153,17 +153,17 @@ export const getMemberSummary = async (req: Request, res: Response) => {
     const urgentTasks = pendingTasks.filter(t => t.priority === 'URGENT' || t.priority === 'CRITICAL');
 
     // Review Queue
-    const reviewQueue = pendingTasks.filter(t => t.status === TaskStatus.IN_REVIEW);
+    const reviewQueue = pendingTasks.filter(t => t.status === TaskStatus.INTERNAL_REVIEW || t.status === TaskStatus.EXTERNAL_REVIEW);
 
-    // Active Blockers
-    const blockers = tasks.flatMap(t => t.blockers);
+    // Active RFIs
+    const blockers = tasks.flatMap(t => t.rfis);
 
-    // Sprint Progress
-    let sprintProgress = 0;
-    if (activeSprint) {
-      const totalTasks = tasksInActiveSprint.length;
+    // Stage Progress
+    let stageProgress = 0;
+    if (activeStage) {
+      const totalTasks = tasksInActiveStage.length;
       if (totalTasks > 0) {
-        sprintProgress = (completedThisSprint / totalTasks) * 100;
+        stageProgress = (completedThisStage / totalTasks) * 100;
       }
     }
 
@@ -173,15 +173,15 @@ export const getMemberSummary = async (req: Request, res: Response) => {
       overdueTasks: overdueTasks.length,
       urgentTasks: urgentTasks.length,
       completedTasks: completedTasks.length,
-      completedThisSprint,
+      completedThisSprint: completedThisStage,
       storyPoints,
-      activeSprint: activeSprint ? {
-        id: activeSprint.id,
-        name: activeSprint.name,
-        startDate: activeSprint.startDate,
-        endDate: activeSprint.endDate,
+      activeSprint: activeStage ? {
+        id: activeStage.id,
+        name: activeStage.name,
+        startDate: activeStage.startDate,
+        endDate: activeStage.endDate,
       } : null,
-      sprintProgress: Math.round(sprintProgress),
+      sprintProgress: Math.round(stageProgress),
       blockers: blockers.length,
       activeBlocker: blockers.length > 0 ? blockers[0] : null,
       reviewQueue: reviewQueue.length

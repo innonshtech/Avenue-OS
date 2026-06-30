@@ -1,53 +1,53 @@
 import prisma from '../../utils/prisma';
-import { autoUpdateSprintStatuses } from '../../utils/sprintUpdater';
+import { autoUpdateStageStatuses } from '../../utils/stageUpdater';
 
 export class DashboardRepository {
-  async getSprint(sprintId?: string) {
+  async getStage(stageId?: string) {
     // Run asynchronously to prevent blocking the dashboard load
-    autoUpdateSprintStatuses().catch(console.error);
+    autoUpdateStageStatuses().catch(console.error);
     
-    if (sprintId) {
-      return prisma.sprint.findUnique({
-        where: { id: sprintId },
+    if (stageId) {
+      return prisma.stage.findUnique({
+        where: { id: stageId },
         include: {
           tasks: {
             include: {
               assignee: true,
-              blockers: true
+              rfis: true
             }
           }
         }
       });
     }
 
-    return prisma.sprint.findFirst({
+    return prisma.stage.findFirst({
       where: { status: 'ACTIVE' },
       include: {
         tasks: {
           include: {
             assignee: true,
-            blockers: true
+            rfis: true
           }
         }
       }
     });
   }
 
-  async getSprintTasks(sprintId: string) {
+  async getStageTasks(stageId: string) {
     return prisma.task.findMany({
-      where: { sprintId },
+      where: { stageId },
       include: {
         assignee: true,
-        blockers: true
+        rfis: true
       }
     });
   }
 
-  async getBlockedTasks(sprintId: string) {
+  async getRFITasks(stageId: string) {
     return prisma.task.findMany({
       where: {
-        sprintId,
-        blockers: {
+        stageId,
+        rfis: {
           some: {
             isResolved: false
           }
@@ -55,7 +55,7 @@ export class DashboardRepository {
       },
       include: {
         assignee: true,
-        blockers: {
+        rfis: {
           where: { isResolved: false }
         }
       }
@@ -65,22 +65,21 @@ export class DashboardRepository {
   async getTeamMembers() {
     return prisma.user.findMany({
       where: {
-        // Exclude people who aren't active team members if needed, or get all developers
-        role: { in: ['DEVELOPER', 'MARKETING'] }
+        role: { in: ['PRINCIPAL_ENGINEER', 'ENGINEER', 'DRAFTSMAN', 'ARCHITECT'] }
       }
     });
   }
 
-  async getLatestStandups(sprintId: string) {
+  async getLatestProgressReports(stageId: string) {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    return prisma.dailyStandup.findMany({
+    return prisma.progressReport.findMany({
       where: { 
-        sprintId,
+        stageId,
         date: {
           gte: todayStart,
           lte: todayEnd
@@ -89,7 +88,7 @@ export class DashboardRepository {
       orderBy: { date: 'desc' },
       include: {
         user: true,
-        sprint: {
+        stage: {
           include: {
             project: true
           }
@@ -104,8 +103,8 @@ export class DashboardRepository {
     });
   }
 
-  async getGlobalBlockersCount() {
-    return prisma.blocker.count({
+  async getGlobalRFIsCount() {
+    return prisma.rFI.count({
       where: { isResolved: false }
     });
   }

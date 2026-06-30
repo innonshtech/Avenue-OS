@@ -7,38 +7,38 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Edit, Archive, Trash2, CheckCircle2 } from 'lucide-react';
-import { EditSprintModal } from './EditSprintModal';
-import { DeleteSprintDialog } from './DeleteSprintDialog';
-import { useUpdateSprint } from '../api/sprintApi';
+import { MoreVertical, Edit, Trash2, CheckCircle2 } from 'lucide-react';
+import { EditStageModal } from './EditStageModal';
+import { DeleteStageDialog } from './DeleteStageDialog';
+import { useUpdateStage } from '../api/stageApi';
 import { useToast } from '@/hooks/use-toast';
-import type { Sprint } from '@/types/core';
+import type { Stage } from '@/types/core';
 
-interface SprintActionDropdownProps {
-  sprint: Sprint;
+interface StageActionDropdownProps {
+  stage: Stage;
 }
 
-export function SprintActionDropdown({ sprint }: SprintActionDropdownProps) {
+export function StageActionDropdown({ stage }: StageActionDropdownProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   
-  const updateSprint = useUpdateSprint();
+  const updateStage = useUpdateStage();
   const { toast } = useToast();
 
   const handleComplete = async () => {
     try {
-      await updateSprint.mutateAsync({
-        id: sprint.id,
+      await updateStage.mutateAsync({
+        id: stage.id,
         status: 'COMPLETED',
       });
       toast({
-        title: "Sprint Completed!",
-        description: "Great job completing the sprint.",
+        title: "Stage Completed!",
+        description: "Great job completing the stage.",
       });
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error completing sprint",
+        title: "Error completing stage",
         description: error.response?.data?.error || "An unexpected error occurred."
       });
     }
@@ -55,12 +55,12 @@ export function SprintActionDropdown({ sprint }: SprintActionDropdownProps) {
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem onClick={() => setIsEditOpen(true)} className="cursor-pointer">
             <Edit className="mr-2 h-4 w-4" />
-            <span>Edit Sprint</span>
+            <span>Edit Stage</span>
           </DropdownMenuItem>
-          {sprint.status !== 'COMPLETED' && (
+          {stage.status !== 'COMPLETED' && (
             <DropdownMenuItem onClick={handleComplete} className="cursor-pointer text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950">
               <CheckCircle2 className="mr-2 h-4 w-4" />
-              <span>Complete Sprint</span>
+              <span>Complete Stage</span>
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
@@ -71,8 +71,8 @@ export function SprintActionDropdown({ sprint }: SprintActionDropdownProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <EditSprintModal open={isEditOpen} onOpenChange={setIsEditOpen} sprint={sprint} />
-      <DeleteSprintDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen} sprint={sprint} />
+      <EditStageModal open={isEditOpen} onOpenChange={setIsEditOpen} stage={stage} />
+      <DeleteStageDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen} stage={stage} />
     </>
   );
 }

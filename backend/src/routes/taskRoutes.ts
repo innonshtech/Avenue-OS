@@ -21,9 +21,9 @@ router.put('/:id', validateRequest(updateTaskSchema), updateTask);
 router.delete('/:id', requirePermission('DELETE_TASK'), deleteTask);
 router.patch('/:id/archive', archiveTask);
 router.patch('/:id/restore', restoreTask);
-router.patch('/:id/move-sprint', moveSprint);
-router.post('/:id/blocker', addBlocker);
-router.patch('/:id/blocker/:blockerId/resolve', requirePermission('RESOLVE_BLOCKER'), validateRequest(resolveBlockerSchema), resolveBlocker);
+router.patch('/:id/move-stage', moveSprint);
+router.post('/:id/rfi', addBlocker);
+router.patch('/:id/rfi/:blockerId/resolve', requirePermission('RESOLVE_RFI'), validateRequest(resolveBlockerSchema), resolveBlocker);
 router.post('/:id/update', addQuickUpdate);
 
 // Comments (delegated to the new commentsController)

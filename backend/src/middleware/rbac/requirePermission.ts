@@ -15,31 +15,31 @@ export const requirePermission = (action: string) => {
 
     switch (action) {
       case 'DELETE_TASK':
-        // Only ADMIN or PRODUCT_MANAGER can delete tasks
-        if (role === 'PRODUCT_MANAGER') {
+        // Only ADMIN or PROJECT_MANAGER can delete tasks
+        if (role === 'PROJECT_MANAGER') {
           return next();
         }
-        return res.status(403).json({ success: false, message: 'Forbidden: Only Product Managers or Admins can delete tasks' });
+        return res.status(403).json({ success: false, message: 'Forbidden: Only Project Managers or Admins can delete tasks' });
 
-      case 'RESOLVE_BLOCKER':
-        // Only ADMIN or PRODUCT_MANAGER can resolve blockers
-        if (role === 'PRODUCT_MANAGER') {
+      case 'RESOLVE_RFI':
+        // Only ADMIN or PROJECT_MANAGER can resolve RFIs
+        if (role === 'PROJECT_MANAGER' || role === 'PRINCIPAL_ENGINEER') {
           return next();
         }
-        return res.status(403).json({ success: false, message: 'Forbidden: Members cannot resolve blockers' });
+        return res.status(403).json({ success: false, message: 'Forbidden: Only Project Managers or Principal Engineers can resolve RFIs' });
 
-      case 'MANAGE_SPRINT':
-        // Only ADMIN or PRODUCT_MANAGER can manage sprints
-        if (role === 'PRODUCT_MANAGER') {
+      case 'MANAGE_STAGE':
+        // Only ADMIN or PROJECT_MANAGER can manage stages
+        if (role === 'PROJECT_MANAGER') {
           return next();
         }
-        return res.status(403).json({ success: false, message: 'Forbidden: Sprints can only be managed by Product Managers or Admins' });
+        return res.status(403).json({ success: false, message: 'Forbidden: Stages can only be managed by Project Managers or Admins' });
 
       case 'MANAGE_PROJECT':
-        if (role === 'PRODUCT_MANAGER') {
+        if (role === 'PROJECT_MANAGER') {
           return next();
         }
-        return res.status(403).json({ success: false, message: 'Forbidden: Projects can only be managed by Product Managers or Admins' });
+        return res.status(403).json({ success: false, message: 'Forbidden: Projects can only be managed by Project Managers or Admins' });
 
       default:
         next();

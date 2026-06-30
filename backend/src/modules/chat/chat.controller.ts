@@ -45,7 +45,7 @@ export class ChatController {
   static async createChannel(req: Request, res: Response) {
     try {
       const createdById = req.user?.id;
-      const { name, description, type, projectId, sprintId, taskId, blockerId, memberIds } = req.body;
+      const { name, description, type, projectId, stageId, taskId, rfiId, memberIds } = req.body;
 
       if (!createdById) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -54,9 +54,9 @@ export class ChatController {
         description,
         type,
         projectId,
-        sprintId,
+        stageId,
         taskId,
-        blockerId,
+        rfiId,
         createdById,
         memberIds,
       });
@@ -117,7 +117,7 @@ export class ChatController {
       if (!channel) return res.status(404).json({ error: 'Channel not found' });
 
       const user = await prisma?.user.findUnique({ where: { id: userId } });
-      if (channel.createdById !== userId && user?.role !== 'ADMIN' && user?.role !== 'PRODUCT_MANAGER') {
+      if (channel.createdById !== userId && user?.role !== 'ADMIN' && user?.role !== 'PROJECT_MANAGER') {
         return res.status(403).json({ error: 'Forbidden: You cannot modify this channel' });
       }
 
@@ -139,7 +139,7 @@ export class ChatController {
       if (!channel) return res.status(404).json({ error: 'Channel not found' });
 
       const user = await prisma?.user.findUnique({ where: { id: userId } });
-      if (channel.createdById !== userId && user?.role !== 'ADMIN' && user?.role !== 'PRODUCT_MANAGER') {
+      if (channel.createdById !== userId && user?.role !== 'ADMIN' && user?.role !== 'PROJECT_MANAGER') {
         return res.status(403).json({ error: 'Forbidden: You cannot archive this channel' });
       }
 

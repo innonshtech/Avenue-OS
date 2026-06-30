@@ -9,11 +9,11 @@ import { ChatService } from '../modules/chat/chat.service';
 
 export const getTasks = async (req: Request, res: Response) => {
   try {
-    const { projectId, sprintId, assigneeId, isArchived } = req.query;
+    const { projectId, stageId, assigneeId, isArchived } = req.query;
     
     const query: any = {};
     if (projectId) query.projectId = String(projectId);
-    if (sprintId) query.sprintId = String(sprintId);
+    if (stageId) query.stageId = String(stageId);
     
     if (assigneeId) {
       query.assigneeId = String(assigneeId);
@@ -26,8 +26,8 @@ export const getTasks = async (req: Request, res: Response) => {
       include: {
         assignee: true,
         project: true,
-        sprint: true,
-        blockers: {
+        stage: true,
+        rfis: {
           where: { isResolved: false }
         }
       },
@@ -49,15 +49,15 @@ export const getTaskById = async (req: Request, res: Response) => {
         assignee: true,
         creator: true,
         project: true,
-        sprint: true,
-        blockers: true,
+        stage: true,
+        rfis: true,
         subtasks: {
           orderBy: { createdAt: 'asc' }
         },
         attachments: {
           orderBy: { createdAt: 'desc' }
         },
-        standups: {
+        progressReports: {
           include: { user: true },
           orderBy: { date: 'desc' }
         },
@@ -84,27 +84,29 @@ export const getTaskById = async (req: Request, res: Response) => {
 
 export const createTask = async (req: Request, res: Response) => {
   try {
-    const { key, title, description, type, status, priority, storyPoints, projectId, sprintId, assigneeId, creatorId } = req.body;
+    const { key, title, description, type, status, priority, storyPoints, drawingNumber, revisionNumber, projectId, stageId, assigneeId, creatorId } = req.body;
 
     const task = await prisma.task.create({
       data: {
         key,
         title,
         description,
-        type: type || 'STORY',
-        status: status || 'TODO',
+        type: type || 'DESIGN',
+        status: status || 'PENDING',
         priority: priority || 'MEDIUM',
         storyPoints: storyPoints ? parseInt(storyPoints) : null,
+        drawingNumber,
+        revisionNumber,
         projectId,
-        sprintId,
+        stageId,
         assigneeId,
         creatorId,
       },
       include: {
         assignee: true,
         project: true,
-        sprint: true,
-        blockers: true
+        stage: true,
+        rfis: true
       }
     });
 
@@ -117,7 +119,7 @@ export const createTask = async (req: Request, res: Response) => {
         assigneeEmail: task.assignee.email,
         assigneeName: task.assignee.name,
         projectName: task.project.name,
-        sprintName: task.sprint ? task.sprint.name : 'Backlog',
+        sprintName: task.stage ? task.stage.name : 'Unassigned',
         taskTitle: task.title,
         taskKey: task.key,
         priority: task.priority,
@@ -137,8 +139,6 @@ export const createTask = async (req: Request, res: Response) => {
         `/dashboard/boards`
       );
     }
-
-    // Auto-create task chat channel removed for Enterprise Architecture (lazy creation)
 
     try {
       const io = getIO();
@@ -178,27 +178,29 @@ export const updateTask = async (req: Request, res: Response) => {
     const dbUser = user?.id ? await prisma.user.findUnique({ where: { id: user.id } }) : null;
     const performerName = dbUser?.name || 'Saket';
 
-    if (user && user.role !== 'PRODUCT_MANAGER' && existingTask.assigneeId !== user.id) {
+    if (user && user.role !== 'PROJECT_MANAGER' && user.role !== 'ADMIN' && existingTask.assigneeId !== user.id) {
       return res.status(403).json({ error: 'Forbidden: You can only edit your own assigned tasks' });
     }
 
-    const { title, description, type, status, priority, storyPoints, sprintId, assigneeId, dueDate, startDate, acceptanceCriteria, labels } = req.body;
+    const { title, description, type, status, priority, storyPoints, drawingNumber, revisionNumber, stageId, assigneeId, dueDate, startDate, acceptanceCriteria, labels } = req.body;
 
     const dataToUpdate: any = {};
     if (title !== undefined) dataToUpdate.title = title;
     if (description !== undefined) dataToUpdate.description = description;
     if (type !== undefined) dataToUpdate.type = type;
-    const fromInReviewToDone = (existingTask.status === 'IN_REVIEW' && status === 'DONE');
+    const fromInternalReviewToDone = (existingTask.status === 'INTERNAL_REVIEW' && status === 'DONE');
     if (status !== undefined) {
       dataToUpdate.status = status;
-      if (fromInReviewToDone) {
+      if (fromInternalReviewToDone) {
         dataToUpdate.completedAt = new Date();
         dataToUpdate.completedById = user?.id;
       }
     }
     if (priority !== undefined) dataToUpdate.priority = priority;
     if (storyPoints !== undefined) dataToUpdate.storyPoints = storyPoints ? parseInt(storyPoints) : null;
-    if (sprintId !== undefined) dataToUpdate.sprintId = sprintId;
+    if (drawingNumber !== undefined) dataToUpdate.drawingNumber = drawingNumber;
+    if (revisionNumber !== undefined) dataToUpdate.revisionNumber = revisionNumber;
+    if (stageId !== undefined) dataToUpdate.stageId = stageId;
     if (assigneeId !== undefined) dataToUpdate.assigneeId = assigneeId;
     if (dueDate !== undefined) dataToUpdate.dueDate = dueDate ? new Date(dueDate) : null;
     if (startDate !== undefined) dataToUpdate.startDate = startDate ? new Date(startDate) : null;
@@ -211,7 +213,7 @@ export const updateTask = async (req: Request, res: Response) => {
       include: {
         assignee: true,
         project: true,
-        blockers: {
+        rfis: {
           where: { isResolved: false }
         }
       }
@@ -219,29 +221,29 @@ export const updateTask = async (req: Request, res: Response) => {
 
     const statusChanged = status !== undefined && status !== existingTask.status;
     
-    if (fromInReviewToDone) {
+    if (fromInternalReviewToDone) {
       // 1. Log activity for the user who completed the task
       await ActivityTrackerService.logActivity({
         userId: user?.id || 'SYSTEM',
         actionType: 'TASK_COMPLETED_FROM_REVIEW',
         entityType: 'TASK',
         entityId: task.id,
-        title: `Completed Task from In Review`,
-        description: `Moved task ${task.key} from IN REVIEW to DONE.`,
+        title: `Completed Task from Internal Review`,
+        description: `Moved task ${task.key} from INTERNAL REVIEW to DONE.`,
       });
 
-      // 2. Log activity for Saket (the PM)
-      const saket = await prisma.user.findFirst({
-        where: { email: 'saket.innonsh@gmail.com' }
+      // 2. Log activity for Project Manager
+      const pm = await prisma.user.findFirst({
+        where: { role: 'PROJECT_MANAGER' }
       });
-      if (saket && saket.id !== user?.id) {
+      if (pm && pm.id !== user?.id) {
         await ActivityTrackerService.logActivity({
-          userId: saket.id,
+          userId: pm.id,
           actionType: 'TASK_COMPLETED_FROM_REVIEW',
           entityType: 'TASK',
           entityId: task.id,
-          title: `Developer completed task from In Review`,
-          description: `${performerName} moved task ${task.key} from IN REVIEW to DONE.`,
+          title: `Engineer completed task from Internal Review`,
+          description: `${performerName} moved task ${task.key} from INTERNAL REVIEW to DONE.`,
         });
       }
     } else if (status === 'DONE' && existingTask.status !== 'DONE') {
@@ -271,7 +273,7 @@ export const updateTask = async (req: Request, res: Response) => {
       if (description !== undefined && description !== existingTask.description) changes.push('description');
       if (statusChanged) changes.push(`status to ${status}`);
       if (priority !== undefined && priority !== existingTask.priority) changes.push(`priority to ${priority}`);
-      if (sprintId !== undefined && sprintId !== existingTask.sprintId) changes.push('sprint');
+      if (stageId !== undefined && stageId !== existingTask.stageId) changes.push('stage');
 
       if (changes.length > 0) {
         await inAppNotificationService.createNotification(
@@ -305,20 +307,20 @@ export const updateTask = async (req: Request, res: Response) => {
 export const deleteTask = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const user = req.user;
+    const user = req.user as any;
     
-    if (user?.role !== 'PRODUCT_MANAGER') {
-      return res.status(403).json({ error: 'Only Product Managers can delete tasks' });
+    if (user?.role !== 'PROJECT_MANAGER' && user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only Project Managers or Admins can delete tasks' });
     }
 
-    // Soft delete: remove sprint and archive
+    // Soft delete: remove stage and archive
     const task = await prisma.task.update({
       where: { id },
       data: {
         isArchived: true,
         archivedAt: new Date(),
         archivedById: user?.id,
-        sprintId: null // Remove from sprint
+        stageId: null // Remove from stage
       }
     });
     
@@ -329,7 +331,7 @@ export const deleteTask = async (req: Request, res: Response) => {
       'TASK',
       task.id,
       `Task Deleted: ${task.title}`,
-      `${'User'} deleted task ${task.key}`
+      `${user?.name || 'User'} deleted task ${task.key}`
     );
 
     try {
@@ -352,10 +354,10 @@ export const deleteTask = async (req: Request, res: Response) => {
 export const archiveTask = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const user = req.user;
+    const user = req.user as any;
     
-    if (user?.role !== 'PRODUCT_MANAGER') {
-      return res.status(403).json({ error: 'Only Product Managers can archive tasks' });
+    if (user?.role !== 'PROJECT_MANAGER' && user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only Project Managers or Admins can archive tasks' });
     }
 
     const task = await prisma.task.update({
@@ -374,7 +376,7 @@ export const archiveTask = async (req: Request, res: Response) => {
       'TASK',
       task.id,
       `Task Archived: ${task.title}`,
-      `${'User'} archived task ${task.key}`
+      `${user?.name || 'User'} archived task ${task.key}`
     );
 
     res.status(200).json({ message: 'Task archived successfully', task });
@@ -386,10 +388,10 @@ export const archiveTask = async (req: Request, res: Response) => {
 export const restoreTask = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const user = req.user;
+    const user = req.user as any;
     
-    if (user?.role !== 'PRODUCT_MANAGER') {
-      return res.status(403).json({ error: 'Only Product Managers can restore tasks' });
+    if (user?.role !== 'PROJECT_MANAGER' && user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only Project Managers or Admins can restore tasks' });
     }
 
     const task = await prisma.task.update({
@@ -408,7 +410,7 @@ export const restoreTask = async (req: Request, res: Response) => {
       'TASK',
       task.id,
       `Task Restored: ${task.title}`,
-      `${'User'} restored task ${task.key}`
+      `${user?.name || 'User'} restored task ${task.key}`
     );
 
     res.status(200).json({ message: 'Task restored successfully', task });
@@ -420,26 +422,26 @@ export const restoreTask = async (req: Request, res: Response) => {
 export const moveSprint = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { sprintId } = req.body;
+    const { stageId } = req.body;
     const user = req.user;
     
     // Check edit permission
     const existingTask = await prisma.task.findUnique({ where: { id } });
     if (!existingTask) return res.status(404).json({ error: 'Task not found' });
     
-    if (user && user.role !== 'PRODUCT_MANAGER' && existingTask.assigneeId !== user.id) {
+    if (user && user.role !== 'PROJECT_MANAGER' && user.role !== 'ADMIN' && existingTask.assigneeId !== user.id) {
       return res.status(403).json({ error: 'Forbidden: You can only move your own assigned tasks' });
     }
 
     const task = await prisma.task.update({
       where: { id },
-      data: { sprintId }
+      data: { stageId }
     });
 
     try {
       const io = getIO();
       io.to(`project:${task.projectId}`).to('organization').emit(SOCKET_EVENTS.TASK_UPDATED, {
-        action: 'MOVE_SPRINT',
+        action: 'MOVE_STAGE',
         taskId: task.id,
         projectId: task.projectId
       });
@@ -450,7 +452,7 @@ export const moveSprint = async (req: Request, res: Response) => {
     res.status(200).json(task);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to move task to sprint' });
+    res.status(500).json({ error: 'Failed to move task to stage' });
   }
 };
 
@@ -461,7 +463,7 @@ export const getMyTasks = async (req: Request, res: Response) => {
 
     const tasks = await prisma.task.findMany({
       where: { assigneeId: userId },
-      include: { project: true, sprint: true, blockers: { where: { isResolved: false } } },
+      include: { project: true, stage: true, rfis: { where: { isResolved: false } } },
       orderBy: { createdAt: 'desc' }
     });
     res.status(200).json(tasks);
@@ -476,25 +478,23 @@ export const addBlocker = async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     const { description, severity, type, helperId } = req.body;
-    const blocker = await prisma.blocker.create({
+    const rfi = await prisma.rFI.create({
       data: {
         description,
         severity: severity || 'HIGH',
-        type: type || 'TECHNICAL',
+        type: type || 'ARCHITECTURAL_CLARIFICATION',
         helperId,
         taskId: id,
         reporterId: userId,
       }
     });
 
-    // Auto-create blocker escalation channel removed for Enterprise Architecture (lazy creation)
-
     try {
       const task = await prisma.task.findUnique({ where: { id }, select: { projectId: true } });
       if (task?.projectId) {
         const io = getIO();
-        io.to(`project:${task.projectId}`).to('organization').emit(SOCKET_EVENTS.BLOCKER_ADDED, {
-          blocker,
+        io.to(`project:${task.projectId}`).to('organization').emit(SOCKET_EVENTS.RFI_ADDED, {
+          rfi,
           projectId: task.projectId,
           taskId: id
         });
@@ -503,9 +503,9 @@ export const addBlocker = async (req: Request, res: Response) => {
       console.warn('WebSocket emission failed:', wsError);
     }
 
-    res.status(201).json(blocker);
+    res.status(201).json(rfi);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create blocker' });
+    res.status(500).json({ error: 'Failed to create RFI' });
   }
 };
 
@@ -533,15 +533,15 @@ export const addQuickUpdate = async (req: Request, res: Response) => {
 export const resolveBlocker = async (req: Request, res: Response) => {
   try {
     const { id, blockerId } = req.params;
-    const user = req.user;
+    const user = req.user as any;
     
-    if (user?.role !== 'PRODUCT_MANAGER' && user?.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Only PM or Admin can resolve blockers' });
+    if (user?.role !== 'PROJECT_MANAGER' && user?.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only Project Manager or Admin can resolve RFIs' });
     }
 
     const { resolutionNote } = req.body;
     
-    const blocker = await prisma.blocker.update({
+    const rfi = await prisma.rFI.update({
       where: { id: blockerId },
       data: {
         isResolved: true,
@@ -554,19 +554,19 @@ export const resolveBlocker = async (req: Request, res: Response) => {
     const { AuditEngineService } = await import('../services/audit/audit.service');
     await AuditEngineService.logAction(
       user?.id || 'SYSTEM',
-      'BLOCKER_RESOLVED',
-      'BLOCKER',
-      blocker.id,
-      `Blocker Resolved`,
-      `${'User'} resolved blocker with note: ${resolutionNote || 'No note'}`
+      'RFI_RESOLVED',
+      'RFI',
+      rfi.id,
+      `RFI Resolved`,
+      `${user?.name || 'User'} resolved RFI with note: ${resolutionNote || 'No note'}`
     );
 
     try {
       const task = await prisma.task.findUnique({ where: { id }, select: { projectId: true } });
       if (task?.projectId) {
         const io = getIO();
-        io.to(`project:${task.projectId}`).to('organization').emit(SOCKET_EVENTS.BLOCKER_RESOLVED, {
-          blockerId,
+        io.to(`project:${task.projectId}`).to('organization').emit(SOCKET_EVENTS.RFI_RESOLVED, {
+          rfiId: blockerId,
           projectId: task.projectId,
           taskId: id
         });
@@ -575,8 +575,8 @@ export const resolveBlocker = async (req: Request, res: Response) => {
       console.warn('WebSocket emission failed:', wsError);
     }
 
-    res.status(200).json(blocker);
+    res.status(200).json(rfi);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to resolve blocker' });
+    res.status(500).json({ error: 'Failed to resolve RFI' });
   }
 };

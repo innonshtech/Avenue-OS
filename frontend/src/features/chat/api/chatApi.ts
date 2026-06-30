@@ -5,11 +5,11 @@ export interface Channel {
   id: string;
   name: string;
   description?: string | null;
-  type: 'DIRECT' | 'PROJECT' | 'SPRINT' | 'TASK' | 'BLOCKER' | 'ANNOUNCEMENT';
+  type: 'DIRECT' | 'PROJECT' | 'STAGE' | 'TASK' | 'RFI' | 'ANNOUNCEMENT';
   projectId?: string | null;
-  sprintId?: string | null;
+  stageId?: string | null;
   taskId?: string | null;
-  blockerId?: string | null;
+  rfiId?: string | null;
   createdById: string;
   isArchived: boolean;
   createdAt: string;
@@ -23,6 +23,9 @@ export interface Channel {
     createdAt: string;
     sender: { name: string };
   }>;
+  _count?: {
+    unread: number;
+  };
 }
 
 export interface Message {
@@ -76,12 +79,10 @@ export const useChannelMessages = (channelId: string, enabled = true) => {
     queryKey: ['chat-messages', channelId],
     queryFn: async () => {
       const { data } = await api.get(`/chat/channels/${channelId}/messages`);
-      // Since backend returns reverse order (newest first) for cursor pagination,
-      // we reverse it to display chronological order in the chat window.
       return [...data].reverse();
     },
     enabled: !!channelId && enabled,
-    staleTime: 0, // Always load fresh
+    staleTime: 0,
   });
 };
 
@@ -102,11 +103,11 @@ export const useCreateChannel = () => {
     mutationFn: async (newChannel: {
       name: string;
       description?: string;
-      type: 'PROJECT' | 'SPRINT' | 'TASK' | 'BLOCKER' | 'ANNOUNCEMENT';
+      type: 'PROJECT' | 'STAGE' | 'TASK' | 'RFI' | 'ANNOUNCEMENT';
       projectId?: string | null;
-      sprintId?: string | null;
+      stageId?: string | null;
       taskId?: string | null;
-      blockerId?: string | null;
+      rfiId?: string | null;
       memberIds?: string[];
     }) => {
       const { data } = await api.post('/chat/channels', newChannel);

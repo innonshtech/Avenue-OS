@@ -20,7 +20,7 @@ export class NotificationTrackerService {
     receiverId: string;
     receiverEmail: string;
     taskId?: string;
-    sprintId?: string;
+    stageId?: string;
     projectId?: string;
   }) {
     let mailSent = false;
@@ -30,7 +30,7 @@ export class NotificationTrackerService {
     try {
       if (data.receiverEmail && process.env.SMTP_USER) {
         await transporter.sendMail({
-          from: process.env.SMTP_FROM || '"SprintOS" <noreply@sprintos.com>',
+          from: process.env.SMTP_FROM || '"Avenue Projects" <noreply@avenueprojects.com>',
           to: data.receiverEmail,
           subject: data.title,
           text: data.description,
@@ -56,7 +56,7 @@ export class NotificationTrackerService {
           senderId: data.senderId,
           receiverId: data.receiverId,
           taskId: data.taskId,
-          sprintId: data.sprintId,
+          stageId: data.stageId,
           projectId: data.projectId,
           mailSent,
           deliveryStatus,

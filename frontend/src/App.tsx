@@ -11,17 +11,17 @@ import ProtectedRoute from './components/ProtectedRoute';
 // New Feature Pages
 import ProjectListPage from './features/projects/pages/ProjectListPage';
 import ProjectDetailsPage from './features/projects/pages/ProjectDetailsPage';
-import SprintListPage from './features/sprints/pages/SprintListPage';
-import SprintDetailsPage from './features/sprints/pages/SprintDetailsPage';
+import StageListPage from './features/stages/pages/StageListPage';
+import StageDetailsPage from './features/stages/pages/StageDetailsPage';
 import TaskListPage from './features/tasks/pages/TaskListPage';
 import KanbanBoardPage from './features/boards/pages/KanbanBoardPage';
-import StandupPage from './features/standups/pages/StandupPage';
+import ProgressReportPage from './features/progress-reports/pages/ProgressReportPage';
 import AnalyticsDashboardPage from './features/analytics/pages/AnalyticsDashboardPage';
 import ReportsPage from './features/reports/pages/ReportsPage';
 import FeedbacksPage from './features/feedbacks/pages/FeedbacksPage';
 import TeamManagementPage from './features/team/pages/TeamManagementPage';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
-import SprintReportsPage from './features/member/sprint-reports/pages/SprintReportsPage';
+import StageReportsPage from './features/member/stage-reports/pages/StageReportsPage';
 import AdminDashboard from './features/admin/pages/AdminDashboard';
 import MyActivityLogPage from './features/activity/pages/MyActivityLogPage';
 import OrganizationAuditLogPage from './features/activity/pages/OrganizationAuditLogPage';
@@ -80,7 +80,7 @@ function App() {
               <h3 className="text-lg font-bold text-white tracking-tight">Session Expiring Due to Inactivity</h3>
             </div>
             <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-              You have been inactive for a while. For security reasons, your Innonsh SprintOS session will automatically expire in 5 minutes. Move your mouse or press any key to keep your session alive.
+              You have been inactive for a while. For security reasons, your Avenue Projects session will automatically expire in 5 minutes. Move your mouse or press any key to keep your session alive.
             </p>
             <div className="flex justify-end">
               <button
@@ -112,34 +112,34 @@ function App() {
               <Route path="projects" element={<ProjectListPage />} />
               <Route path="projects/:id" element={<ProjectDetailsPage />} />
               
-              <Route path="sprints" element={<SprintListPage />} />
-              <Route path="sprints/:id" element={<SprintDetailsPage />} />
+              <Route path="stages" element={<StageListPage />} />
+              <Route path="stages/:id" element={<StageDetailsPage />} />
               
               <Route path="tasks" element={<TaskListPage />} />
-              {/* Marketing and Dev aliases pointing to same task view for simplicity, 
+              {/* Engineering and drafting aliases pointing to same task view for simplicity, 
                   access filtered internally in TaskListPage */}
               <Route path="my-tasks" element={<TaskListPage />} />
               <Route path="campaign-tasks" element={<TaskListPage />} />
               
               <Route path="boards" element={<KanbanBoardPage />} />
               
-              <Route path="standups" element={<StandupPage />} />
+              <Route path="standups" element={<ProgressReportPage />} />
               <Route path="timesheets" element={<TimesheetsPage />} />
               
-              {/* Product Manager Only Routes */}
-              <Route element={<RoleProtectedRoute allowedRoles={['PRODUCT_MANAGER']} />}>
+              {/* Project Manager Only Routes */}
+              <Route element={<RoleProtectedRoute allowedRoles={['PROJECT_MANAGER', 'ADMIN']} />}>
                 <Route path="analytics" element={<AnalyticsDashboardPage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="team" element={<TeamManagementPage />} />
                 <Route path="organization-audit" element={<OrganizationAuditLogPage />} />
               </Route>
 
-              {/* Feedbacks - Accessible to all, but view is restricted inside component or by API */}
+              {/* Feedbacks - Accessible to all */}
               <Route path="feedbacks" element={<FeedbacksPage />} />
 
               {/* Member-Only Routes */}
-              <Route element={<RoleProtectedRoute allowedRoles={['DEVELOPER', 'MARKETING']} />}>
-                <Route path="sprint-reports" element={<SprintReportsPage />} />
+              <Route element={<RoleProtectedRoute allowedRoles={['PRINCIPAL_ENGINEER', 'ENGINEER', 'DRAFTSMAN', 'ARCHITECT']} />}>
+                <Route path="stage-reports" element={<StageReportsPage />} />
                 <Route path="activity" element={<MyActivityLogPage />} />
               </Route>
 

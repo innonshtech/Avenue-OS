@@ -8,7 +8,7 @@ import { ProjectActionDropdown } from '../components/ProjectActionDropdown';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useEffect, useState } from 'react';
 import { useSocket } from '@/features/realtime/SocketProvider';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { EditProjectModal } from '../components/EditProjectModal';
 
 export default function ProjectDetailsPage() {
@@ -30,12 +30,14 @@ export default function ProjectDetailsPage() {
   if (isLoading) return <div className="flex justify-center p-10">Loading project...</div>;
   if (!project) return <div>Project not found.</div>;
 
-  const projectSprints = project.sprints || [];
+  const projectStages = project.stages || [];
   const projectTasks = project.tasks || [];
   
   const completedTasks = projectTasks.filter(t => t.status === 'DONE').length;
   const totalTasks = projectTasks.length;
   const progress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+
+  const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
 
   return (
     <div className="space-y-6">
@@ -57,7 +59,7 @@ export default function ProjectDetailsPage() {
           </div>
         </div>
         
-        {user?.role === 'PRODUCT_MANAGER' && (
+        {isPM && (
           <ProjectActionDropdown project={project} />
         )}
       </div>
@@ -95,7 +97,7 @@ export default function ProjectDetailsPage() {
                 <Users className="w-4 h-4 mr-2" />
                 Team Members
               </CardTitle>
-              {user?.role === 'PRODUCT_MANAGER' && (
+              {isPM && (
                 <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-2" onClick={() => setIsEditOpen(true)}>
                   <Settings className="h-4 w-4 text-muted-foreground" />
                 </Button>
@@ -111,7 +113,7 @@ export default function ProjectDetailsPage() {
                       </Avatar>
                       <div className="flex flex-col overflow-hidden">
                         <span className="text-sm font-medium leading-none truncate">{member.user?.name}</span>
-                        <span className="text-xs text-muted-foreground mt-1">{member.role}</span>
+                        <span className="text-xs text-muted-foreground mt-1">{member.role?.replace('_', ' ')}</span>
                       </div>
                     </div>
                   ))
@@ -127,11 +129,11 @@ export default function ProjectDetailsPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium flex items-center text-muted-foreground">
                   <Target className="w-3 h-3 mr-1" />
-                  Active Sprints
+                  Active Stages
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{projectSprints.filter((s: any) => s.status === 'ACTIVE').length}</div>
+                <div className="text-2xl font-bold">{projectStages.filter((s: any) => s.status === 'ACTIVE').length}</div>
               </CardContent>
             </Card>
             <Card className="bg-card shadow-soft border-muted">
@@ -149,37 +151,37 @@ export default function ProjectDetailsPage() {
         </div>
       </div>
 
-      <h2 className="text-xl font-semibold mt-10 mb-4">Sprints</h2>
+      <h2 className="text-xl font-semibold mt-10 mb-4">Stages</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {projectSprints.map((sprint: any) => (
-          <Link key={sprint.id} to={`/dashboard/sprints/${sprint.id}`} className="group outline-none">
+        {projectStages.map((stage: any) => (
+          <Link key={stage.id} to={`/dashboard/stages/${stage.id}`} className="group outline-none">
             <Card className="h-full bg-card shadow-soft hover:shadow-md transition-all duration-200 border-muted group-hover:border-indigo-500/30 group-focus-visible:ring-2 ring-indigo-500">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between mb-2">
-                  <Badge variant={sprint.status === 'ACTIVE' ? 'default' : 'secondary'} className={sprint.status === 'ACTIVE' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' : ''}>
-                    {sprint.status}
+                  <Badge variant={stage.status === 'ACTIVE' ? 'default' : 'secondary'} className={stage.status === 'ACTIVE' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' : ''}>
+                    {stage.status}
                   </Badge>
                   <span className="text-xs text-muted-foreground flex items-center">
                     <Clock className="w-3 h-3 mr-1" />
-                    {new Date(sprint.endDate).toLocaleDateString()}
+                    {new Date(stage.endDate).toLocaleDateString()}
                   </span>
                 </div>
-                <CardTitle className="text-lg group-hover:text-indigo-600 transition-colors">{sprint.name}</CardTitle>
+                <CardTitle className="text-lg group-hover:text-indigo-600 transition-colors">{stage.name}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground line-clamp-2">{sprint.goal}</p>
+                <p className="text-sm text-muted-foreground line-clamp-2">{stage.goal}</p>
                 <div className="flex items-center gap-2 mt-4 text-xs font-medium text-foreground">
                   <Activity className="w-4 h-4 text-indigo-500" />
-                  View Sprint Dashboard
+                  View Stage Dashboard
                 </div>
               </CardContent>
             </Card>
           </Link>
         ))}
-        {projectSprints.length === 0 && (
+        {projectStages.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center py-12 text-center bg-card rounded-lg border border-dashed border-border">
             <LayoutDashboard className="w-8 h-8 text-muted-foreground mb-3" />
-            <h3 className="text-sm font-medium">No sprints yet</h3>
+            <h3 className="text-sm font-medium">No stages yet</h3>
           </div>
         )}
       </div>

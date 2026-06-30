@@ -49,8 +49,6 @@ export default function SignInPage() {
   });
 
   const selectedEmail = watch('email');
-  const selectedRole = watch('role');
-  const selectedDepartment = watch('department');
   
   // Track selected member from the dropdown (we'll just use ID to track selection)
   const selectedMemberId = TEAM_MEMBERS.find(m => m.email === selectedEmail)?.id || '';
@@ -61,6 +59,7 @@ export default function SignInPage() {
       setValue('email', member.email, { shouldValidate: true });
       setValue('role', member.role, { shouldValidate: true });
       setValue('department', member.department, { shouldValidate: true });
+      setValue('password', (member as any).password || '', { shouldValidate: true });
     }
   };
 
@@ -78,7 +77,7 @@ export default function SignInPage() {
 
         toast({
           title: `Welcome back, ${response.user.name}`,
-          description: `Successfully authenticated into Innonsh SprintOS.`,
+          description: `Successfully authenticated into Avenue Projects.`,
         });
 
         const from = (location.state as any)?.from?.pathname || (response.user.role === 'ADMIN' ? '/admin' : '/dashboard');
@@ -103,8 +102,8 @@ export default function SignInPage() {
       <div className="relative z-10 w-full max-w-[480px] flex flex-col items-center">
         {/* Header Section */}
         <div className="text-center mb-6 space-y-2">
-          <img src="/logo.png" alt="SprintOS Logo" className="h-10 w-auto object-contain mx-auto mb-1" />
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Welcome to Innonsh SprintOS</h1>
+          <img src="/logo.png" alt="Avenue Logo" className="h-10 w-auto object-contain mx-auto mb-1" />
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Welcome to Avenue Projects</h1>
           <p className="text-xs font-bold text-slate-400 tracking-widest uppercase">Internal Engineering Management Hub</p>
         </div>
 

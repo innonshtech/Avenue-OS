@@ -10,11 +10,12 @@ datasource db {
 
 enum UserRole {
   ADMIN
-  PRODUCT_MANAGER
-  DEVELOPER
-  MARKETING
-  HR
-  QA
+  PROJECT_MANAGER
+  PRINCIPAL_ENGINEER
+  ENGINEER
+  DRAFTSMAN
+  ARCHITECT
+  CLIENT
 }
 
 enum TaskPriority {
@@ -25,33 +26,31 @@ enum TaskPriority {
   CRITICAL
 }
 
-enum BlockerSeverity {
+enum RFISeverity {
   LOW
   MEDIUM
   HIGH
   CRITICAL
 }
 
-enum BlockerType {
-  TECHNICAL
-  REQUIREMENT
-  DEPENDENCY
-  INFRASTRUCTURE
-  COMMUNICATION
-  TESTING
+enum RFIType {
+  ARCHITECTURAL_CLARIFICATION
+  CLIENT_APPROVAL_PENDING
+  SITE_DISCREPANCY
+  RESOURCE_UNAVAILABLE
 }
 
 enum TaskStatus {
-  BACKLOG
-  TODO
+  PENDING
   IN_PROGRESS
-  IN_REVIEW
-  IN_TESTING
+  INTERNAL_REVIEW
+  EXTERNAL_REVIEW
+  MODIFICATION_REQUIRED
+  APPROVED
   DONE
-  CANCELED
 }
 
-enum SprintStatus {
+enum StageStatus {
   PLANNED
   ACTIVE
   COMPLETED
@@ -62,14 +61,14 @@ enum NotificationType {
   MENTION
   ASSIGNED
   STATUS_CHANGE
-  SPRINT_STARTED
-  SPRINT_ENDED
-  BLOCKER_ALERT
+  STAGE_STARTED
+  STAGE_ENDED
+  RFI_ALERT
   SYSTEM
 }
 
 enum FeedbackCategory {
-  SPRINT
+  STAGE
   TASK_ASSIGNMENT
   DEADLINE
   COMMUNICATION
@@ -103,15 +102,15 @@ model User {
   inAppNotifications   InAppNotification[]
   activities           TaskActivity[]
   enterpriseActivities ActivityLog[]
-  standups             DailyStandup[]
-  blockersReported     Blocker[]
+  progressReports      ProgressReport[]
+  rfisReported         RFI[]
   feedbacks            Feedback[]
   notifications        Notification[]
   performanceMetrics   TeamPerformanceMetric[]
 
   projectMembers ProjectMember[]
-  sprintMembers  SprintMember[]
-  blockersHelped Blocker[]       @relation("BlockerHelper")
+  stageMembers   StageMember[]
+  rfisHelped     RFI[]       @relation("RFIHelper")
   focuses        TodayFocus[]
   sessions       UserSession[]
 
@@ -140,10 +139,10 @@ model Project {
 
   owner User @relation("ProjectOwner", fields: [ownerId], references: [id])
 
-  sprints       Sprint[]
+  stages        Stage[]
   tasks         Task[]
   members       ProjectMember[]
-  sprintReports SprintReport[]
+  stageReports  StageReport[]
   chatChannels  ChatChannel[]
 
   isArchived Boolean @default(false)
@@ -168,23 +167,23 @@ model ProjectMember {
   @@unique([projectId, userId])
 }
 
-model Sprint {
-  id        String       @id @default(uuid())
+model Stage {
+  id        String      @id @default(uuid())
   name      String
   goal      String?
   startDate DateTime
   endDate   DateTime
-  status    SprintStatus @default(PLANNED)
+  status    StageStatus @default(PLANNED)
   projectId String
 
   project            Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks              Task[]
-  standups           DailyStandup[]
+  progressReports    ProgressReport[]
   feedbacks          Feedback[]
   retrospectives     RetrospectiveComparison[]
-  report             SprintReport?
+  report             StageReport?
   performanceMetrics TeamPerformanceMetric[]
-  members            SprintMember[]
+  members            StageMember[]
   chatChannels       ChatChannel[]
 
   isArchived Boolean @default(false)
@@ -195,17 +194,17 @@ model Sprint {
   @@index([projectId])
 }
 
-model SprintMember {
-  id       String @id @default(uuid())
-  sprintId String
-  userId   String
+model StageMember {
+  id      String @id @default(uuid())
+  stageId String
+  userId  String
 
-  sprint Sprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stage Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
-  @@unique([sprintId, userId])
+  @@unique([stageId, userId])
 }
 
 model Task {
@@ -213,32 +212,34 @@ model Task {
   key                String       @unique // e.g., "PROJ-123"
   title              String
   description        String?
-  type               String       @default("STORY") // STORY, BUG, TASK, EPIC
-  status             TaskStatus   @default(TODO)
+  type               String       @default("DESIGN") // DESIGN, DRAFTING, MODELING, ANALYSIS, SITE_CHECK, REVIEW
+  status             TaskStatus   @default(PENDING)
   priority           TaskPriority @default(MEDIUM)
   storyPoints        Int?
+  drawingNumber      String?
+  revisionNumber     String?
   dueDate            DateTime?
   startDate          DateTime?
   acceptanceCriteria String?
   labels             String[]
 
   projectId  String
-  sprintId   String?
+  stageId    String?
   assigneeId String?
   creatorId  String
 
   project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sprint   Sprint? @relation(fields: [sprintId], references: [id])
+  stage    Stage?  @relation(fields: [stageId], references: [id])
   assignee User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
   creator  User    @relation("TaskCreator", fields: [creatorId], references: [id])
 
-  comments    Comment[]
-  activities  TaskActivity[]
-  attachments Attachment[]
-  blockers    Blocker[]
-  subtasks    TaskSubtask[]
-  standups    DailyStandup[]
-  chatChannels ChatChannel[]
+  comments        Comment[]
+  activities      TaskActivity[]
+  attachments     Attachment[]
+  rfis            RFI[]
+  subtasks        TaskSubtask[]
+  progressReports ProgressReport[]
+  chatChannels    ChatChannel[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -251,7 +252,7 @@ model Task {
 
   @@index([projectId])
   @@index([assigneeId])
-  @@index([sprintId])
+  @@index([stageId])
 }
 
 model Comment {
@@ -309,45 +310,45 @@ model TaskActivity {
   createdAt DateTime @default(now())
 }
 
-model DailyStandup {
+model ProgressReport {
   id        String   @id @default(uuid())
   date      DateTime @default(now())
   yesterday String
   today     String
   blockers  String?
   userId    String
-  sprintId  String
+  stageId   String
   taskId    String?
 
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sprint           Sprint    @relation(fields: [sprintId], references: [id], onDelete: Cascade)
-  task             Task?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  reportedBlockers Blocker[]
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stage       Stage    @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  task        Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  reportedRFIs RFI[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, sprintId, date])
+  @@unique([userId, stageId, date])
 }
 
-model Blocker {
+model RFI {
   id          String  @id @default(uuid())
   description String
   isResolved  Boolean @default(false)
 
-  severity                BlockerSeverity @default(HIGH)
-  type                    BlockerType     @default(TECHNICAL)
+  severity                RFISeverity @default(HIGH)
+  type                    RFIType     @default(ARCHITECTURAL_CLARIFICATION)
   estimatedResolutionDate DateTime?
   helperId                String?
 
-  taskId     String
-  reporterId String
-  standupId  String?
+  taskId           String
+  reporterId       String
+  progressReportId String?
 
-  task     Task          @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  reporter User          @relation(fields: [reporterId], references: [id], onDelete: Cascade)
-  helper   User?         @relation("BlockerHelper", fields: [helperId], references: [id])
-  standup  DailyStandup? @relation(fields: [standupId], references: [id], onDelete: Cascade)
+  task           Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  reporter       User            @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  helper         User?           @relation("RFIHelper", fields: [helperId], references: [id])
+  progressReport ProgressReport? @relation(fields: [progressReportId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -362,7 +363,7 @@ model Feedback {
   id        String           @id @default(uuid())
   content   String
   sentiment String? // POSITIVE, NEUTRAL, NEGATIVE
-  category  FeedbackCategory @default(SPRINT)
+  category  FeedbackCategory @default(STAGE)
 
   // Specific questions
   wentWell            String?
@@ -373,28 +374,28 @@ model Feedback {
   fairDistribution    Boolean @default(true)
   blockerPatterns     String?
 
-  userId   String
-  sprintId String
+  userId  String
+  stageId String
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sprint Sprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stage Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model SprintReport {
+model StageReport {
   id             String  @id @default(uuid())
-  sprintId       String  @unique
+  stageId        String  @unique
   projectId      String
   successRate    Float
   velocity       Int
   completedTasks Int
   pendingTasks   Int
-  blockerCount   Int
+  rfiCount       Int
   summary        String?
 
-  sprint  Sprint  @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  stage   Stage   @relation(fields: [stageId], references: [id], onDelete: Cascade)
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -403,30 +404,30 @@ model SprintReport {
 model TeamPerformanceMetric {
   id                 String @id @default(uuid())
   userId             String
-  sprintId           String
+  stageId            String
   assignedTasks      Int
   completedTasks     Int
   delayedTasks       Int
-  blockersRaised     Int
+  rfisRaised         Int
   avgCompletionTime  Float // in hours
   standupConsistency Float // percentage
   utilizationRate    Float // percentage
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sprint Sprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stage Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
-  @@unique([userId, sprintId])
+  @@unique([userId, stageId])
 }
 
 model AnalyticsSnapshot {
   id                   String   @id @default(uuid())
   date                 DateTime @default(now())
   totalActiveTasks     Int
-  sprintCompletionRate Float
+  stageCompletionRate  Float
   delayedTasks         Int
-  blockersCount        Int
+  rfisCount            Int
   teamVelocity         Int
   avgCompletionTime    Float
   activeProjects       Int
@@ -435,10 +436,10 @@ model AnalyticsSnapshot {
 
 model RetrospectiveComparison {
   id       String @id @default(uuid())
-  metrics  Json // Stores sprint velocity, completed points, etc.
-  sprintId String
+  metrics  Json // Stores stage velocity, completed points, etc.
+  stageId  String
 
-  sprint Sprint @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  stage Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 }
@@ -482,15 +483,15 @@ model AuditLog {
   createdAt DateTime @default(now())
 }
 
-model MemberSprintStats {
+model MemberStageStats {
   id             String @id @default(uuid())
   userId         String
-  sprintId       String
+  stageId        String
   completedTasks Int
   pendingTasks   Int
   storyPoints    Int
   completionRate Float
-  blockerCount   Int
+  rfiCount       Int
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -516,7 +517,7 @@ model ProductivitySnapshot {
 
   completedTasks    Int
   pendingTasks      Int
-  blockers          Int
+  rfis              Int
   productivityScore Float
 
   createdAt DateTime @default(now())
@@ -554,7 +555,7 @@ model NotificationHistory {
   senderId       String
   receiverId     String?
   taskId         String?
-  sprintId       String?
+  stageId        String?
   projectId      String?
   mailSent       Boolean  @default(false)
   deliveryStatus String
@@ -618,30 +619,30 @@ model InAppNotification {
   metadata    Json?
   createdAt   DateTime @default(now())
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ChatChannel {
   id          String   @id @default(uuid())
   name        String
   description String?
-  type        String // DIRECT, PROJECT, SPRINT, TASK, BLOCKER, ANNOUNCEMENT
+  type        String // DIRECT, PROJECT, STAGE, TASK, RFI, ANNOUNCEMENT
   projectId   String?
-  sprintId    String?
+  stageId     String?
   taskId      String?
-  blockerId   String?
+  rfiId       String?
   createdById String
   isArchived  Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   createdBy User     @relation("CreatedChannels", fields: [createdById], references: [id], onDelete: Cascade)
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sprint    Sprint?  @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  stage     Stage?   @relation(fields: [stageId], references: [id], onDelete: Cascade)
   task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  blocker   Blocker? @relation(fields: [blockerId], references: [id], onDelete: Cascade)
+  rfi       RFI?     @relation(fields: [rfiId], references: [id], onDelete: Cascade)
 
-  messages  ChatMessage[]
-  members   ChatMember[]
+  messages       ChatMessage[]
+  members        ChatMember[]
   pinnedMessages PinnedMessage[]
 }
 
@@ -657,10 +658,10 @@ model ChatMessage {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  channel       ChatChannel    @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  sender        User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  parentMessage ChatMessage?   @relation("ThreadReplies", fields: [parentMessageId], references: [id], onDelete: Cascade)
-  replies       ChatMessage[]  @relation("ThreadReplies")
+  channel       ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  sender        User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  parentMessage ChatMessage? @relation("ThreadReplies", fields: [parentMessageId], references: [id], onDelete: Cascade)
+  replies       ChatMessage[] @relation("ThreadReplies")
   reactions     MessageReaction[]
   pinnedMessage PinnedMessage?
 }
@@ -671,7 +672,7 @@ model MessageReaction {
   userId    String
   emoji     String
 
-  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, userId, emoji])
@@ -684,8 +685,8 @@ model ChatMember {
   joinedAt   DateTime  @default(now())
   lastSeenAt DateTime?
 
-  channel    ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([channelId, userId])
 }
@@ -697,9 +698,9 @@ model PinnedMessage {
   pinnedById String
   createdAt  DateTime @default(now())
 
-  channel    ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  message    ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  pinnedBy   User        @relation(fields: [pinnedById], references: [id], onDelete: Cascade)
+  channel   ChatChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  pinnedBy  User        @relation(fields: [pinnedById], references: [id], onDelete: Cascade)
 
   @@unique([channelId, messageId])
 }
@@ -712,10 +713,10 @@ model Timesheet {
   hoursWorked   Float    // Number of hours worked
   notes         String?  // Optional notes
 
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([date])
 }

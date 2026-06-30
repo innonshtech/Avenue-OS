@@ -18,9 +18,9 @@ export default function ProjectListPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState('ACTIVE');
-  const isSaket = user?.role === 'PRODUCT_MANAGER';
+  const isSaket = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
 
-  const isOverdue = (deadline: string | null, status: string) => {
+  const isOverdue = (deadline: string | null | undefined, status: string) => {
     if (!deadline || status === 'COMPLETED') return false;
     return new Date(deadline).getTime() < new Date().getTime();
   };

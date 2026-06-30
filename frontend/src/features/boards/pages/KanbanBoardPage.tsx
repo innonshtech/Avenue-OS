@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTasks, useUpdateTaskStatus } from '@/features/tasks/api/taskApi';
-import { useSprints } from '@/features/sprints/api/sprintApi';
+import { useStages } from '@/features/stages/api/stageApi';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { TEAM_MEMBERS } from '@/constants/teamMembers';
 import { useSocket } from '@/features/realtime/SocketProvider';
@@ -23,10 +23,9 @@ import type {
 } from '@dnd-kit/core';
 import {
   SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
   horizontalListSortingStrategy,
   verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -40,11 +39,12 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const COLUMNS: { id: TaskStatus; title: string }[] = [
-  { id: 'TODO', title: 'TO DO' },
+  { id: 'PENDING', title: 'PENDING' },
   { id: 'IN_PROGRESS', title: 'IN PROGRESS' },
-  { id: 'IN_REVIEW', title: 'IN REVIEW' },
-  { id: 'BLOCKED', title: 'BLOCKED' },
-  { id: 'TESTING', title: 'TESTING' },
+  { id: 'INTERNAL_REVIEW', title: 'INTERNAL REVIEW' },
+  { id: 'EXTERNAL_REVIEW', title: 'EXTERNAL REVIEW' },
+  { id: 'MODIFICATION_REQUIRED', title: 'MODIFICATION REQ.' },
+  { id: 'APPROVED', title: 'APPROVED' },
   { id: 'DONE', title: 'DONE' },
 ];
 
@@ -93,6 +93,8 @@ function SortableTaskCard({ task, onClick }: { task: Task; onClick: () => void }
     );
   }
 
+  const hasActiveRFIs = task.rfis && task.rfis.some((b: any) => !b.isResolved);
+
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="touch-none pb-3">
       <Card 
@@ -105,8 +107,13 @@ function SortableTaskCard({ task, onClick }: { task: Task; onClick: () => void }
         <CardContent className="p-3">
           <div className="flex justify-between items-start mb-2">
             <span className="font-mono text-[10px] text-muted-foreground">{task.key}</span>
-            <div className={`text-[9px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wider ${priorityColors[task.priority] || 'bg-muted'}`}>
-              {task.priority}
+            <div className="flex gap-1.5 items-center">
+              {hasActiveRFIs && (
+                <span className="bg-red-500 text-white text-[8px] font-extrabold px-1 py-0.5 rounded-sm">RFI</span>
+              )}
+              <div className={`text-[9px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wider ${priorityColors[task.priority] || 'bg-muted'}`}>
+                {task.priority}
+              </div>
             </div>
           </div>
           <p className="text-sm font-medium text-foreground mb-3 leading-snug line-clamp-2">
@@ -117,9 +124,10 @@ function SortableTaskCard({ task, onClick }: { task: Task; onClick: () => void }
               {task.type}
             </Badge>
             <div className="flex items-center gap-2">
-              {task.storyPoints && (
+              {task.drawingNumber && (
                 <span className="text-[10px] font-medium text-muted-foreground bg-background px-1.5 py-0.5 rounded-sm border border-border">
-                  {task.storyPoints}
+                  DWG: {task.drawingNumber}
+                  {task.revisionNumber && ` (${task.revisionNumber})`}
                 </span>
               )}
               {assignee && (
@@ -145,6 +153,8 @@ function Column({ col, tasks, onTaskClick }: { col: { id: TaskStatus; title: str
     },
   });
 
+  const drawingCount = tasks.filter(t => t.drawingNumber).length;
+
   return (
     <div className="flex flex-col flex-shrink-0 w-80 bg-muted/30 rounded-xl border border-border/40 max-h-full">
       <div className="p-3 flex items-center justify-between border-b border-border/40">
@@ -153,9 +163,9 @@ function Column({ col, tasks, onTaskClick }: { col: { id: TaskStatus; title: str
           <span className="bg-muted text-muted-foreground text-[10px] px-2 py-0.5 rounded-full font-medium">
             {tasks.length}
           </span>
-          {tasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0) > 0 && (
+          {drawingCount > 0 && (
             <span className="bg-indigo-500/10 text-indigo-600 text-[10px] px-2 py-0.5 rounded-full font-medium ml-1">
-              {tasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0)} pts
+              {drawingCount} dwgs
             </span>
           )}
         </h2>
@@ -176,11 +186,11 @@ function Column({ col, tasks, onTaskClick }: { col: { id: TaskStatus; title: str
 }
 
 export default function KanbanBoardPage() {
-  const { data: sprints = [] } = useSprints();
-  const activeSprintIds = useMemo(() => sprints.filter((s: any) => s.status === 'ACTIVE').map((s: any) => s.id), [sprints]);
+  const { data: stages = [] } = useStages();
+  const activeStageIds = useMemo(() => stages.filter((s: any) => s.status === 'ACTIVE').map((s: any) => s.id), [stages]);
   
-  const [sprintFilter, setSprintFilter] = useState<string | null>(null);
-  const { data: tasks = [], isLoading } = useTasks(sprintFilter ? { sprintId: sprintFilter } : undefined);
+  const [stageFilter, setStageFilter] = useState<string | null>(null);
+  const { data: tasks = [], isLoading } = useTasks(stageFilter ? { stageId: stageFilter } : undefined);
   const updateTaskStatus = useUpdateTaskStatus();
   const { user } = useAuthStore();
   const { joinProject, leaveProject } = useSocket();
@@ -198,54 +208,45 @@ export default function KanbanBoardPage() {
   const [search, setSearch] = useState('');
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
   
-  // Advanced filters state
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>(initialFilterState);
 
   const filteredTasks = useMemo(() => {
     return tasks
       .filter((t: any) => {
-        // Search query
         if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.key.toLowerCase().includes(search.toLowerCase())) return false;
         
-        // Sprint filter (legacy dropdown or advanced filters)
-        if (sprintFilter) {
-          if (t.sprintId !== sprintFilter) return false;
+        if (stageFilter) {
+          if (t.stageId !== stageFilter) return false;
         } else if (advancedFilters.sprintIds.length > 0) {
-          if (!advancedFilters.sprintIds.includes(t.sprintId)) return false;
+          if (!advancedFilters.sprintIds.includes(t.stageId)) return false;
         } else {
-          if (!activeSprintIds.includes(t.sprintId)) return false;
+          if (!activeStageIds.includes(t.stageId)) return false;
         }
 
-        // Priority filter
         if (advancedFilters.priorities.length > 0 && !advancedFilters.priorities.includes(t.priority)) return false;
 
-        // Assignee filter (legacy select or advanced filters)
         if (assigneeFilter) {
           if (t.assigneeId !== assigneeFilter) return false;
         } else if (advancedFilters.assigneeIds.length > 0) {
           if (!t.assigneeId || !advancedFilters.assigneeIds.includes(t.assigneeId)) return false;
         }
 
-        // Project filter
         if (advancedFilters.projectIds.length > 0 && !advancedFilters.projectIds.includes(t.projectId)) return false;
 
-        // Overdue filter
         if (advancedFilters.isOverdue) {
           if (!t.dueDate || t.status === 'DONE') return false;
           if (new Date(t.dueDate) >= new Date()) return false;
         }
 
-        // Blocked filter
         if (advancedFilters.isBlocked) {
-          // If status is BLOCKED or has any active blockers
-          const hasActiveBlockers = t.blockers && t.blockers.some((b: any) => !b.isResolved);
-          if (t.status !== 'BLOCKED' && !hasActiveBlockers) return false;
+          const hasActiveRFIs = t.rfis && t.rfis.some((b: any) => !b.isResolved);
+          if (!hasActiveRFIs) return false;
         }
 
         return true;
       });
-  }, [tasks, search, assigneeFilter, sprintFilter, activeSprintIds, advancedFilters]);
+  }, [tasks, search, assigneeFilter, stageFilter, activeStageIds, advancedFilters]);
 
   const columns = useMemo(() => COLUMNS, []);
 
@@ -270,14 +271,7 @@ export default function KanbanBoardPage() {
     if (activeId === overId) return;
 
     const isActiveTask = active.data.current?.type === 'Task';
-    const isOverTask = over.data.current?.type === 'Task';
-    const isOverColumn = over.data.current?.type === 'Column';
-
     if (!isActiveTask) return;
-
-    // We do state updates natively via Zustand but only when dropping.
-    // For visual optimistic updates, we could use local state, but for simplicity
-    // we let Zustand handle it on DragEnd. 
   };
 
   const onDragEnd = (event: DragEndEvent) => {
@@ -292,8 +286,7 @@ export default function KanbanBoardPage() {
     const isOverTask = over.data.current?.type === 'Task';
     const isOverColumn = over.data.current?.type === 'Column';
 
-    if (user?.role !== 'PRODUCT_MANAGER' && activeTask?.assigneeId !== user?.id) {
-      // Revert if not PM and not assignee
+    if (user?.role !== 'PROJECT_MANAGER' && user?.role !== 'ADMIN' && activeTask?.assigneeId !== user?.id) {
       return;
     }
 
@@ -312,7 +305,7 @@ export default function KanbanBoardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 shrink-0">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Active Board</h1>
-          <p className="text-muted-foreground">Manage and progress tasks for the current sprint.</p>
+          <p className="text-muted-foreground">Manage and progress tasks for active project stages.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative w-64">
@@ -325,9 +318,9 @@ export default function KanbanBoardPage() {
             />
           </div>
           <div className="flex gap-2">
-            <select className="bg-background border rounded-md text-sm px-2" value={sprintFilter || ''} onChange={e => setSprintFilter(e.target.value || null)}>
-              <option value="">All Sprints</option>
-              {sprints.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            <select className="bg-background border rounded-md text-sm px-2" value={stageFilter || ''} onChange={e => setStageFilter(e.target.value || null)}>
+              <option value="">All Stages</option>
+              {stages.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
             <Select 
               value={assigneeFilter || 'ALL'} 
@@ -354,9 +347,9 @@ export default function KanbanBoardPage() {
       </div>
 
       {isLoading && <div className="flex justify-center p-10">Loading board...</div>}
-      {activeSprintIds.length === 0 && !isLoading && (
+      {activeStageIds.length === 0 && !isLoading && (
         <div className="flex justify-center p-10 text-muted-foreground">
-          No active sprint found. Please start a sprint to see the board.
+          No active stages found. Please activate a stage in Project view to see task board.
         </div>
       )}
 
@@ -395,7 +388,7 @@ export default function KanbanBoardPage() {
         onClose={() => setIsFilterPanelOpen(false)} 
         filters={advancedFilters} 
         setFilters={setAdvancedFilters} 
-        sprints={sprints}
+        sprints={stages}
         isBoardView={true}
       />
     </div>

@@ -1,46 +1,45 @@
 import { useState, useEffect } from 'react';
-import { useSprints } from '@/features/sprints/api/sprintApi';
+import { useStages } from '@/features/stages/api/stageApi';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useMemberSprintSummary, useCompletedTasks, usePendingTasks, useMemberBlockers, useMemberProductivity } from '../api/memberReportsApi';
+import { useMemberStageSummary, useCompletedTasks, usePendingTasks, useMemberBlockers, useMemberProductivity } from '../api/memberReportsApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, Clock, AlertTriangle, Zap, Layers } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-export default function SprintReportsPage() {
-  const { data: sprints = [] } = useSprints();
-  const [selectedSprintId, setSelectedSprintId] = useState<string | undefined>();
+export default function StageReportsPage() {
+  const { data: stages = [] } = useStages();
+  const [selectedStageId, setSelectedStageId] = useState<string | undefined>();
 
   useEffect(() => {
-    if (!selectedSprintId && sprints.length > 0) {
-      const activeSprint = sprints.find((s: any) => s.status === 'ACTIVE');
-      setSelectedSprintId(activeSprint?.id || sprints[0]?.id);
+    if (!selectedStageId && stages.length > 0) {
+      const activeStage = stages.find((s: any) => s.status === 'ACTIVE');
+      setSelectedStageId(activeStage?.id || stages[0]?.id);
     }
-  }, [sprints, selectedSprintId]);
+  }, [stages, selectedStageId]);
 
-  const { data: summary, isLoading: isSummaryLoading } = useMemberSprintSummary(selectedSprintId);
-  const { data: completedTasks = [] } = useCompletedTasks(selectedSprintId);
-  const { data: pendingTasks = [] } = usePendingTasks(selectedSprintId);
-  const { data: blockers = [] } = useMemberBlockers(selectedSprintId);
-  const { data: productivity, isLoading: isProdLoading } = useMemberProductivity(selectedSprintId);
+  const { data: summary, isLoading: isSummaryLoading } = useMemberStageSummary(selectedStageId);
+  const { data: completedTasks = [] } = useCompletedTasks(selectedStageId);
+  const { data: pendingTasks = [] } = usePendingTasks(selectedStageId);
+  const { data: productivity } = useMemberProductivity(selectedStageId);
 
   return (
     <div className="space-y-8 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">My Sprint Report</h1>
+          <h1 className="text-3xl font-bold tracking-tight">My Stage Report</h1>
           <p className="text-muted-foreground mt-1">Track your personal contribution and productivity metrics.</p>
         </div>
         
-        {sprints.length > 0 && (
-          <Select value={selectedSprintId} onValueChange={setSelectedSprintId}>
+        {stages.length > 0 && (
+          <Select value={selectedStageId} onValueChange={setSelectedStageId}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select Sprint" />
+              <SelectValue placeholder="Select Stage" />
             </SelectTrigger>
             <SelectContent>
-              {sprints.map((s: any, idx: number) => (
+              {stages.map((s: any, idx: number) => (
                 <SelectItem key={s.id} value={s.id}>
-                  Sprint {idx + 1}: {s.name}
+                  Stage {idx + 1}: {s.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -60,7 +59,7 @@ export default function SprintReportsPage() {
               </div>
               <div className="flex-1 w-full space-y-2">
                 <div className="flex justify-between text-sm font-medium">
-                  <span>Sprint Completion</span>
+                  <span>Stage Timeline Progress</span>
                   <span>{summary.progress}%</span>
                 </div>
                 <Progress value={summary.progress} className="h-3" />
@@ -97,7 +96,7 @@ export default function SprintReportsPage() {
               <Zap className="w-6 h-6" />
             </div>
             <h3 className="text-3xl font-bold">{productivity?.storyPoints || 0}</h3>
-            <p className="text-sm text-muted-foreground font-medium">Story Points</p>
+            <p className="text-sm text-muted-foreground font-medium">Task Weight Points</p>
           </CardContent>
         </Card>
 
@@ -106,8 +105,8 @@ export default function SprintReportsPage() {
             <div className="p-3 bg-rose-100 text-rose-600 rounded-full dark:bg-rose-900/30">
               <AlertTriangle className="w-6 h-6" />
             </div>
-            <h3 className="text-3xl font-bold">{productivity?.blockerCount || 0}</h3>
-            <p className="text-sm text-muted-foreground font-medium">Blockers Raised</p>
+            <h3 className="text-3xl font-bold">{productivity?.rfiCount || 0}</h3>
+            <p className="text-sm text-muted-foreground font-medium">RFIs Raised</p>
           </CardContent>
         </Card>
       </div>

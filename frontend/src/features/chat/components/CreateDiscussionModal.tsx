@@ -39,11 +39,10 @@ export const CreateDiscussionModal: React.FC<CreateDiscussionModalProps> = ({ is
       type: 'TASK',
       taskId: task.id,
       projectId: task.projectId,
-      sprintId: task.sprintId,
+      stageId: task.stageId,
       memberIds: selectedMembers,
     }, {
       onSuccess: () => {
-        // We'll navigate to chat or just close and let user navigate
         window.location.href = `/dashboard/chat?taskId=${task.id}`;
         onClose();
       }
@@ -149,7 +148,7 @@ export const CreateDiscussionModal: React.FC<CreateDiscussionModalProps> = ({ is
             <Textarea 
               value={initialMessage}
               onChange={(e) => setInitialMessage(e.target.value)}
-              placeholder="Add discussion context... e.g. Please review backend API integration before sprint deadline."
+              placeholder="Add discussion context... e.g. Please review structural details before stage deadline."
               className="bg-zinc-900 border-zinc-800 text-sm resize-none focus-visible:ring-indigo-500"
               rows={3}
             />

@@ -8,7 +8,7 @@ export const getProjects = async (req: Request, res: Response) => {
     
     const user = req.user;
     const query: any = { isArchived: false };
-    if (user && user.role !== 'PRODUCT_MANAGER') {
+    if (user && user.role !== 'PROJECT_MANAGER' && user.role !== 'ADMIN') {
       query.members = {
         some: {
           userId: user.id
@@ -41,7 +41,7 @@ export const getProjectById = async (req: Request, res: Response) => {
           include: { user: true }
         },
         owner: true,
-        sprints: true,
+        stages: true,
         tasks: true,
       }
     });
@@ -88,6 +88,97 @@ export const createProject = async (req: Request, res: Response) => {
         members: true
       }
     });
+
+    // Auto-generate default project stages and tasks (Project Template Engine)
+    const projectStart = startDate ? new Date(startDate) : new Date();
+    
+    const stageTemplates = [
+      {
+        name: "Framing",
+        goal: "Creating structural framing layout and review phases",
+        startOffsetDays: 0,
+        endOffsetDays: 5,
+        tasks: [
+          { title: "Creating Structural Framing", type: "DESIGN" },
+          { title: "Internal Review", type: "REVIEW" },
+          { title: "External Review (Architect/Client)", type: "REVIEW" }
+        ]
+      },
+      {
+        name: "Analysis",
+        goal: "Model creation, load calculations and size finalization",
+        startOffsetDays: 5,
+        endOffsetDays: 10,
+        tasks: [
+          { title: "Model Creation, DBR, Loading, Member size Finalization", type: "ANALYSIS" }
+        ]
+      },
+      {
+        name: "Designing - RCC",
+        goal: "Concrete design for footings, columns, plinth-beams, and staircases",
+        startOffsetDays: 10,
+        endOffsetDays: 20,
+        tasks: [
+          { title: "Footing Design", type: "DESIGN" },
+          { title: "Column Design", type: "DESIGN" },
+          { title: "Plinth-Beam Design", type: "DESIGN" },
+          { title: "Staircase Design", type: "DESIGN" }
+        ]
+      },
+      {
+        name: "Drafting - RCC",
+        goal: "Drafting structural construction drawings",
+        startOffsetDays: 20,
+        endOffsetDays: 25,
+        tasks: [
+          { title: "Footing Drafting", type: "DRAFTING" },
+          { title: "Column Drafting", type: "DRAFTING" }
+        ]
+      },
+      {
+        name: "Site Visit",
+        goal: "Strata checking and reinforcing layout verification",
+        startOffsetDays: 25,
+        endOffsetDays: 30,
+        tasks: [
+          { title: "Strata Checking", type: "SITE_CHECK" },
+          { title: "Footing and Column Reinforcement Checking", type: "SITE_CHECK" }
+        ]
+      }
+    ];
+
+    let taskIndex = 1;
+    for (const st of stageTemplates) {
+      const stageStart = new Date(projectStart);
+      stageStart.setDate(stageStart.getDate() + st.startOffsetDays);
+      const stageEnd = new Date(projectStart);
+      stageEnd.setDate(stageEnd.getDate() + st.endOffsetDays);
+
+      const createdStage = await prisma.stage.create({
+        data: {
+          name: st.name,
+          goal: st.goal,
+          startDate: stageStart,
+          endDate: stageEnd,
+          projectId: project.id,
+          status: st.startOffsetDays === 0 ? 'ACTIVE' : 'PLANNED'
+        }
+      });
+
+      for (const t of st.tasks) {
+        await prisma.task.create({
+          data: {
+            key: `${key}-${taskIndex++}`,
+            title: t.title,
+            type: t.type,
+            status: 'PENDING',
+            projectId: project.id,
+            stageId: createdStage.id,
+            creatorId: ownerId
+          }
+        });
+      }
+    }
 
     res.status(201).json(project);
   } catch (error: any) {
