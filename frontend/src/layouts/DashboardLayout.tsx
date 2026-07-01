@@ -27,6 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   useNotifications, 
   useMarkNotificationRead, 
@@ -332,20 +333,22 @@ export default function DashboardLayout() {
 
             <DropdownMenu>
               <DropdownMenuTrigger className="focus:outline-none">
-                <div className="flex items-center gap-3">
-                  <div className="hidden text-right md:flex flex-col items-end">
-                    <p className="text-sm font-semibold leading-none mb-1.5">{user?.name}</p>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wider border ${user ? ROLE_COLORS[user.role] : ''}`}>
-                        {user?.role?.replace('_', ' ')}
-                      </span>
-                      <span className="text-[10px] font-medium text-muted-foreground uppercase">{user?.department}</span>
-                    </div>
-                  </div>
-                </div>
+                <Avatar className="h-8 w-8 border border-border hover:ring-2 ring-indigo-500/50 transition-all cursor-pointer">
+                  <AvatarImage src={user?.avatar || undefined} alt={user?.name || 'User'} />
+                  <AvatarFallback className="bg-indigo-600 text-white font-semibold text-xs">
+                    {user?.name?.charAt(0).toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <div className="flex flex-col space-y-1.5 p-2">
+                  <p className="text-sm font-semibold leading-none">{user?.name}</p>
+                  <div className="flex items-center gap-1.5 pt-1">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-wider border ${user ? ROLE_COLORS[user.role] : ''}`}>
+                      {user?.role?.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/dashboard/settings')}>
                   Profile

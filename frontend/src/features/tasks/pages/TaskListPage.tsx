@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useTasks } from '../api/taskApi';
+import { useTasks, useUpdateTask } from '../api/taskApi';
 import { useProjects } from '@/features/projects/api/projectApi';
 import { AdvancedFilterPanel, initialFilterState } from '@/features/filters/AdvancedFilterPanel';
 import type { FilterState } from '@/features/filters/AdvancedFilterPanel';
@@ -8,12 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Search, ListFilter, Plus, LayoutList } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TaskDrawer from '../components/TaskDrawer';
-import { TEAM_MEMBERS } from '@/constants/teamMembers';
 import { useAuthStore } from '@/features/auth/store/authStore';
 
 export default function TaskListPage() {
   const { data: tasks = [], isLoading } = useTasks();
+  const updateTask = useUpdateTask();
   const { data: projects = [] } = useProjects();
   const { user } = useAuthStore();
   
@@ -127,7 +128,7 @@ export default function TaskListPage() {
                 <tr><td colSpan={6} className="text-center py-10">Loading tasks...</td></tr>
               ) : visibleTasks.map((task: any) => {
                 const project = projects.find((p: any) => p.id === task.projectId);
-                const assignee = TEAM_MEMBERS.find(m => m.id === task.assigneeId);
+                const assignee = task.assignee;
                 
                 return (
                   <tr 
@@ -150,9 +151,29 @@ export default function TaskListPage() {
                       </Badge>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`text-xs font-semibold ${getPriorityColor(task.priority)}`}>
-                        {task.priority}
-                      </span>
+                      {isPM || task.assigneeId === user?.id ? (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Select 
+                            value={task.priority} 
+                            onValueChange={(val) => updateTask.mutate({ id: task.id, priority: val as any })}
+                          >
+                            <SelectTrigger className={`w-[130px] h-7 text-[10px] font-semibold uppercase ${getPriorityColor(task.priority)} bg-transparent border-none focus:ring-1 focus:ring-indigo-500`}>
+                              <SelectValue placeholder="Priority" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="LOW" className="text-xs font-semibold text-slate-500">LOW</SelectItem>
+                              <SelectItem value="MEDIUM" className="text-xs font-semibold text-blue-500">MEDIUM</SelectItem>
+                              <SelectItem value="HIGH" className="text-xs font-semibold text-orange-500">HIGH</SelectItem>
+                              <SelectItem value="URGENT" className="text-xs font-semibold text-amber-500">URGENT</SelectItem>
+                              <SelectItem value="CRITICAL" className="text-xs font-semibold text-red-500">CRITICAL</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ) : (
+                        <span className={`text-xs font-semibold ${getPriorityColor(task.priority)}`}>
+                          {task.priority}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-muted-foreground">
                       {assignee?.name || 'Unassigned'}

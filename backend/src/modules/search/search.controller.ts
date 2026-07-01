@@ -16,8 +16,8 @@ export class SearchController {
           tasks: [],
           projects: [],
           comments: [],
-          blockers: [],
-          standups: []
+          rfis: [],
+          progressReports: []
         });
       }
 

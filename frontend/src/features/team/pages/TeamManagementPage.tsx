@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { ROLE_COLORS } from '@/constants/teamMembers';
 import type { UserRole } from '@/types/user';
@@ -7,25 +8,55 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { Button } from '@/components/ui/button';
 import OnboardEmployeeModal from '../components/OnboardEmployeeModal';
+import { useToast } from '@/hooks/use-toast';
+import { Trash2 } from 'lucide-react';
 
 export default function TeamManagementPage() {
   const [team, setTeam] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [onboardModalOpen, setOnboardModalOpen] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<{ id: string, name: string } | null>(null);
   const { user } = useAuthStore();
   const isPM = user?.role === 'PROJECT_MANAGER';
+  const { toast } = useToast();
+
+  const fetchTeam = async () => {
+    try {
+      const res = await api.get('/team');
+      setTeam(res.data);
+    } catch (error) {
+      console.error('Failed to fetch team data', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteClick = (id: string, name: string) => {
+    setMemberToDelete({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (!memberToDelete) return;
+    try {
+      await api.delete(`/team-members/${memberToDelete.id}`);
+      toast({
+        title: "Employee Removed",
+        description: `${memberToDelete.name} has been successfully deactivated.`,
+      });
+      fetchTeam();
+    } catch (error) {
+      console.error('Failed to remove employee', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove employee.",
+        variant: "destructive"
+      });
+    } finally {
+      setMemberToDelete(null);
+    }
+  };
 
   useEffect(() => {
-    const fetchTeam = async () => {
-      try {
-        const res = await api.get('/team');
-        setTeam(res.data);
-      } catch (error) {
-        console.error('Failed to fetch team data', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchTeam();
   }, []);
 
@@ -45,7 +76,24 @@ export default function TeamManagementPage() {
         )}
       </div>
 
-      <OnboardEmployeeModal open={onboardModalOpen} onOpenChange={setOnboardModalOpen} />
+      <OnboardEmployeeModal open={onboardModalOpen} onOpenChange={setOnboardModalOpen} onSuccess={fetchTeam} />
+
+      <Dialog open={!!memberToDelete} onOpenChange={(open) => !open && setMemberToDelete(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Remove Employee</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to remove <span className="font-semibold text-foreground">{memberToDelete?.name}</span> from the team? This action will deactivate their account.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMemberToDelete(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDelete}>Remove</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {team.map(member => (
@@ -53,6 +101,18 @@ export default function TeamManagementPage() {
             {/* Online Status Indicator */}
             <div className={`absolute top-4 right-4 w-3 h-3 rounded-full ${member.isOnline ? 'bg-emerald-500' : 'bg-muted'} ring-2 ring-background`} />
             
+            {/* Delete Button */}
+            {isPM && member.id !== user?.id && (
+              <button 
+                onClick={() => handleDeleteClick(member.id, member.name)}
+                className="absolute top-3.5 left-3.5 text-muted-foreground hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded-md"
+                title="Remove Employee"
+                aria-label={`Remove ${member.name}`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+
             <CardHeader className="text-center pb-2 pt-6">
               <CardTitle className="text-lg">{member.name}</CardTitle>
               <CardDescription className="flex justify-center items-center gap-2 mt-1">

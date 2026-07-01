@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTask, useUpdateTaskStatus, useAddSubtask, useUpdateSubtask, useArchiveTask, useRestoreTask, useDeleteTask, useResolveRFI } from '../api/taskApi';
+import { useTask, useUpdateTaskStatus, useUpdateTask, useAddSubtask, useUpdateSubtask, useArchiveTask, useRestoreTask, useDeleteTask, useResolveRFI } from '../api/taskApi';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useToast } from '@/hooks/use-toast';
 import { TEAM_MEMBERS } from '@/constants/teamMembers';
+import { useTeam } from '@/features/team/api/teamApi';
 import { 
   Sheet, 
   SheetContent, 
   SheetTitle,
 } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -41,6 +43,7 @@ interface TaskDrawerProps {
 export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
   const { data: task, isLoading } = useTask(taskId);
   const updateTaskStatus = useUpdateTaskStatus();
+  const updateTask = useUpdateTask();
   const addSubtask = useAddSubtask();
   const updateSubtask = useUpdateSubtask();
   const archiveTask = useArchiveTask();
@@ -50,6 +53,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
   
   const { user } = useAuthStore();
   const { toast } = useToast();
+  const { data: teamMembers = [] } = useTeam();
   
   const [newSubtask, setNewSubtask] = useState('');
   const [activeTab, setActiveTab] = useState<'comments' | 'history' | 'standups'>('comments');
@@ -63,15 +67,13 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
 
   const project = task.project;
   const stage = task.stage;
-  const assignee = TEAM_MEMBERS.find(m => m.id === task.assigneeId);
-  const reporter = TEAM_MEMBERS.find(m => m.id === task.creatorId);
+  const assignee = task.assignee;
+  const reporter = task.creator;
   const rfi = task.rfis?.find((b: any) => !b.isResolved);
 
   const canEdit = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN' || user?.id === task.assigneeId;
 
-  const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    updateTaskStatus.mutate({ id: task.id, status: e.target.value });
-  };
+  // Removed native handleStatusChange
 
   const handleAddSubtask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,9 +110,27 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                 {task.isArchived && (
                   <Badge variant="secondary" className="bg-slate-200 text-slate-700">Archived</Badge>
                 )}
-                <Badge variant="outline" className={getPriorityColor(task.priority)}>
-                  {task.priority}
-                </Badge>
+                {canEdit ? (
+                  <Select 
+                    value={task.priority} 
+                    onValueChange={(val) => updateTask.mutate({ id: task.id, priority: val as any })}
+                  >
+                    <SelectTrigger className={`w-fit h-6 text-xs px-2 py-0 border font-semibold rounded-full ${getPriorityColor(task.priority)}`}>
+                      <SelectValue placeholder="Priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="LOW" className="text-xs font-semibold text-slate-500">LOW</SelectItem>
+                      <SelectItem value="MEDIUM" className="text-xs font-semibold text-blue-500">MEDIUM</SelectItem>
+                      <SelectItem value="HIGH" className="text-xs font-semibold text-orange-500">HIGH</SelectItem>
+                      <SelectItem value="URGENT" className="text-xs font-semibold text-amber-500">URGENT</SelectItem>
+                      <SelectItem value="CRITICAL" className="text-xs font-semibold text-red-500">CRITICAL</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Badge variant="outline" className={getPriorityColor(task.priority)}>
+                    {task.priority}
+                  </Badge>
+                )}
                 
                 {(user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN') && (
                   <DropdownMenu>
@@ -154,19 +174,23 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
             
             <div className="flex items-center gap-4">
               {canEdit ? (
-                <select 
-                  className="text-sm border rounded-md px-3 py-1.5 bg-background font-medium focus:ring-2 focus:ring-indigo-500 outline-none"
-                  value={task.status}
-                  onChange={handleStatusChange}
+                <Select 
+                  value={task.status} 
+                  onValueChange={(val) => updateTaskStatus.mutate({ id: task.id, status: val })}
                 >
-                  <option value="PENDING">PENDING</option>
-                  <option value="IN_PROGRESS">IN PROGRESS</option>
-                  <option value="INTERNAL_REVIEW">INTERNAL REVIEW</option>
-                  <option value="EXTERNAL_REVIEW">EXTERNAL REVIEW</option>
-                  <option value="MODIFICATION_REQUIRED">MODIFICATION REQUIRED</option>
-                  <option value="APPROVED">APPROVED</option>
-                  <option value="DONE">DONE</option>
-                </select>
+                  <SelectTrigger className="w-[200px] h-8 text-xs font-medium">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PENDING">PENDING</SelectItem>
+                    <SelectItem value="IN_PROGRESS">IN PROGRESS</SelectItem>
+                    <SelectItem value="INTERNAL_REVIEW">INTERNAL REVIEW</SelectItem>
+                    <SelectItem value="EXTERNAL_REVIEW">EXTERNAL REVIEW</SelectItem>
+                    <SelectItem value="MODIFICATION_REQUIRED">MODIFICATION REQUIRED</SelectItem>
+                    <SelectItem value="APPROVED">APPROVED</SelectItem>
+                    <SelectItem value="DONE">DONE</SelectItem>
+                  </SelectContent>
+                </Select>
               ) : (
                 <Badge variant={task.status === 'DONE' ? 'default' : 'secondary'} className={task.status === 'DONE' ? 'bg-emerald-500' : ''}>
                   {task.status.replace('_', ' ')}
@@ -354,19 +378,46 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                 <div className="space-y-5">
                   <div>
                     <span className="text-xs text-muted-foreground block mb-1.5">Assignee</span>
-                    <div className="flex items-center gap-2">
-                      {assignee ? (
-                        <>
-                          <Avatar className={`w-7 h-7 border-2 ${assignee.color ? `border-${assignee.color}-500` : 'border-border'}`}>
-                            <AvatarImage src={assignee.avatar} />
-                            <AvatarFallback className="text-[10px]">{assignee.name.charAt(0)}</AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm font-medium">{assignee.name}</span>
-                        </>
-                      ) : (
-                        <span className="text-sm text-muted-foreground italic">Unassigned</span>
-                      )}
-                    </div>
+                    {canEdit ? (
+                      <Select 
+                        value={task.assigneeId || "none"} 
+                        onValueChange={(val) => updateTask.mutate({ id: task.id, assigneeId: val === "none" ? null : val })}
+                      >
+                        <SelectTrigger className="w-full h-9 border-none bg-muted/30 shadow-none px-2 focus:ring-1 focus:ring-indigo-500">
+                          <SelectValue placeholder="Unassigned" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">
+                            <span className="text-muted-foreground italic">Unassigned</span>
+                          </SelectItem>
+                          {teamMembers.map((m: any) => (
+                            <SelectItem key={m.id} value={m.id}>
+                              <div className="flex items-center gap-2">
+                                <Avatar className="w-5 h-5">
+                                  <AvatarImage src={m.avatar} />
+                                  <AvatarFallback className="text-[10px]">{m.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                {m.name}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex items-center gap-2 px-2 py-1.5">
+                        {assignee ? (
+                          <>
+                            <Avatar className={`w-6 h-6 border ${assignee.color ? `border-${assignee.color}-500` : 'border-border'}`}>
+                              <AvatarImage src={assignee.avatar} />
+                              <AvatarFallback className="text-[10px]">{assignee.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm font-medium">{assignee.name}</span>
+                          </>
+                        ) : (
+                          <span className="text-sm text-muted-foreground italic">Unassigned</span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div>
