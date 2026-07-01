@@ -63,6 +63,7 @@ app.use(
       'http://localhost:5174',
       'https://innonsh-sprintos-frontend.vercel.app',
       'https://sprintos.innonsh.com',
+      'https://avenue-os-frontend.vercel.app',
       process.env.FRONTEND_URL || '',
     ].filter(Boolean),
     credentials: true,
