@@ -65,6 +65,7 @@ export class DashboardRepository {
   async getTeamMembers() {
     return prisma.user.findMany({
       where: {
+        isActive: true,
         role: { in: ['PRINCIPAL_ENGINEER', 'ENGINEER', 'DRAFTSMAN', 'ARCHITECT'] }
       }
     });

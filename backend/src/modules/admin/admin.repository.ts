@@ -71,6 +71,7 @@ export class AdminRepository {
 
   async getTeamPerformance() {
     return prisma.user.findMany({
+      where: { isActive: true },
       include: {
         tasksAssigned: {
           select: { status: true, dueDate: true }
@@ -89,6 +90,7 @@ export class AdminRepository {
 
   async getWorkload() {
     return prisma.user.findMany({
+      where: { isActive: true },
       select: {
         id: true,
         name: true,
