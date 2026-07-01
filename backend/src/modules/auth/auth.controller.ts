@@ -7,8 +7,8 @@ import { emailService } from '../../services/email/email.service';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 
-const COOKIE_SECURE = process.env.NODE_ENV === 'production';
-const COOKIE_SAME_SITE = process.env.NODE_ENV === 'production' ? 'none' : 'strict';
+const COOKIE_SECURE = true;
+const COOKIE_SAME_SITE = 'none';
 
 function parseUserAgent(uaString: string | undefined): { browser: string; device: string } {
   if (!uaString) return { browser: 'Unknown', device: 'Unknown' };
