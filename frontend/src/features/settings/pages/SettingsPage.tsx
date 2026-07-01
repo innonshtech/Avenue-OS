@@ -24,6 +24,8 @@ export default function SettingsPage() {
   });
 
   const [showCurrentPassword, setShowCurrentPassword] = React.useState(false);
+  const [showNewPassword, setShowNewPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [currentPassword, setCurrentPassword] = React.useState('');
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
@@ -136,14 +138,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 
-                <div className="space-y-2 pt-4">
-                  <Label htmlFor="bio">Bio</Label>
-                  <textarea 
-                    id="bio" 
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Tell your team a bit about yourself..."
-                  />
-                </div>
+
 
                 <Button onClick={handleSave} className="flex items-center gap-2 mt-4">
                   <Save className="w-4 h-4" /> Save Profile
@@ -240,7 +235,7 @@ export default function SettingsPage() {
                       <div className="relative max-w-md">
                         <Input 
                           type={showCurrentPassword ? "text" : "password"} 
-                          placeholder="••••••••" 
+                          placeholder="Enter current password" 
                           className="bg-muted/30 pr-10 border-muted-foreground/20 focus-visible:ring-rose-500" 
                           value={currentPassword}
                           onChange={(e) => setCurrentPassword(e.target.value)}
@@ -258,23 +253,41 @@ export default function SettingsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label className="text-xs font-bold tracking-widest uppercase text-foreground">New Password</Label>
-                        <Input 
-                          type="password" 
-                          placeholder="Min 6 characters" 
-                          className="bg-muted/30 border-muted-foreground/20 focus-visible:ring-rose-500" 
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                        />
+                        <div className="relative">
+                          <Input 
+                            type={showNewPassword ? "text" : "password"} 
+                            placeholder="Write new password" 
+                            className="bg-muted/30 pr-10 border-muted-foreground/20 focus-visible:ring-rose-500" 
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                             {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label className="text-xs font-bold tracking-widest uppercase text-foreground">Confirm New Password</Label>
-                        <Input 
-                          type="password" 
-                          placeholder="Repeat new password" 
-                          className="bg-muted/30 border-muted-foreground/20 focus-visible:ring-rose-500" 
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                        />
+                        <div className="relative">
+                          <Input 
+                            type={showConfirmPassword ? "text" : "password"} 
+                            placeholder="Repeat new password" 
+                            className="bg-muted/30 pr-10 border-muted-foreground/20 focus-visible:ring-rose-500" 
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                             {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </div>
                     </div>
 

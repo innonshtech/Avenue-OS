@@ -5,9 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import api from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
-export default function OnboardEmployeeModal({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
+export default function OnboardEmployeeModal({ open, onOpenChange, onSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onSuccess?: () => void }) {
+  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -20,12 +23,35 @@ export default function OnboardEmployeeModal({ open, onOpenChange }: { open: boo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
       await api.post('/team-members', formData);
+      toast({
+        title: "Employee Onboarded",
+        description: `${formData.name} has been successfully added to the team.`,
+      });
       onOpenChange(false);
-      window.location.reload();
-    } catch (error) {
-      console.error('Failed to create member', error);
+      if (onSuccess) onSuccess();
+      
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        role: 'ENGINEER',
+        department: '',
+        password: '',
+        avatar: ''
+      });
+    } catch (err: any) {
+      console.error('Failed to create member', err);
+      if (err.response?.data?.errors) {
+        const errMsgs = err.response.data.errors.map((e: any) => e.message).join(', ');
+        setError(errMsgs);
+      } else if (err.response?.data?.error || err.response?.data?.message) {
+        setError(err.response.data.error || err.response.data.message);
+      } else {
+        setError('Failed to onboard employee. Please check your inputs and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -38,6 +64,11 @@ export default function OnboardEmployeeModal({ open, onOpenChange }: { open: boo
           <DialogTitle>Onboard New Employee</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          {error && (
+            <div className="p-3 rounded-md bg-red-500/15 text-red-500 text-sm font-medium border border-red-500/20">
+              {error}
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
             <Input id="name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />

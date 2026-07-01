@@ -14,6 +14,7 @@ const checkPMRole = (req: Request, res: Response) => {
 export const getTeam = async (req: Request, res: Response) => {
   try {
     const team = await prisma.user.findMany({
+      where: { isActive: true },
       include: {
         tasksAssigned: {
           select: { status: true }

@@ -16,7 +16,7 @@ import api from '@/lib/api';
 interface SearchResultItem {
   id: string;
   title: string;
-  type: 'task' | 'project' | 'comment' | 'blocker' | 'standup';
+  type: 'task' | 'project' | 'comment' | 'rfi' | 'progressReport';
   key?: string;
   subtitle?: string;
   linkUrl: string;
@@ -30,8 +30,8 @@ export const GlobalSearchBar: React.FC = () => {
     tasks: [],
     projects: [],
     comments: [],
-    blockers: [],
-    standups: []
+    rfis: [],
+    progressReports: []
   });
   const [isLoading, setIsLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -60,7 +60,7 @@ export const GlobalSearchBar: React.FC = () => {
       setTimeout(() => inputRef.current?.focus(), 100);
       setQuery('');
       setSuggestions([]);
-      setResults({ tasks: [], projects: [], comments: [], blockers: [], standups: [] });
+      setResults({ tasks: [], projects: [], comments: [], rfis: [], progressReports: [] });
     }
   }, [isOpen]);
 
@@ -68,7 +68,7 @@ export const GlobalSearchBar: React.FC = () => {
   useEffect(() => {
     if (!query.trim()) {
       setSuggestions([]);
-      setResults({ tasks: [], projects: [], comments: [], blockers: [], standups: [] });
+      setResults({ tasks: [], projects: [], comments: [], rfis: [], progressReports: [] });
       return;
     }
 
@@ -127,22 +127,22 @@ export const GlobalSearchBar: React.FC = () => {
     });
   });
 
-  results.blockers.forEach((b: any) => {
+  (results.rfis || []).forEach((b: any) => {
     flatItems.push({
       id: b.id,
       title: b.description,
-      type: 'blocker',
-      subtitle: `On task: ${b.task?.title} | Severity: ${b.severity}`,
+      type: 'rfi',
+      subtitle: `On task: ${b.task?.title}`,
       linkUrl: `/dashboard/boards`
     });
   });
 
-  results.standups.forEach((s: any) => {
+  (results.progressReports || []).forEach((s: any) => {
     flatItems.push({
       id: s.id,
-      title: `Standup - ${new Date(s.date).toLocaleDateString()}`,
-      type: 'standup',
-      subtitle: `Today: ${s.today.substring(0, 60)}... by ${s.user?.name}`,
+      title: `Progress Report - ${new Date(s.date).toLocaleDateString()}`,
+      type: 'progressReport',
+      subtitle: `Today: ${s.today?.substring(0, 60)}... by ${s.user?.name}`,
       linkUrl: `/dashboard/standups`
     });
   });
@@ -183,8 +183,8 @@ export const GlobalSearchBar: React.FC = () => {
       case 'project': return <Folder className="w-4 h-4 text-emerald-500" />;
       case 'task': return <FileText className="w-4 h-4 text-indigo-500" />;
       case 'comment': return <MessageSquare className="w-4 h-4 text-blue-500" />;
-      case 'blocker': return <AlertCircle className="w-4 h-4 text-red-500 animate-pulse" />;
-      case 'standup': return <Calendar className="w-4 h-4 text-amber-500" />;
+      case 'rfi': return <AlertCircle className="w-4 h-4 text-red-500 animate-pulse" />;
+      case 'progressReport': return <Calendar className="w-4 h-4 text-amber-500" />;
       default: return <FileText className="w-4 h-4" />;
     }
   };
