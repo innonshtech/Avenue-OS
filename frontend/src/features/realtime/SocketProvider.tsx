@@ -35,10 +35,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    // Establish WebSocket Connection
+    const isVercel = BACKEND_URL.includes('vercel.app');
+    const transports = isVercel ? ['polling'] : ['websocket', 'polling'];
+
     const socket = io(BACKEND_URL, {
       withCredentials: true,
-      transports: ['websocket', 'polling'],
+      transports,
       auth: {
         token,
       },
