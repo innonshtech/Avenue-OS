@@ -6,7 +6,9 @@ export class SessionManager {
     try {
       const data = await AuthApi.getMe();
       if (data.success && data.user) {
-        useAuthStore.getState().login(data.user, 'cookie-token', true); // cookie-token is a placeholder token representation for backward compatibility
+        const currentToken = useAuthStore.getState().token || 'cookie-token';
+        const currentRefreshToken = useAuthStore.getState().refreshToken || null;
+        useAuthStore.getState().login(data.user, currentToken, currentRefreshToken, true);
         return data.user;
       }
     } catch (error) {

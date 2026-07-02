@@ -5,11 +5,12 @@ import type { TeamMember } from '../../../types/user';
 export interface AuthState {
   user: TeamMember | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isCheckingSession: boolean;
   loginTimestamp: number | null;
   rememberSession: boolean;
-  login: (user: TeamMember, token: string, rememberMe: boolean) => void;
+  login: (user: TeamMember, token: string, refreshToken: string | null, rememberMe: boolean) => void;
   logout: () => void;
   setUser: (user: TeamMember) => void;
   setCheckingSession: (val: boolean) => void;
@@ -20,14 +21,16 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       token: null,
+      refreshToken: null,
       isAuthenticated: false,
       isCheckingSession: true,
       loginTimestamp: null,
       rememberSession: false,
-      login: (user: TeamMember, token: string, rememberSession: boolean) =>
+      login: (user: TeamMember, token: string, refreshToken: string | null, rememberSession: boolean) =>
         set({ 
           user, 
           token, 
+          refreshToken,
           isAuthenticated: true, 
           loginTimestamp: Date.now(),
           rememberSession 
@@ -35,6 +38,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ 
         user: null, 
         token: null, 
+        refreshToken: null,
         isAuthenticated: false,
         loginTimestamp: null,
         rememberSession: false

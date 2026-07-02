@@ -221,6 +221,8 @@ export class AuthController {
 
       return res.status(200).json({
         success: true,
+        accessToken,
+        refreshToken,
         user: {
           id: user.id,
           name: user.name,
@@ -236,7 +238,7 @@ export class AuthController {
   }
 
   static async refresh(req: Request, res: Response, next: NextFunction) {
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
     if (!refreshToken) {
       return res.status(401).json({ success: false, message: 'Unauthorized: No refresh token provided' });
     }
@@ -292,7 +294,11 @@ export class AuthController {
           maxAge: 7 * 24 * 60 * 60 * 1000,
         });
 
-        return res.status(200).json({ success: true });
+        return res.status(200).json({ 
+          success: true,
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken 
+        });
       } catch (rotationErr: any) {
         // Rotation service handles revoking sessions and logging suspicious attempts
         res.clearCookie('accessToken');
