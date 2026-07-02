@@ -72,8 +72,7 @@ export default function SignInPage() {
       });
 
       if (response.success && response.user) {
-        // Placeholders token since session is fully cookie-based
-        login(response.user, 'sprintos-cookie-token', data.rememberMe);
+        login(response.user, response.accessToken || 'sprintos-cookie-token', response.refreshToken || null, data.rememberMe);
 
         toast({
           title: `Welcome back, ${response.user.name}`,

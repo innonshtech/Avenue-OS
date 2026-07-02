@@ -9,6 +9,23 @@ const api = axios.create({
   withCredentials: true, // Necessary to send and receive HTTP-Only cookies
 });
 
+api.interceptors.request.use((config) => {
+  // Try to dynamically import useAuthStore to avoid circular dependency issues
+  // or just read from localStorage directly if preferred, but since it's a zustand store we can read it
+  try {
+    const authStorage = localStorage.getItem('sprintos-auth-storage');
+    if (authStorage) {
+      const parsed = JSON.parse(authStorage);
+      const token = parsed?.state?.token;
+      if (token && token !== 'cookie-token' && token !== 'sprintos-cookie-token') {
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
+  } catch (e) {}
+  
+  return config;
+});
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -35,12 +52,36 @@ api.interceptors.response.use(
       tokenManager.setIsRefreshing(true);
 
       try {
-        // Attempt to rotate the refresh token cookie
-        await axios.post(
+        // Attempt to rotate the refresh token
+        let refreshTokenBody = {};
+        try {
+          const authStorage = localStorage.getItem('sprintos-auth-storage');
+          if (authStorage) {
+            const parsed = JSON.parse(authStorage);
+            if (parsed?.state?.refreshToken) {
+              refreshTokenBody = { refreshToken: parsed.state.refreshToken };
+            }
+          }
+        } catch (e) {}
+
+        const refreshResponse = await axios.post(
           `${api.defaults.baseURL}/auth/refresh`,
-          {},
+          refreshTokenBody,
           { withCredentials: true }
         );
+
+        if (refreshResponse.data?.accessToken) {
+          const { useAuthStore } = await import('../features/auth/store/authStore');
+          const currentStore = useAuthStore.getState();
+          if (currentStore.user) {
+            currentStore.login(
+              currentStore.user, 
+              refreshResponse.data.accessToken, 
+              refreshResponse.data.refreshToken || null, 
+              currentStore.rememberSession
+            );
+          }
+        }
 
         tokenManager.setIsRefreshing(false);
         tokenManager.onRefreshed();
