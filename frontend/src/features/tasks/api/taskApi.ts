@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { toast } from '@/hooks/use-toast';
 import type { Task } from '@/types/core';
 
 export const useTasks = (filters?: { projectId?: string; stageId?: string; assigneeId?: string }) => {
@@ -52,6 +53,10 @@ export const useUpdateTask = () => {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['task', variables.id] });
+      toast({
+        title: 'Task Updated',
+        description: `Task has been updated successfully.`,
+      });
     },
   });
 };
@@ -190,6 +195,20 @@ export const useRestoreTask = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
+  });
+};
+
+export const useRaiseRFI = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ taskId, description, type, severity }: { taskId: string; description: string; type?: string; severity?: string }) => {
+      const { data } = await api.post(`/tasks/${taskId}/rfi`, { description, type, severity });
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['task', variables.taskId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    }
   });
 };
 

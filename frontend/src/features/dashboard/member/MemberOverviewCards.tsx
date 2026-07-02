@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Target, Zap, CheckCircle2, ShieldAlert, GitPullRequest } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Progress } from '@/components/ui/progress';
+import { useNavigate } from 'react-router-dom';
 
 interface MemberOverviewCardsProps {
   overview: any;
@@ -9,6 +10,8 @@ interface MemberOverviewCardsProps {
 }
 
 export default function MemberOverviewCards({ overview, isLoading }: MemberOverviewCardsProps) {
+  const navigate = useNavigate();
+
   if (isLoading || !overview) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
@@ -23,7 +26,10 @@ export default function MemberOverviewCards({ overview, isLoading }: MemberOverv
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
       {/* 1. Pending Tasks */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <Card className="bg-card shadow-soft border-muted h-full hover:shadow-md transition-shadow">
+        <Card 
+          className="bg-card shadow-soft border-muted h-full hover:shadow-md hover:border-indigo-500/30 transition-all cursor-pointer"
+          onClick={() => navigate('/dashboard/my-tasks?status=PENDING')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">My Pending Tasks</CardTitle>
             <Target className="h-4 w-4 text-indigo-500" />
@@ -41,7 +47,10 @@ export default function MemberOverviewCards({ overview, isLoading }: MemberOverv
 
       {/* 2. Completed Work */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-        <Card className="bg-card shadow-soft border-muted h-full hover:shadow-md transition-shadow">
+        <Card 
+          className="bg-card shadow-soft border-muted h-full hover:shadow-md hover:border-emerald-500/30 transition-all cursor-pointer"
+          onClick={() => navigate('/dashboard/my-tasks?status=DONE')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Completed Work</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -59,7 +68,10 @@ export default function MemberOverviewCards({ overview, isLoading }: MemberOverv
 
       {/* 3. Active Sprint */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-        <Card className="bg-card shadow-soft border-muted h-full hover:shadow-md transition-shadow relative overflow-hidden">
+        <Card 
+          className="bg-card shadow-soft border-muted h-full hover:shadow-md hover:border-indigo-500/30 transition-all cursor-pointer relative overflow-hidden"
+          onClick={() => navigate('/dashboard/boards')}
+        >
           <div className="absolute inset-x-0 bottom-0 h-1 bg-muted">
             <div className="h-full bg-indigo-500" style={{ width: `${overview.sprintProgress}%` }} />
           </div>
@@ -84,7 +96,10 @@ export default function MemberOverviewCards({ overview, isLoading }: MemberOverv
 
       {/* 4. Blockers */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-        <Card className={`bg-card shadow-soft border-muted h-full hover:shadow-md transition-shadow ${overview.blockers > 0 ? 'border-rose-200 bg-rose-50/30' : ''}`}>
+        <Card 
+          className={`bg-card shadow-soft h-full hover:shadow-md hover:border-rose-500/30 transition-all cursor-pointer ${overview.blockers > 0 ? 'border-rose-200 bg-rose-50/30' : 'border-muted'}`}
+          onClick={() => navigate('/dashboard/my-tasks?blocked=true')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Blockers</CardTitle>
             <ShieldAlert className={`h-4 w-4 ${overview.blockers > 0 ? 'text-rose-500' : 'text-slate-400'}`} />
@@ -100,7 +115,10 @@ export default function MemberOverviewCards({ overview, isLoading }: MemberOverv
 
       {/* 5. Review Queue */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-        <Card className="bg-card shadow-soft border-muted h-full hover:shadow-md transition-shadow">
+        <Card 
+          className="bg-card shadow-soft border-muted h-full hover:shadow-md hover:border-sky-500/30 transition-all cursor-pointer"
+          onClick={() => navigate('/dashboard/my-tasks?status=INTERNAL_REVIEW')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Review Queue</CardTitle>
             <GitPullRequest className="h-4 w-4 text-sky-500" />

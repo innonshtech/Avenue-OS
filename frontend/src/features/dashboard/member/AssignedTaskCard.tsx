@@ -32,7 +32,7 @@ export default function AssignedTaskCard({ task, onMarkBlocked, onAddUpdate }: {
   };
 
   return (
-    <Card className="mb-3 hover:shadow-md transition-shadow group border-l-4 border-l-indigo-500">
+    <Card className="mb-3 group border-l-4 border-l-indigo-500">
       <CardContent className="p-4 flex flex-col gap-3">
         <div className="flex justify-between items-start gap-4">
           <div>
@@ -52,7 +52,7 @@ export default function AssignedTaskCard({ task, onMarkBlocked, onAddUpdate }: {
           <Badge className="text-[10px] shrink-0" variant="outline">{task.status.replace('_', ' ')}</Badge>
         </div>
 
-        <div className="flex items-center gap-2 pt-2 border-t border-muted/50 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-2 pt-2 border-t border-muted/50 mt-1">
           {task.status === 'TODO' && (
             <Button size="sm" variant="outline" className="h-7 text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200" onClick={handleStartTask} disabled={updateStatus.isPending}>
               <Play className="h-3 w-3 mr-1" /> Start Task

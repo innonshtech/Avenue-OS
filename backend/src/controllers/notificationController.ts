@@ -84,3 +84,32 @@ export const markAllNotificationsAsRead = async (req: Request, res: Response) =>
     res.status(500).json({ error: 'Failed to mark all notifications as read' });
   }
 };
+
+export const clearNotification = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { id } = req.params;
+    await prisma.notification.delete({
+      where: { id, userId }
+    });
+    res.status(200).json({ message: 'Notification cleared' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to clear notification' });
+  }
+};
+
+export const clearAllNotifications = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    await prisma.notification.deleteMany({
+      where: { userId }
+    });
+    res.status(200).json({ message: 'All notifications cleared' });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to clear all notifications' });
+  }
+};

@@ -169,9 +169,6 @@ function Column({ col, tasks, onTaskClick }: { col: { id: TaskStatus; title: str
             </span>
           )}
         </h2>
-        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
-          <Plus className="h-4 w-4" />
-        </Button>
       </div>
       
       <div ref={setNodeRef} className="flex-1 p-3 overflow-y-auto min-h-[150px]">

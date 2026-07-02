@@ -92,6 +92,8 @@ export class ChatRepository {
           // Public channels of type ANNOUNCEMENT or where user is member
           { type: 'ANNOUNCEMENT' },
           { members: { some: { userId } } },
+          { type: 'PROJECT', project: { members: { some: { userId } } } },
+          { type: 'STAGE', stage: { members: { some: { userId } } } }
         ],
       },
       include: {

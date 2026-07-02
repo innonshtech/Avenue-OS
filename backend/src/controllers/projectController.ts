@@ -89,6 +89,17 @@ export const createProject = async (req: Request, res: Response) => {
       }
     });
 
+    // Auto-create Project Chat Channel
+    await prisma.chatChannel.create({
+      data: {
+        name: `${key.toLowerCase()}-general`,
+        description: `General discussion for ${name} project`,
+        type: 'PROJECT',
+        projectId: project.id,
+        createdById: ownerId,
+      }
+    });
+
     // Auto-generate default project stages and tasks (Project Template Engine)
     const projectStart = startDate ? new Date(startDate) : new Date();
     
@@ -162,6 +173,18 @@ export const createProject = async (req: Request, res: Response) => {
           endDate: stageEnd,
           projectId: project.id,
           status: st.startOffsetDays === 0 ? 'ACTIVE' : 'PLANNED'
+        }
+      });
+
+      // Auto-create Stage Chat Channel
+      await prisma.chatChannel.create({
+        data: {
+          name: `stage-${st.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+          description: `Discussion for ${st.name} stage`,
+          type: 'STAGE',
+          projectId: project.id,
+          stageId: createdStage.id,
+          createdById: ownerId,
         }
       });
 

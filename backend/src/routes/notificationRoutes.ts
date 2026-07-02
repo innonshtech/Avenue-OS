@@ -4,7 +4,9 @@ import {
   getMemberNotifications, 
   getMyNotifications, 
   markNotificationAsRead, 
-  markAllNotificationsAsRead 
+  markAllNotificationsAsRead,
+  clearNotification,
+  clearAllNotifications
 } from '../controllers/notificationController';
 
 const router = Router();
@@ -16,5 +18,7 @@ router.get('/member/:id', getMemberNotifications);
 router.get('/', getMyNotifications);
 router.patch('/read-all', markAllNotificationsAsRead);
 router.patch('/:id/read', markNotificationAsRead);
+router.delete('/clear-all', clearAllNotifications);
+router.delete('/:id', clearNotification);
 
 export default router;
