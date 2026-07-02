@@ -34,7 +34,15 @@ export const initialFilterState: FilterState = {
 };
 
 const PRIORITIES = ['CRITICAL', 'URGENT', 'HIGH', 'MEDIUM', 'LOW'];
-const STATUSES = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'BLOCKED', 'TESTING', 'DONE'];
+const STATUSES = [
+  'PENDING', 
+  'IN_PROGRESS', 
+  'INTERNAL_REVIEW', 
+  'EXTERNAL_REVIEW', 
+  'MODIFICATION_REQUIRED', 
+  'APPROVED', 
+  'DONE'
+];
 
 export const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
   isOpen,

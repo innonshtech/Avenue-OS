@@ -24,12 +24,13 @@ export const getMemberOverview = async (req: Request, res: Response) => {
 
     // 2. Get user's tasks
     const allAssignedTasks = await prisma.task.findMany({
-      where: { assigneeId: userId },
+      where: { assigneeId: userId, isArchived: false },
       include: { rfis: { where: { isResolved: false } } }
     });
 
-    const pendingTasks = allAssignedTasks.filter(t => t.status !== TaskStatus.DONE);
+    const activeTasks = allAssignedTasks.filter(t => t.status !== TaskStatus.DONE);
     const completedTasks = allAssignedTasks.filter(t => t.status === TaskStatus.DONE);
+    const strictlyPendingTasks = allAssignedTasks.filter(t => t.status === TaskStatus.PENDING);
     
     // Stage specific metrics
     const tasksInActiveStage = activeStage ? activeStage.tasks : [];
@@ -44,21 +45,21 @@ export const getMemberOverview = async (req: Request, res: Response) => {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const dueToday = pendingTasks.filter(t => {
+    const dueToday = activeTasks.filter(t => {
       if (!t.dueDate) return false;
       const dueDate = new Date(t.dueDate);
       return dueDate >= today && dueDate < tomorrow;
     });
 
-    const overdueTasks = pendingTasks.filter(t => {
+    const overdueTasks = activeTasks.filter(t => {
       if (!t.dueDate) return false;
       return new Date(t.dueDate) < today;
     });
 
-    const urgentTasks = pendingTasks.filter(t => t.priority === 'URGENT' || t.priority === 'CRITICAL');
+    const urgentTasks = activeTasks.filter(t => t.priority === 'URGENT' || t.priority === 'CRITICAL');
 
     // Review Queue
-    const reviewQueue = pendingTasks.filter(t => t.status === TaskStatus.INTERNAL_REVIEW || t.status === TaskStatus.EXTERNAL_REVIEW);
+    const reviewQueue = activeTasks.filter(t => t.status === TaskStatus.INTERNAL_REVIEW || t.status === TaskStatus.EXTERNAL_REVIEW);
 
     // Active RFIs
     const blockers = allAssignedTasks.flatMap(t => t.rfis);
@@ -73,7 +74,7 @@ export const getMemberOverview = async (req: Request, res: Response) => {
     }
 
     const response = {
-      pendingTasks: pendingTasks.length,
+      pendingTasks: strictlyPendingTasks.length,
       dueToday: dueToday.length,
       overdueTasks: overdueTasks.length,
       urgentTasks: urgentTasks.length,
@@ -118,14 +119,14 @@ export const getMemberSummary = async (req: Request, res: Response) => {
 
     // 2. Get user's tasks with full relations for the UI
     const tasks = await prisma.task.findMany({
-      where: { assigneeId: userId },
+      where: { assigneeId: userId, isArchived: false },
       include: { project: true, stage: true, rfis: { where: { isResolved: false } } },
       orderBy: { createdAt: 'desc' }
     });
 
-    const pendingTasks = tasks.filter(t => t.status !== TaskStatus.DONE);
+    const activeTasks = tasks.filter(t => t.status !== TaskStatus.DONE);
     const completedTasks = tasks.filter(t => t.status === TaskStatus.DONE);
-    
+    const strictlyPendingTasks = tasks.filter(t => t.status === TaskStatus.PENDING);
     // Stage specific metrics
     const tasksInActiveStage = activeStage ? activeStage.tasks : [];
     const completedThisStage = tasksInActiveStage.filter(t => t.status === TaskStatus.DONE).length;
@@ -139,21 +140,21 @@ export const getMemberSummary = async (req: Request, res: Response) => {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const dueToday = pendingTasks.filter(t => {
+    const dueToday = activeTasks.filter(t => {
       if (!t.dueDate) return false;
       const dueDate = new Date(t.dueDate);
       return dueDate >= today && dueDate < tomorrow;
     });
 
-    const overdueTasks = pendingTasks.filter(t => {
+    const overdueTasks = activeTasks.filter(t => {
       if (!t.dueDate) return false;
       return new Date(t.dueDate) < today;
     });
 
-    const urgentTasks = pendingTasks.filter(t => t.priority === 'URGENT' || t.priority === 'CRITICAL');
+    const urgentTasks = activeTasks.filter(t => t.priority === 'URGENT' || t.priority === 'CRITICAL');
 
     // Review Queue
-    const reviewQueue = pendingTasks.filter(t => t.status === TaskStatus.INTERNAL_REVIEW || t.status === TaskStatus.EXTERNAL_REVIEW);
+    const reviewQueue = activeTasks.filter(t => t.status === TaskStatus.INTERNAL_REVIEW || t.status === TaskStatus.EXTERNAL_REVIEW);
 
     // Active RFIs
     const blockers = tasks.flatMap(t => t.rfis);
@@ -168,7 +169,7 @@ export const getMemberSummary = async (req: Request, res: Response) => {
     }
 
     const overview = {
-      pendingTasks: pendingTasks.length,
+      pendingTasks: strictlyPendingTasks.length,
       dueToday: dueToday.length,
       overdueTasks: overdueTasks.length,
       urgentTasks: urgentTasks.length,

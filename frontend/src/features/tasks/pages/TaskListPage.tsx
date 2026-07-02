@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTasks, useUpdateTask } from '../api/taskApi';
 import { useProjects } from '@/features/projects/api/projectApi';
 import { AdvancedFilterPanel, initialFilterState } from '@/features/filters/AdvancedFilterPanel';
@@ -7,7 +8,7 @@ import { CreateTaskModal } from '../components/CreateTaskModal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Search, ListFilter, Plus, LayoutList } from 'lucide-react';
+import { Search, ListFilter, Plus, LayoutList, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TaskDrawer from '../components/TaskDrawer';
 import { useAuthStore } from '@/features/auth/store/authStore';
@@ -18,13 +19,60 @@ export default function TaskListPage() {
   const { data: projects = [] } = useProjects();
   const { user } = useAuthStore();
   
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  
+  const [search, setSearch] = useState(searchParams.get('q') || '');
   const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Advanced filters state
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-  const [advancedFilters, setAdvancedFilters] = useState<FilterState>(initialFilterState);
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>(() => {
+    const status = searchParams.get('status');
+    const blocked = searchParams.get('blocked') === 'true';
+    return {
+      ...initialFilterState,
+      statuses: status ? [status] : [],
+      isBlocked: blocked
+    };
+  });
+
+  const getActiveFilterCount = () => {
+    return advancedFilters.statuses.length + 
+           advancedFilters.priorities.length + 
+           advancedFilters.assigneeIds.length + 
+           advancedFilters.projectIds.length + 
+           (advancedFilters.isOverdue ? 1 : 0) + 
+           (advancedFilters.isBlocked ? 1 : 0);
+  };
+
+  const clearFilter = (type: keyof FilterState, value?: any) => {
+    setAdvancedFilters(prev => {
+      const next = { ...prev };
+      if (Array.isArray(next[type]) && value) {
+        (next[type] as any) = (next[type] as any[]).filter(item => item !== value);
+      } else if (typeof next[type] === 'boolean') {
+        (next[type] as boolean) = false;
+      }
+      return next;
+    });
+  };
+
+  // Listen to search param changes if navigation happens within the same component
+  useEffect(() => {
+    const status = searchParams.get('status');
+    const blocked = searchParams.get('blocked') === 'true';
+    const q = searchParams.get('q');
+    
+    if (status || blocked || q) {
+      setSearch(q || '');
+      setAdvancedFilters(prev => ({
+        ...prev,
+        statuses: status ? [status] : [],
+        isBlocked: blocked
+      }));
+    }
+  }, [searchParams]);
 
   // Filter tasks based on user role
   const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
@@ -92,8 +140,8 @@ export default function TaskListPage() {
         )}
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center gap-4 justify-between bg-card p-3 rounded-lg border border-border shadow-sm">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+      <div className="flex flex-col xl:flex-row xl:items-center gap-4 bg-card p-3 rounded-lg border border-border shadow-sm">
+        <div className="flex items-center gap-2 w-full xl:w-auto shrink-0">
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
@@ -103,11 +151,71 @@ export default function TaskListPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button variant="outline" className="shrink-0 shadow-sm" onClick={() => setIsFilterPanelOpen(true)}>
+          <Button variant="outline" className="shrink-0 shadow-sm relative" onClick={() => setIsFilterPanelOpen(true)}>
             <ListFilter className="h-4 w-4 mr-2" />
             Filters
+            {getActiveFilterCount() > 0 && (
+              <span className="absolute -top-2 -right-2 bg-indigo-600 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full shadow-sm font-bold">
+                {getActiveFilterCount()}
+              </span>
+            )}
           </Button>
         </div>
+
+        {/* Active Filter Badges */}
+        {getActiveFilterCount() > 0 && (
+          <div className="flex flex-wrap items-center gap-2 flex-1 pt-2 xl:pt-0 border-t xl:border-t-0 xl:border-l border-border xl:pl-4">
+            <span className="text-xs font-medium text-muted-foreground mr-1">Active:</span>
+            {advancedFilters.statuses.map(s => (
+              <Badge key={`status-${s}`} variant="secondary" className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 flex items-center gap-1 pr-1.5">
+                Status: {s}
+                <button onClick={() => clearFilter('statuses', s)} className="hover:bg-indigo-200 rounded-full p-0.5"><X className="w-3 h-3" /></button>
+              </Badge>
+            ))}
+            {advancedFilters.priorities.map(p => (
+              <Badge key={`priority-${p}`} variant="secondary" className="bg-amber-50 text-amber-700 hover:bg-amber-100 flex items-center gap-1 pr-1.5">
+                Priority: {p}
+                <button onClick={() => clearFilter('priorities', p)} className="hover:bg-amber-200 rounded-full p-0.5"><X className="w-3 h-3" /></button>
+              </Badge>
+            ))}
+            {advancedFilters.assigneeIds.map(aId => {
+              const u = false; // We would need users list to show names, fallback to ID for now, or just hide assignee logic if complex
+              return (
+                <Badge key={`assignee-${aId}`} variant="secondary" className="bg-sky-50 text-sky-700 hover:bg-sky-100 flex items-center gap-1 pr-1.5">
+                  Assignee ID: {aId.substring(0,6)}...
+                  <button onClick={() => clearFilter('assigneeIds', aId)} className="hover:bg-sky-200 rounded-full p-0.5"><X className="w-3 h-3" /></button>
+                </Badge>
+              );
+            })}
+            {advancedFilters.projectIds.map(pId => {
+              const proj = projects.find(p => p.id === pId);
+              return (
+                <Badge key={`project-${pId}`} variant="secondary" className="bg-purple-50 text-purple-700 hover:bg-purple-100 flex items-center gap-1 pr-1.5">
+                  Project: {proj?.name || pId.substring(0,6)}
+                  <button onClick={() => clearFilter('projectIds', pId)} className="hover:bg-purple-200 rounded-full p-0.5"><X className="w-3 h-3" /></button>
+                </Badge>
+              );
+            })}
+            {advancedFilters.isBlocked && (
+              <Badge variant="secondary" className="bg-rose-50 text-rose-700 hover:bg-rose-100 flex items-center gap-1 pr-1.5">
+                Blocked
+                <button onClick={() => clearFilter('isBlocked')} className="hover:bg-rose-200 rounded-full p-0.5"><X className="w-3 h-3" /></button>
+              </Badge>
+            )}
+            {advancedFilters.isOverdue && (
+              <Badge variant="secondary" className="bg-orange-50 text-orange-700 hover:bg-orange-100 flex items-center gap-1 pr-1.5">
+                Overdue
+                <button onClick={() => clearFilter('isOverdue')} className="hover:bg-orange-200 rounded-full p-0.5"><X className="w-3 h-3" /></button>
+              </Badge>
+            )}
+            <button 
+              onClick={() => setAdvancedFilters(initialFilterState)}
+              className="text-xs text-muted-foreground hover:text-foreground underline ml-1 transition-colors"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="rounded-md border border-border bg-card">

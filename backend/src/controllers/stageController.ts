@@ -96,6 +96,23 @@ export const createStage = async (req: Request, res: Response) => {
         endDate: end,
         status: status || 'PLANNED',
         projectId,
+      },
+      include: {
+        project: {
+          select: { ownerId: true }
+        }
+      }
+    });
+
+    // Auto-create Stage Chat Channel
+    await prisma.chatChannel.create({
+      data: {
+        name: `stage-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        description: `Discussion for ${name} stage`,
+        type: 'STAGE',
+        projectId,
+        stageId: stage.id,
+        createdById: stage.project.ownerId,
       }
     });
 

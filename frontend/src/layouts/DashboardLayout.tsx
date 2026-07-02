@@ -17,7 +17,8 @@ import {
   Activity,
   ShieldCheck,
   Calendar,
-  FileText
+  FileText,
+  X
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -31,7 +32,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   useNotifications, 
   useMarkNotificationRead, 
-  useMarkAllNotificationsRead 
+  useMarkAllNotificationsRead,
+  useClearNotification,
+  useClearAllNotifications
 } from '@/features/notifications/api/notificationApi';
 import { ROLE_COLORS } from '@/constants/teamMembers';
 import type { UserRole } from '@/types/user';
@@ -132,6 +135,8 @@ export default function DashboardLayout() {
   const { data: notifications = [], isLoading: isLoadingNotifications } = useNotifications();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
+  const clearNotification = useClearNotification();
+  const clearAllNotifications = useClearAllNotifications();
 
   const unreadCount = notifications.filter((n: any) => !n.isRead).length;
 
@@ -279,52 +284,88 @@ export default function DashboardLayout() {
                 <button className="relative text-muted-foreground hover:text-foreground transition-colors focus:outline-none">
                   <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[9px] font-bold text-white ring-2 ring-background">
-                      {unreadCount}
-                    </span>
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background animate-pulse" />
                   )}
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80 p-0 shadow-lg border border-border">
                 <div className="flex items-center justify-between border-b border-border p-3">
                   <span className="font-semibold text-sm">Notifications</span>
-                  {unreadCount > 0 && (
-                    <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        markAllRead.mutate();
-                      }} 
-                      className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold"
-                    >
-                      Mark all as read
-                    </button>
-                  )}
+                  <div className="flex gap-3">
+                    {unreadCount > 0 && (
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          markAllRead.mutate();
+                        }} 
+                        className="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 font-semibold"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                    {notifications.length > 0 && (
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          clearAllNotifications.mutate();
+                        }} 
+                        className="text-xs text-red-600 hover:text-red-800 dark:text-red-400 font-semibold"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="max-h-72 overflow-y-auto">
                   {isLoadingNotifications ? (
                     <div className="p-4 text-center text-xs text-muted-foreground">Loading...</div>
-                  ) : unreadNotifications.length === 0 ? (
+                  ) : notifications.length === 0 ? (
                     <div className="p-4 text-center text-xs text-muted-foreground font-medium">No new notifications</div>
                   ) : (
-                    unreadNotifications.map((notif: any) => (
-                      <DropdownMenuItem 
-                        key={notif.id} 
-                        onSelect={(e) => {
+                    notifications.map((notif: any) => (
+                      <div
+                        key={notif.id}
+                        className={`p-3 border-b border-border/50 transition-colors cursor-pointer ${
+                          notif.isRead 
+                            ? 'bg-transparent text-muted-foreground' 
+                            : 'bg-indigo-500/5 text-foreground font-semibold'
+                        }`}
+                        onClick={(e) => {
                           e.preventDefault();
                           if (!notif.isRead) markRead.mutate(notif.id);
                           if (notif.linkUrl) navigate(notif.linkUrl);
                         }}
-                        className="flex flex-col items-start p-3 border-b border-border/50 cursor-pointer focus:bg-accent/50 bg-indigo-500/5 font-semibold text-foreground"
                       >
-                        <div className="flex justify-between items-start w-full mb-1">
-                          <span className="text-xs font-semibold">{notif.title}</span>
-                          <span className="text-[9px] text-muted-foreground">
-                            {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <div className="flex justify-between items-start w-full mb-1 gap-2">
+                          <span className="text-xs font-semibold flex items-start gap-1.5 pt-0.5 flex-1">
+                            {!notif.isRead && (
+                              <span className="w-1.5 h-1.5 mt-1 rounded-full bg-indigo-500 flex-shrink-0" />
+                            )}
+                            <span className="line-clamp-1 leading-tight">{notif.title}</span>
                           </span>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className="text-[9px] opacity-70 whitespace-nowrap">
+                              {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <button
+                              className="p-1 -mr-1 text-muted-foreground hover:text-red-500 rounded-full hover:bg-accent transition-colors flex-shrink-0"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                clearNotification.mutate(notif.id);
+                              }}
+                              title="Clear notification"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2 font-normal">{notif.message}</p>
-                      </DropdownMenuItem>
+                        <p className={`text-xs line-clamp-2 mt-0.5 ${notif.isRead ? 'font-normal opacity-80' : 'font-normal'}`}>
+                          {notif.message}
+                        </p>
+                      </div>
                     ))
                   )}
                 </div>

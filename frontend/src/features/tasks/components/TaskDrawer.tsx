@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTask, useUpdateTaskStatus, useUpdateTask, useAddSubtask, useUpdateSubtask, useArchiveTask, useRestoreTask, useDeleteTask, useResolveRFI } from '../api/taskApi';
+import { useTask, useUpdateTaskStatus, useUpdateTask, useAddSubtask, useUpdateSubtask, useArchiveTask, useRestoreTask, useDeleteTask, useResolveRFI, useRaiseRFI } from '../api/taskApi';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useToast } from '@/hooks/use-toast';
 import { TEAM_MEMBERS } from '@/constants/teamMembers';
@@ -28,7 +28,8 @@ import {
   Trash,
   Archive,
   RefreshCw,
-  CheckCircle
+  CheckCircle,
+  X
 } from 'lucide-react';
 import TaskComments from './TaskComments';
 import TaskActivityTimeline from './TaskActivityTimeline';
@@ -50,6 +51,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
   const restoreTask = useRestoreTask();
   const deleteTask = useDeleteTask();
   const resolveRFI = useResolveRFI();
+  const raiseRFI = useRaiseRFI();
   
   const { user } = useAuthStore();
   const { toast } = useToast();
@@ -59,6 +61,8 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
   const [activeTab, setActiveTab] = useState<'comments' | 'history' | 'standups'>('comments');
   const [resolutionNote, setResolutionNote] = useState('');
   const [showResolveInput, setShowResolveInput] = useState(false);
+  const [rfiDescription, setRfiDescription] = useState('');
+  const [showRaiseRFIInput, setShowRaiseRFIInput] = useState(false);
   const [showDiscussionModal, setShowDiscussionModal] = useState(false);
   
   if (!taskId) return null;
@@ -165,6 +169,9 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
+                <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 ml-1 rounded-full text-muted-foreground hover:text-foreground">
+                  <X className="h-5 w-5" />
+                </Button>
               </div>
             </div>
             
@@ -484,6 +491,52 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                         <MessageSquare className="w-4 h-4 mr-2" />
                         Open in Chat
                       </Button>
+                      {canEdit && !rfi && task.status !== 'DONE' && (
+                        <>
+                          {showRaiseRFIInput ? (
+                            <div className="bg-rose-50/50 p-3 rounded-lg border border-rose-200 space-y-2">
+                              <span className="text-xs font-semibold text-rose-700">Describe RFI</span>
+                              <Input 
+                                value={rfiDescription} 
+                                onChange={e => setRfiDescription(e.target.value)} 
+                                placeholder="What information is needed?" 
+                                className="h-8 text-sm bg-white border-rose-200" 
+                              />
+                              <div className="flex justify-end gap-2 mt-2">
+                                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowRaiseRFIInput(false)}>Cancel</Button>
+                                <Button 
+                                  size="sm" 
+                                  className="h-7 text-xs bg-rose-600 hover:bg-rose-700 text-white" 
+                                  onClick={() => {
+                                    if(rfiDescription) {
+                                      raiseRFI.mutate({ taskId: task.id, description: rfiDescription }, {
+                                        onSuccess: () => {
+                                          setShowRaiseRFIInput(false);
+                                          setRfiDescription('');
+                                          toast({ title: 'RFI Raised Successfully' });
+                                        }
+                                      });
+                                    }
+                                  }}
+                                >
+                                  Submit
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full justify-start text-rose-600 hover:text-rose-700 hover:bg-rose-50 border-rose-200 dark:hover:bg-rose-500/10 dark:border-rose-500/20 transition-all"
+                              onClick={() => setShowRaiseRFIInput(true)}
+                            >
+                              <AlertTriangle className="w-4 h-4 mr-2" />
+                              Raise RFI
+                            </Button>
+                          )}
+                        </>
+                      )}
+                      
                       {canEdit && task.status !== 'DONE' && (
                         <Button 
                            variant="outline" 
