@@ -45,8 +45,8 @@ import { useChannels } from '@/features/chat/api/chatApi';
 const SIDEBAR_CONFIG: Record<UserRole, { icon: any, label: string, path: string }[]> = {
   PROJECT_MANAGER: [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: CheckSquare, label: 'Projects', path: '/dashboard/projects' },
-    { icon: Clock, label: 'Stages', path: '/dashboard/stages' },
+    { icon: Briefcase, label: 'Projects', path: '/dashboard/projects' },
+    { icon: Clock, label: 'Target', path: '/dashboard/stages' },
     { icon: CheckSquare, label: 'Tasks', path: '/dashboard/tasks' },
     { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
     { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
@@ -68,7 +68,7 @@ const SIDEBAR_CONFIG: Record<UserRole, { icon: any, label: string, path: string 
     { icon: Users, label: 'Progress Reports', path: '/dashboard/standups' },
     { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
     { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
-    { icon: BarChart, label: 'Stage Reports', path: '/dashboard/stage-reports' },
+    { icon: BarChart, label: 'Target Report', path: '/dashboard/stage-reports' },
     { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
     { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
@@ -81,7 +81,7 @@ const SIDEBAR_CONFIG: Record<UserRole, { icon: any, label: string, path: string 
     { icon: Users, label: 'Progress Reports', path: '/dashboard/standups' },
     { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
     { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
-    { icon: BarChart, label: 'Stage Reports', path: '/dashboard/stage-reports' },
+    { icon: BarChart, label: 'Target Report', path: '/dashboard/stage-reports' },
     { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
     { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
