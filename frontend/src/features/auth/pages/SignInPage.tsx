@@ -7,7 +7,6 @@ import { Code2, Target, Users, Briefcase, ChevronRight, Activity, LayoutDashboar
 import { useAuthStore } from '../store/authStore';
 import { signInSchema } from '../validations/auth.schema';
 import type { SignInFormValues } from '../validations/auth.schema';
-import { TEAM_MEMBERS, ROLE_COLORS } from '@/constants/teamMembers';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +33,6 @@ export default function SignInPage() {
   const {
     register,
     handleSubmit,
-    setValue,
     watch,
     formState: { errors, isSubmitting },
   } = useForm({
@@ -42,26 +40,11 @@ export default function SignInPage() {
     defaultValues: {
       email: '',
       password: '',
-      role: '',
-      department: '',
       rememberMe: false,
     },
   });
 
   const selectedEmail = watch('email');
-  
-  // Track selected member from the dropdown (we'll just use ID to track selection)
-  const selectedMemberId = TEAM_MEMBERS.find(m => m.email === selectedEmail)?.id || '';
-
-  const handleMemberSelect = (id: string) => {
-    const member = TEAM_MEMBERS.find((m) => m.id === id);
-    if (member) {
-      setValue('email', member.email, { shouldValidate: true });
-      setValue('role', member.role, { shouldValidate: true });
-      setValue('department', member.department, { shouldValidate: true });
-      setValue('password', (member as any).password || '', { shouldValidate: true });
-    }
-  };
 
   const onSubmit = async (data: SignInFormValues) => {
     try {
@@ -110,32 +93,6 @@ export default function SignInPage() {
         <div className="w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 sm:p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             
-            {/* Team Member Selector (Only visible in Development mode) */}
-            {import.meta.env.DEV && (
-              <div className="space-y-2">
-                <Label htmlFor="memberSelect" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Quick Login (Dev Mode)</Label>
-                <Select
-                  value={selectedMemberId}
-                  onValueChange={handleMemberSelect}
-                >
-                  <SelectTrigger className="h-10 bg-slate-50/50 border-slate-200 focus-visible:ring-[#564de6] transition-all font-medium text-slate-700">
-                    <SelectValue placeholder="Select your team member profile..." />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {TEAM_MEMBERS.map((member) => (
-                      <SelectItem key={member.id} value={member.id} className="py-3 cursor-pointer">
-                        <div className="flex items-center gap-3">
-                          <div className="flex flex-col text-left">
-                            <span className="font-semibold">{member.name}</span>
-                            <span className="text-xs text-muted-foreground">{member.role.replace('_', ' ')} • {member.department}</span>
-                          </div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
 
             {/* Email Field */}
             <div className="space-y-2">
