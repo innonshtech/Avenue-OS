@@ -70,7 +70,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
   if (!task) return null;
 
   const project = task.project;
-  const stage = task.stage;
+  const target = task.target;
   const assignee = task.assignee;
   const reporter = task.creator;
   const rfi = task.rfis?.find((b: any) => !b.isResolved);
@@ -160,7 +160,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onClick={() => {
-                        if (confirm('Are you sure you want to delete this task? This will remove board visibility, stage linkage, and analytics contribution.')) {
+                        if (confirm('Are you sure you want to delete this task? This will remove board visibility, target linkage, and analytics contribution.')) {
                           deleteTask.mutate(task.id, { onSuccess: () => { toast({ title: 'Task deleted' }); onClose(); }});
                         }
                       }}>
@@ -444,14 +444,71 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                     </div>
                   </div>
 
-                  {stage && (
+                  {target && (
                     <div>
-                      <span className="text-xs text-muted-foreground block mb-1.5">Stage</span>
-                      <Link to={`/dashboard/stages/${stage.id}`} className="text-sm font-medium text-indigo-500 hover:underline">
-                        {stage.name}
+                      <span className="text-xs text-muted-foreground block mb-1.5">Target</span>
+                      <Link to={`/dashboard/targets/${target.id}`} className="text-sm font-medium text-indigo-500 hover:underline">
+                        {target.name}
                       </Link>
                     </div>
                   )}
+
+                  {task.taskCategory && (
+                    <div>
+                      <span className="text-xs text-muted-foreground block mb-1.5">Task</span>
+                      <span className="text-sm font-medium capitalize">{task.taskCategory.toLowerCase()}</span>
+                    </div>
+                  )}
+
+                  {task.type && (
+                    <div>
+                      <span className="text-xs text-muted-foreground block mb-1.5">Task Type</span>
+                      <span className="text-sm font-medium capitalize">{task.type.replace(/_/g, ' ').toLowerCase()}</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-xs text-muted-foreground block mb-1.5">Est. Hours</span>
+                      {user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN' ? (
+                        <Input 
+                          type="number" 
+                          step="0.5" 
+                          min="0" 
+                          className="h-8 text-sm"
+                          defaultValue={task.estimatedHours || ''}
+                          onBlur={(e) => {
+                            const val = e.target.value;
+                            if (val !== String(task.estimatedHours || '')) {
+                              updateTask.mutate({ id: task.id, estimatedHours: val ? parseFloat(val) : null });
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span className="text-sm font-medium">{task.estimatedHours || '-'}</span>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-xs text-muted-foreground block mb-1.5">Actual Hours</span>
+                      {canEdit ? (
+                        <Input 
+                          type="number" 
+                          step="0.5" 
+                          min="0" 
+                          className="h-8 text-sm"
+                          defaultValue={task.actualHours || ''}
+                          onBlur={(e) => {
+                            const val = e.target.value;
+                            if (val !== String(task.actualHours || '')) {
+                              updateTask.mutate({ id: task.id, actualHours: val ? parseFloat(val) : null });
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span className="text-sm font-medium">{task.actualHours || '-'}</span>
+                      )}
+                    </div>
+                  </div>
 
                   {task.dueDate && (
                     <div>

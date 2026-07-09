@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { useMyProgressReports, useCreateProgressReport, useTeamProgressReports } from '../api/progressReportApi';
 import { useToast } from '@/hooks/use-toast';
-import { useStages } from '@/features/stages/api/stageApi';
+import { useTargets } from '@/features/targets/api/targetApi';
 import { useProjects } from '@/features/projects/api/projectApi';
 import { useTasks } from '@/features/tasks/api/taskApi';
 import { TEAM_MEMBERS } from '@/constants/teamMembers';
@@ -17,45 +17,45 @@ import type { RFIType, RFISeverity } from '@/types/core';
 
 export default function ProgressReportPage() {
   const { user } = useAuthStore();
-  const { data: stages = [] } = useStages();
+  const { data: targets = [] } = useTargets();
   const { data: projects = [] } = useProjects();
-  const activeStageId = stages.find((s: any) => s.status === 'ACTIVE')?.id;
+  const activeTargetId = targets.find((s: any) => s.status === 'ACTIVE')?.id;
   
   const { toast } = useToast();
   const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
-  const [timeRange, setTimeRange] = useState<'stage' | 'month' | 'year'>('stage');
+  const [timeRange, setTimeRange] = useState<'target' | 'month' | 'year'>('target');
 
-  const [selectedStageId, setSelectedStageId] = useState<string | undefined>(activeStageId || stages[0]?.id);
+  const [selectedTargetId, setSelectedTargetId] = useState<string | undefined>(activeTargetId || targets[0]?.id);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [formStageId, setFormStageId] = useState<string>('');
+  const [formTargetId, setFormTargetId] = useState<string>('');
 
   useEffect(() => {
-    if (stages.length > 0 && !selectedProjectId) {
-      const activeStage = stages.find((s: any) => s.status === 'ACTIVE');
-      if (activeStage) {
-        setSelectedProjectId(activeStage.projectId);
-        setFormStageId(activeStage.id);
+    if (targets.length > 0 && !selectedProjectId) {
+      const activeTarget = targets.find((s: any) => s.status === 'ACTIVE');
+      if (activeTarget) {
+        setSelectedProjectId(activeTarget.projectId);
+        setFormTargetId(activeTarget.id);
       } else {
-        setSelectedProjectId(stages[0].projectId);
-        setFormStageId(stages[0].id);
+        setSelectedProjectId(targets[0].projectId);
+        setFormTargetId(targets[0].id);
       }
     }
-  }, [stages, selectedProjectId]);
+  }, [targets, selectedProjectId]);
 
-  const filteredStagesForForm = useMemo(() => {
+  const filteredTargetsForForm = useMemo(() => {
     if (!selectedProjectId) return [];
-    return stages.filter((s: any) => s.projectId === selectedProjectId);
-  }, [stages, selectedProjectId]);
+    return targets.filter((s: any) => s.projectId === selectedProjectId);
+  }, [targets, selectedProjectId]);
 
-  // Update selectedStageId if stages load later
-  if (!selectedStageId && stages.length > 0) {
-    setSelectedStageId(activeStageId || stages[0]?.id);
+  // Update selectedTargetId if targets load later
+  if (!selectedTargetId && targets.length > 0) {
+    setSelectedTargetId(activeTargetId || targets[0]?.id);
   }
 
-  const { data: myReports = [], isLoading: isLoadingUser } = useMyProgressReports(selectedStageId, { enabled: !isPM });
-  const { data: teamReports = [], isLoading: isLoadingTeam } = useTeamProgressReports(timeRange === 'stage' ? selectedStageId : undefined, { enabled: isPM });
+  const { data: myReports = [], isLoading: isLoadingUser } = useMyProgressReports(selectedTargetId, { enabled: !isPM });
+  const { data: teamReports = [], isLoading: isLoadingTeam } = useTeamProgressReports(timeRange === 'target' ? selectedTargetId : undefined, { enabled: isPM });
   const createReport = useCreateProgressReport(isPM);
-  const { data: tasks = [] } = useTasks(selectedStageId ? { stageId: selectedStageId } : undefined);
+  const { data: tasks = [] } = useTasks(selectedTargetId ? { targetId: selectedTargetId } : undefined);
 
   const reports = isPM ? teamReports : myReports;
   const isLoadingReports = isPM ? isLoadingTeam : isLoadingUser;
@@ -103,10 +103,10 @@ export default function ProgressReportPage() {
     e.preventDefault();
     if (!user) return;
     
-    if (!formStageId) {
+    if (!formTargetId) {
       toast({
-        title: "No Stage Selected",
-        description: "Please select a project and stage before submitting an update.",
+        title: "No Target Selected",
+        description: "Please select a project and target before submitting an update.",
         variant: "destructive"
       });
       return;
@@ -117,7 +117,7 @@ export default function ProgressReportPage() {
       today,
       blockers: hasBlocker ? blockerDesc : null,
       userId: user.id,
-      stageId: formStageId,
+      targetId: formTargetId,
       blockerDetails: hasBlocker && blockerTaskId ? {
         description: blockerDesc,
         severity: blockerSeverity,
@@ -151,14 +151,14 @@ export default function ProgressReportPage() {
         </div>
         
         <div className="flex items-center gap-4">
-          <Select value={selectedStageId} onValueChange={setSelectedStageId}>
+          <Select value={selectedTargetId} onValueChange={setSelectedTargetId}>
             <SelectTrigger className="w-[200px] bg-background">
-              <SelectValue placeholder="Select Stage" />
+              <SelectValue placeholder="Select Target" />
             </SelectTrigger>
             <SelectContent>
-              {stages.map((s: any, idx: number) => (
+              {targets.map((s: any, idx: number) => (
                 <SelectItem key={s.id} value={s.id}>
-                  Stage {idx + 1}: {s.name}
+                  Target {idx + 1}: {s.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -173,19 +173,19 @@ export default function ProgressReportPage() {
         </div>
       </div>
 
-      {stages.length === 0 && (
+      {targets.length === 0 && (
         <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
             <div>
-              <h4 className="text-sm font-semibold">No Stages Found</h4>
-              <p className="text-sm mt-1">There are no stages available to submit a report for. Please ask the Project Manager to set up a project stage.</p>
+              <h4 className="text-sm font-semibold">No Targets Found</h4>
+              <p className="text-sm mt-1">There are no targets available to submit a report for. Please ask the Project Manager to set up a project target.</p>
             </div>
           </div>
         </div>
       )}
 
-      {isSubmitting && stages.length > 0 && (
+      {isSubmitting && targets.length > 0 && (
         <Card className="bg-card shadow-soft border-indigo-500/20 ring-1 ring-indigo-500/20">
           <CardHeader>
             <CardTitle>Submit Progress Report</CardTitle>
@@ -198,8 +198,8 @@ export default function ProgressReportPage() {
                   <label className="text-sm font-semibold">Project</label>
                   <Select value={selectedProjectId} onValueChange={(val) => {
                     setSelectedProjectId(val);
-                    const firstStageOfProject = stages.find((s: any) => s.projectId === val);
-                    setFormStageId(firstStageOfProject?.id || '');
+                    const firstTargetOfProject = targets.find((s: any) => s.projectId === val);
+                    setFormTargetId(firstTargetOfProject?.id || '');
                   }}>
                     <SelectTrigger className="w-full bg-background border-border">
                       <SelectValue placeholder="Select Project" />
@@ -215,13 +215,13 @@ export default function ProgressReportPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold">Stage</label>
-                  <Select value={formStageId} onValueChange={setFormStageId}>
+                  <label className="text-sm font-semibold">Target</label>
+                  <Select value={formTargetId} onValueChange={setFormTargetId}>
                     <SelectTrigger className="w-full bg-background border-border">
-                      <SelectValue placeholder="Select Stage" />
+                      <SelectValue placeholder="Select Target" />
                     </SelectTrigger>
                     <SelectContent>
-                      {filteredStagesForForm.map((s: any) => (
+                      {filteredTargetsForForm.map((s: any) => (
                         <SelectItem key={s.id} value={s.id}>
                           {s.name}
                         </SelectItem>
@@ -365,7 +365,7 @@ export default function ProgressReportPage() {
                 <SelectValue placeholder="Time Range" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="stage">Active Stage</SelectItem>
+                <SelectItem value="target">Active Target</SelectItem>
                 <SelectItem value="month">This Month</SelectItem>
                 <SelectItem value="year">This Year</SelectItem>
               </SelectContent>
@@ -405,9 +405,9 @@ export default function ProgressReportPage() {
                               <span className="text-xs font-semibold text-muted-foreground">
                                 {new Date(report.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {new Date(report.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                               </span>
-                              {report.stage && (
+                              {report.target && (
                                 <Badge variant="outline" className="text-[10px] bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border-indigo-200/50">
-                                  {report.stage.project?.name} — {report.stage.name}
+                                  {report.target.project?.name} — {report.target.name}
                                 </Badge>
                               )}
                             </div>

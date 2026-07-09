@@ -5,9 +5,9 @@ export interface Channel {
   id: string;
   name: string;
   description?: string | null;
-  type: 'DIRECT' | 'PROJECT' | 'STAGE' | 'TASK' | 'RFI' | 'ANNOUNCEMENT';
+  type: 'DIRECT' | 'PROJECT' | 'TARGET' | 'TASK' | 'RFI' | 'ANNOUNCEMENT';
   projectId?: string | null;
-  stageId?: string | null;
+  targetId?: string | null;
   taskId?: string | null;
   rfiId?: string | null;
   createdById: string;
@@ -103,9 +103,9 @@ export const useCreateChannel = () => {
     mutationFn: async (newChannel: {
       name: string;
       description?: string;
-      type: 'PROJECT' | 'STAGE' | 'TASK' | 'RFI' | 'ANNOUNCEMENT';
+      type: 'PROJECT' | 'TARGET' | 'TASK' | 'RFI' | 'ANNOUNCEMENT';
       projectId?: string | null;
-      stageId?: string | null;
+      targetId?: string | null;
       taskId?: string | null;
       rfiId?: string | null;
       memberIds?: string[];

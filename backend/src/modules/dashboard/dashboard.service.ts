@@ -7,30 +7,30 @@ export class DashboardService {
     this.repo = new DashboardRepository();
   }
 
-  async getStageHealth(stageId?: string, preloadedStage?: any) {
-    const activeStage = preloadedStage || await this.repo.getStage(stageId);
+  async getTargetHealth(targetId?: string, preloadedTarget?: any) {
+    const activeTarget = preloadedTarget || await this.repo.getTarget(targetId);
     
-    if (!activeStage) {
+    if (!activeTarget) {
       return {
-        activeStage: null,
-        message: 'No active stage found'
+        activeTarget: null,
+        message: 'No active target found'
       };
     }
 
-    const tasks = activeStage.tasks || [];
+    const tasks = activeTarget.tasks || [];
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter((t: any) => t.status === 'DONE').length;
     const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-    const startDate = new Date(activeStage.startDate);
-    const endDate = new Date(activeStage.endDate);
+    const startDate = new Date(activeTarget.startDate);
+    const endDate = new Date(activeTarget.endDate);
     const today = new Date();
     
     const totalDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
     const daysElapsed = Math.max(0, Math.ceil((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
     const daysRemaining = Math.max(0, totalDays - daysElapsed);
 
-    const rfiTasksRaw = await this.repo.getRFITasks(activeStage.id);
+    const rfiTasksRaw = await this.repo.getRFITasks(activeTarget.id);
     const blockedTasks = rfiTasksRaw.map((t: any) => ({
       id: t.id,
       title: t.title,
@@ -42,42 +42,42 @@ export class DashboardService {
 
     const overdueTasks = tasks.filter((t: any) => t.status !== 'DONE' && t.dueDate && new Date(t.dueDate) < today).length;
 
-    let stageStatus = 'HEALTHY';
+    let targetStatus = 'HEALTHY';
     if (blockedTasks.length > 2 || overdueTasks > 3) {
-      stageStatus = 'AT RISK';
+      targetStatus = 'AT RISK';
     }
     if (daysRemaining <= 2 && completionPercentage < 70) {
-      stageStatus = 'DELAYED';
+      targetStatus = 'DELAYED';
     }
 
     const riskIndicators = [];
     if (blockedTasks.length > 0) riskIndicators.push(`⚠ High RFI count (${blockedTasks.length})`);
     if (overdueTasks > 0) riskIndicators.push(`⚠ ${overdueTasks} tasks overdue`);
-    if (completionPercentage < (daysElapsed/totalDays)*100 - 15) riskIndicators.push(`⚠ Velocity dropping behind schedule`);
+    if (completionPercentage < (daysElapsed/totalDays)*100 - 15) riskIndicators.push(`⚠ Progress dropping behind schedule`);
 
     return {
-      activeStage: activeStage.name,
+      activeTarget: activeTarget.name,
       completedTasks,
       totalTasks,
       completionPercentage,
-      stageGoal: activeStage.goal || 'Complete scheduled tasks',
-      stageStartDate: activeStage.startDate,
-      stageEndDate: activeStage.endDate,
+      targetGoal: activeTarget.goal || 'Complete scheduled tasks',
+      targetStartDate: activeTarget.startDate,
+      targetEndDate: activeTarget.endDate,
       daysRemaining,
       totalDays,
-      status: stageStatus,
+      status: targetStatus,
       riskIndicators,
       blockedTasks
     };
   }
 
-  async getTeamWorkload(stageId?: string, preloadedStage?: any, preloadedMembers?: any) {
-    const activeStage = preloadedStage || await this.repo.getStage(stageId);
+  async getTeamWorkload(targetId?: string, preloadedTarget?: any, preloadedMembers?: any) {
+    const activeTarget = preloadedTarget || await this.repo.getTarget(targetId);
     const members = preloadedMembers || await this.repo.getTeamMembers();
     
-    if (!activeStage) return [];
+    if (!activeTarget) return [];
 
-    const tasks = activeStage.tasks || [];
+    const tasks = activeTarget.tasks || [];
     
     return members.map((member: any) => {
       const memberTasks = tasks.filter((t: any) => t.assigneeId === member.id);
@@ -105,11 +105,11 @@ export class DashboardService {
     });
   }
 
-  async getBoardSnapshot(stageId?: string, preloadedStage?: any) {
-    const activeStage = preloadedStage || await this.repo.getStage(stageId);
-    if (!activeStage) return null;
+  async getBoardSnapshot(targetId?: string, preloadedTarget?: any) {
+    const activeTarget = preloadedTarget || await this.repo.getTarget(targetId);
+    if (!activeTarget) return null;
 
-    const tasks = activeStage.tasks || [];
+    const tasks = activeTarget.tasks || [];
     
     const getColData = (statusStr: string) => {
       const colTasks = tasks.filter((t: any) => t.status === statusStr);
@@ -132,11 +132,11 @@ export class DashboardService {
     };
   }
 
-  async getProgressReportMonitoring(stageId?: string, preloadedStage?: any, preloadedMembers?: any) {
-    const activeStage = preloadedStage || await this.repo.getStage(stageId);
-    if (!activeStage) return [];
+  async getProgressReportMonitoring(targetId?: string, preloadedTarget?: any, preloadedMembers?: any) {
+    const activeTarget = preloadedTarget || await this.repo.getTarget(targetId);
+    if (!activeTarget) return [];
 
-    const reports = await this.repo.getLatestProgressReports(activeStage.id);
+    const reports = await this.repo.getLatestProgressReports(activeTarget.id);
     const members = preloadedMembers || await this.repo.getTeamMembers();
     
     const latestReports: any[] = [];
@@ -149,14 +149,14 @@ export class DashboardService {
         latestReports.push({
           member: member.name,
           role: member.role,
-          task: 'Working on stage tasks',
+          task: 'Working on target tasks',
           todayWork: latest.today,
           blockers: latest.blockers || 'None',
           hasBlocker: !!latest.blockers && latest.blockers.trim() !== 'None' && latest.blockers.trim() !== '',
           helperRequired: 'Not specified',
           submittedAt: latest.date,
-          projectName: latest.stage?.project?.name || 'Avenue Project',
-          sprintName: latest.stage?.name || 'Framing'
+          projectName: latest.target?.project?.name || 'Avenue Project',
+          sprintName: latest.target?.name || 'Framing'
         });
       }
     });
@@ -164,13 +164,13 @@ export class DashboardService {
     return latestReports;
   }
 
-  async getPMSummary(stageId?: string) {
-    const [activeStage, members] = await Promise.all([
-      this.repo.getStage(stageId),
+  async getPMSummary(targetId?: string) {
+    const [activeTarget, members] = await Promise.all([
+      this.repo.getTarget(targetId),
       this.repo.getTeamMembers()
     ]);
     
-    if (!activeStage) {
+    if (!activeTarget) {
       return {
         health: null,
         workload: [],
@@ -184,14 +184,15 @@ export class DashboardService {
       };
     }
 
-    const [health, workload, boardSnapshot, standups, activeProjects, globalBlockers, totalActiveTasks] = await Promise.all([
-      this.getStageHealth(stageId, activeStage),
-      this.getTeamWorkload(stageId, activeStage, members),
-      this.getBoardSnapshot(stageId, activeStage),
-      this.getProgressReportMonitoring(stageId, activeStage, members),
+    const [health, workload, boardSnapshot, standups, activeProjects, globalBlockers, totalActiveTasks, weeklyManHours] = await Promise.all([
+      this.getTargetHealth(targetId, activeTarget),
+      this.getTeamWorkload(targetId, activeTarget, members),
+      this.getBoardSnapshot(targetId, activeTarget),
+      this.getProgressReportMonitoring(targetId, activeTarget, members),
       this.repo.getActiveProjectsCount(),
       this.repo.getGlobalRFIsCount(),
-      this.repo.getTotalActiveTasksCount()
+      this.repo.getTotalActiveTasksCount(),
+      this.repo.getWeeklyManHours()
     ]);
 
     return {
@@ -202,7 +203,8 @@ export class DashboardService {
       kpis: {
         activeProjects,
         totalActiveTasks,
-        globalBlockers
+        globalBlockers,
+        weeklyManHours
       }
     };
   }

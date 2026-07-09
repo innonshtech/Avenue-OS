@@ -5,17 +5,17 @@ import { SOCKET_EVENTS } from '../sockets/socket.events';
 
 export const getProgressReports = async (req: Request, res: Response) => {
   try {
-    const { stageId, userId } = req.query;
+    const { targetId, userId } = req.query;
     
     const query: any = {};
-    if (stageId) query.stageId = String(stageId);
+    if (targetId) query.targetId = String(targetId);
     if (userId) query.userId = String(userId);
 
     const reports = await prisma.progressReport.findMany({
       where: query,
       include: {
         user: true,
-        stage: {
+        target: {
           include: {
             project: true
           }
@@ -35,17 +35,17 @@ export const getMyProgressReports = async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { stageId } = req.query;
+    const { targetId } = req.query;
     
     const query: any = { userId };
-    if (stageId) query.stageId = String(stageId);
+    if (targetId) query.targetId = String(targetId);
 
     const reports = await prisma.progressReport.findMany({
       where: query,
       include: {
         user: true,
         task: true,
-        stage: {
+        target: {
           include: {
             project: true
           }
@@ -68,10 +68,10 @@ export const getTeamProgressReports = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Forbidden: Project Manager access required' });
     }
 
-    const { stageId } = req.query;
+    const { targetId } = req.query;
     
     const query: any = {};
-    if (stageId) query.stageId = String(stageId);
+    if (targetId) query.targetId = String(targetId);
 
     const reports = await prisma.progressReport.findMany({
       where: query,
@@ -79,7 +79,7 @@ export const getTeamProgressReports = async (req: Request, res: Response) => {
         user: true,
         task: true,
         reportedRFIs: true,
-        stage: {
+        target: {
           include: {
             project: true
           }
@@ -96,7 +96,7 @@ export const getTeamProgressReports = async (req: Request, res: Response) => {
 
 export const createProgressReport = async (req: Request, res: Response) => {
   try {
-    const { yesterday, today, blockers, userId, stageId, taskId, rfiDetails } = req.body;
+    const { yesterday, today, blockers, userId, targetId, taskId, rfiDetails } = req.body;
 
     const report = await prisma.progressReport.create({
       data: {
@@ -104,7 +104,7 @@ export const createProgressReport = async (req: Request, res: Response) => {
         today,
         blockers,
         userId,
-        stageId,
+        targetId,
         taskId,
       },
       include: {
@@ -152,12 +152,12 @@ export const createProgressReport = async (req: Request, res: Response) => {
     );
 
     let projectId: string | null = null;
-    if (stageId) {
-      const stage = await prisma.stage.findUnique({
-        where: { id: stageId },
+    if (targetId) {
+      const target = await prisma.target.findUnique({
+        where: { id: targetId },
         select: { projectId: true }
       });
-      projectId = stage?.projectId || null;
+      projectId = target?.projectId || null;
     }
 
     try {
@@ -165,7 +165,7 @@ export const createProgressReport = async (req: Request, res: Response) => {
       const payload = {
         progressReport: report,
         projectId,
-        stageId
+        targetId
       };
       io.to('organization').emit(SOCKET_EVENTS.PROGRESS_REPORT_SUBMITTED, payload);
       if (projectId) {

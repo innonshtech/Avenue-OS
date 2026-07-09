@@ -110,32 +110,34 @@ export default function SignInPage() {
         <div className="w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 sm:p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             
-            {/* Team Member Selector */}
-            <div className="space-y-2">
-              <Label htmlFor="memberSelect" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Team Member Profile</Label>
-              <Select
-                value={selectedMemberId}
-                onValueChange={handleMemberSelect}
-              >
-                <SelectTrigger className="h-10 bg-slate-50/50 border-slate-200 focus-visible:ring-[#564de6] transition-all font-medium text-slate-700">
-                  <SelectValue placeholder="Select your team member profile..." />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {TEAM_MEMBERS.map((member) => (
-                    <SelectItem key={member.id} value={member.id} className="py-3 cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-col text-left">
-                          <span className="font-semibold">{member.name}</span>
-                          <span className="text-xs text-muted-foreground">{member.role.replace('_', ' ')} • {member.department}</span>
+            {/* Team Member Selector (Only visible in Development mode) */}
+            {import.meta.env.DEV && (
+              <div className="space-y-2">
+                <Label htmlFor="memberSelect" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Quick Login (Dev Mode)</Label>
+                <Select
+                  value={selectedMemberId}
+                  onValueChange={handleMemberSelect}
+                >
+                  <SelectTrigger className="h-10 bg-slate-50/50 border-slate-200 focus-visible:ring-[#564de6] transition-all font-medium text-slate-700">
+                    <SelectValue placeholder="Select your team member profile..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {TEAM_MEMBERS.map((member) => (
+                      <SelectItem key={member.id} value={member.id} className="py-3 cursor-pointer">
+                        <div className="flex items-center gap-3">
+                          <div className="flex flex-col text-left">
+                            <span className="font-semibold">{member.name}</span>
+                            <span className="text-xs text-muted-foreground">{member.role.replace('_', ' ')} • {member.department}</span>
+                          </div>
                         </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-            {/* Email Field (Auto-filled) */}
+            {/* Email Field */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</Label>
               <Input
@@ -144,7 +146,6 @@ export default function SignInPage() {
                 placeholder="Enter your email"
                 className="h-10 bg-slate-50/50 border-slate-200 focus-visible:ring-[#564de6] font-medium text-slate-700"
                 {...register('email')}
-                readOnly
               />
               {errors.email && (
                 <p className="text-xs text-destructive">{errors.email.message as string}</p>

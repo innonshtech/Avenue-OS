@@ -10,7 +10,7 @@ import {
 import { MoreVertical, Edit, Trash2, Plus, Calendar } from 'lucide-react';
 import { EditProjectModal } from './EditProjectModal';
 import { DeleteProjectDialog } from './DeleteProjectDialog';
-import { CreateStageModal } from '@/features/stages/components/CreateStageModal';
+import { CreateTargetModal } from '@/features/targets/components/CreateTargetModal';
 import { CreateTaskModal } from '@/features/tasks/components/CreateTaskModal';
 import type { Project } from '@/types/core';
 
@@ -21,7 +21,7 @@ interface ProjectActionDropdownProps {
 export function ProjectActionDropdown({ project }: ProjectActionDropdownProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [isStageOpen, setIsStageOpen] = useState(false);
+  const [isTargetOpen, setIsTargetOpen] = useState(false);
   const [isTaskOpen, setIsTaskOpen] = useState(false);
 
   return (
@@ -37,9 +37,9 @@ export function ProjectActionDropdown({ project }: ProjectActionDropdownProps) {
             <Edit className="mr-2 h-4 w-4" />
             <span>Edit Project</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setIsStageOpen(true)} className="cursor-pointer">
+          <DropdownMenuItem onClick={() => setIsTargetOpen(true)} className="cursor-pointer">
             <Calendar className="mr-2 h-4 w-4" />
-            <span>Add Stage</span>
+            <span>Add Target</span>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setIsTaskOpen(true)} className="cursor-pointer">
             <Plus className="mr-2 h-4 w-4" />
@@ -55,7 +55,7 @@ export function ProjectActionDropdown({ project }: ProjectActionDropdownProps) {
 
       <EditProjectModal open={isEditOpen} onOpenChange={setIsEditOpen} project={project} />
       <DeleteProjectDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen} project={project} />
-      <CreateStageModal open={isStageOpen} onOpenChange={setIsStageOpen} defaultProjectId={project.id} />
+      <CreateTargetModal open={isTargetOpen} onOpenChange={setIsTargetOpen} defaultProjectId={project.id} />
       <CreateTaskModal open={isTaskOpen} onOpenChange={setIsTaskOpen} defaultProjectId={project.id} />
     </>
   );

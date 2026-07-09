@@ -2,28 +2,28 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import api from '@/lib/api';
-import { useStages } from '@/features/stages/api/stageApi';
+import { useTargets } from '@/features/targets/api/targetApi';
 
 export default function AnalyticsDashboardPage() {
   const [overview, setOverview] = useState<any>(null);
-  const [stagesData, setStagesData] = useState<any[]>([]);
+  const [targetsData, setTargetsData] = useState<any[]>([]);
   const [workloadData, setWorkloadData] = useState<any[]>([]);
   const [blockersData, setBlockersData] = useState<any[]>([]);
   const [productivityData, setProductivityData] = useState<any[]>([]);
   const [burndownData, setBurndownData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const { data: stages = [] } = useStages();
-  const [stageFilter, setStageFilter] = useState<string | null>(null);
+  const { data: targets = [] } = useTargets();
+  const [targetFilter, setTargetFilter] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const query = stageFilter ? `?stageId=${stageFilter}` : '';
+        const query = targetFilter ? `?targetId=${targetFilter}` : '';
         const results = await Promise.allSettled([
           api.get(`/analytics/overview${query}`),
-          api.get(`/analytics/sprints`), // Velocity across stages
+          api.get(`/analytics/sprints`), // Velocity across targets
           api.get(`/analytics/team-workload${query}`),
           api.get(`/analytics/blockers${query}`),
           api.get(`/analytics/productivity${query}`),
@@ -31,7 +31,7 @@ export default function AnalyticsDashboardPage() {
         ]);
         
         if (results[0].status === 'fulfilled') setOverview(results[0].value.data);
-        if (results[1].status === 'fulfilled') setStagesData(results[1].value.data);
+        if (results[1].status === 'fulfilled') setTargetsData(results[1].value.data);
         if (results[2].status === 'fulfilled') setWorkloadData(results[2].value.data);
         if (results[3].status === 'fulfilled') setBlockersData(results[3].value.data);
         if (results[4].status === 'fulfilled') setProductivityData(results[4].value.data);
@@ -49,7 +49,7 @@ export default function AnalyticsDashboardPage() {
       }
     };
     fetchData();
-  }, [stageFilter]);
+  }, [targetFilter]);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#a855f7', '#ef4444'];
 
@@ -64,11 +64,11 @@ export default function AnalyticsDashboardPage() {
         </div>
         <select 
           className="bg-background border border-border rounded-md text-sm px-3 py-2 w-64 shadow-sm" 
-          value={stageFilter || ''} 
-          onChange={e => setStageFilter(e.target.value || null)}
+          value={targetFilter || ''} 
+          onChange={e => setTargetFilter(e.target.value || null)}
         >
-          <option value="">All Stages (Historical Data)</option>
-          {stages.map((s: any) => (
+          <option value="">All Targets (Historical Data)</option>
+          {targets.map((s: any) => (
             <option key={s.id} value={s.id}>
               {s.name} {s.status === 'COMPLETED' ? '(Completed)' : ''}
             </option>
@@ -89,7 +89,7 @@ export default function AnalyticsDashboardPage() {
           </Card>
           <Card className="bg-gradient-to-br from-emerald-500/10 to-transparent border-emerald-500/20">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Stage Completion %</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Target Completion %</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{(overview.sprintCompletionRate || 0).toFixed(1)}%</div>
@@ -113,10 +113,10 @@ export default function AnalyticsDashboardPage() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Team Velocity</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Weekly Man-Hours</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{overview.teamVelocity} pts</div>
+              <div className="text-2xl font-bold">{overview.weeklyManHours || overview.teamVelocity || 0} hrs</div>
             </CardContent>
           </Card>
           <Card>
@@ -149,14 +149,14 @@ export default function AnalyticsDashboardPage() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Stage Velocity Chart */}
+        {/* Target Velocity Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Stage Velocity</CardTitle>
+            <CardTitle>Target Velocity</CardTitle>
           </CardHeader>
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stagesData}>
+              <LineChart data={targetsData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                 <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
@@ -169,10 +169,10 @@ export default function AnalyticsDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Stage Burndown Chart */}
+        {/* Target Burndown Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Active Stage Burndown</CardTitle>
+            <CardTitle>Active Target Burndown</CardTitle>
           </CardHeader>
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">

@@ -12,7 +12,7 @@ import { requireAuth } from './middleware/rbac/requireAuth';
 import authRoutes from './modules/auth/auth.routes';
 import securityRoutes from './modules/security/security.routes';
 import projectRoutes from './routes/projectRoutes';
-import stageRoutes from './routes/stageRoutes';
+import targetRoutes from './routes/targetRoutes';
 import taskRoutes from './routes/taskRoutes';
 import progressReportRoutes from './routes/progressReportRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
@@ -110,7 +110,7 @@ app.use(requireAuth);
 // 8. Protected API Routes
 app.use('/api/v1/security', securityRoutes);
 app.use('/api/v1/projects', projectRoutes);
-app.use('/api/v1/stages', stageRoutes);
+app.use('/api/v1/targets', targetRoutes);
 app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/progress-reports', progressReportRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);

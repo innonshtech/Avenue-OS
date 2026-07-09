@@ -45,7 +45,7 @@ export class ChatController {
   static async createChannel(req: Request, res: Response) {
     try {
       const createdById = req.user?.id;
-      const { name, description, type, projectId, stageId, taskId, rfiId, memberIds } = req.body;
+      const { name, description, type, projectId, targetId, taskId, rfiId, memberIds } = req.body;
 
       if (!createdById) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -54,7 +54,7 @@ export class ChatController {
         description,
         type,
         projectId,
-        stageId,
+        targetId,
         taskId,
         rfiId,
         createdById,

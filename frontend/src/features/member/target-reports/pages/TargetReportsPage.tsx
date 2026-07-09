@@ -1,45 +1,45 @@
 import { useState, useEffect } from 'react';
-import { useStages } from '@/features/stages/api/stageApi';
+import { useTargets } from '@/features/targets/api/targetApi';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useMemberStageSummary, useCompletedTasks, usePendingTasks, useMemberBlockers, useMemberProductivity } from '../api/memberReportsApi';
+import { useMemberTargetSummary, useCompletedTasks, usePendingTasks, useMemberBlockers, useMemberProductivity } from '../api/memberReportsApi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, Clock, AlertTriangle, Zap, Layers } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-export default function StageReportsPage() {
-  const { data: stages = [] } = useStages();
-  const [selectedStageId, setSelectedStageId] = useState<string | undefined>();
+export default function TargetReportsPage() {
+  const { data: targets = [] } = useTargets();
+  const [selectedTargetId, setSelectedTargetId] = useState<string | undefined>();
 
   useEffect(() => {
-    if (!selectedStageId && stages.length > 0) {
-      const activeStage = stages.find((s: any) => s.status === 'ACTIVE');
-      setSelectedStageId(activeStage?.id || stages[0]?.id);
+    if (!selectedTargetId && targets.length > 0) {
+      const activeTarget = targets.find((s: any) => s.status === 'ACTIVE');
+      setSelectedTargetId(activeTarget?.id || targets[0]?.id);
     }
-  }, [stages, selectedStageId]);
+  }, [targets, selectedTargetId]);
 
-  const { data: summary, isLoading: isSummaryLoading } = useMemberStageSummary(selectedStageId);
-  const { data: completedTasks = [] } = useCompletedTasks(selectedStageId);
-  const { data: pendingTasks = [] } = usePendingTasks(selectedStageId);
-  const { data: productivity } = useMemberProductivity(selectedStageId);
+  const { data: summary, isLoading: isSummaryLoading } = useMemberTargetSummary(selectedTargetId);
+  const { data: completedTasks = [] } = useCompletedTasks(selectedTargetId);
+  const { data: pendingTasks = [] } = usePendingTasks(selectedTargetId);
+  const { data: productivity } = useMemberProductivity(selectedTargetId);
 
   return (
     <div className="space-y-8 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">My Stage Report</h1>
+          <h1 className="text-3xl font-bold tracking-tight">My Target Report</h1>
           <p className="text-muted-foreground mt-1">Track your personal contribution and productivity metrics.</p>
         </div>
         
-        {stages.length > 0 && (
-          <Select value={selectedStageId} onValueChange={setSelectedStageId}>
+        {targets.length > 0 && (
+          <Select value={selectedTargetId} onValueChange={setSelectedTargetId}>
             <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select Stage" />
+              <SelectValue placeholder="Select Target" />
             </SelectTrigger>
             <SelectContent>
-              {stages.map((s: any, idx: number) => (
+              {targets.map((s: any, idx: number) => (
                 <SelectItem key={s.id} value={s.id}>
-                  Stage {idx + 1}: {s.name}
+                  Target {idx + 1}: {s.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -59,7 +59,7 @@ export default function StageReportsPage() {
               </div>
               <div className="flex-1 w-full space-y-2">
                 <div className="flex justify-between text-sm font-medium">
-                  <span>Stage Timeline Progress</span>
+                  <span>Target Timeline Progress</span>
                   <span>{summary.progress}%</span>
                 </div>
                 <Progress value={summary.progress} className="h-3" />

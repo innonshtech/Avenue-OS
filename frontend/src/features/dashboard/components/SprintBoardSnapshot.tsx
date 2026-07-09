@@ -24,14 +24,14 @@ export default function SprintBoardSnapshot({ snapshot, isLoading }: BoardSnapsh
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
-              <Columns className="w-5 h-5 text-indigo-500" /> Stage Board Snapshot
+              <Columns className="w-5 h-5 text-indigo-500" /> Target Board Snapshot
             </CardTitle>
-            <CardDescription>Mini operational overview of the active stage</CardDescription>
+            <CardDescription>Mini operational overview of the active target</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12 text-muted-foreground border border-dashed rounded-lg">
-            No active stage board available.
+            No active target board available.
           </div>
         </CardContent>
       </Card>
@@ -43,9 +43,9 @@ export default function SprintBoardSnapshot({ snapshot, isLoading }: BoardSnapsh
       <CardHeader className="flex flex-row items-center justify-between pb-4">
         <div>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Columns className="w-5 h-5 text-indigo-500" /> Stage Board Snapshot
+            <Columns className="w-5 h-5 text-indigo-500" /> Target Board Snapshot
           </CardTitle>
-          <CardDescription>Mini operational overview of the active stage</CardDescription>
+          <CardDescription>Mini operational overview of the active target</CardDescription>
         </div>
         <div className="text-right">
           <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Total Points</span>

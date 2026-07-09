@@ -4,7 +4,7 @@ export class AdminRepository {
   async getOverviewStats() {
     const [
       totalProjects,
-      activeStages,
+      activeTargets,
       totalTasks,
       completedTasks,
       delayedTasks,
@@ -12,7 +12,7 @@ export class AdminRepository {
       activeMembers,
     ] = await Promise.all([
       prisma.project.count(),
-      prisma.stage.count({ where: { status: 'ACTIVE' } }),
+      prisma.target.count({ where: { status: 'ACTIVE' } }),
       prisma.task.count(),
       prisma.task.count({ where: { status: 'DONE' } }),
       prisma.task.count({
@@ -27,7 +27,7 @@ export class AdminRepository {
 
     return {
       totalProjects,
-      activeStages,
+      activeTargets,
       totalTasks,
       completedTasks,
       delayedTasks,
@@ -43,7 +43,7 @@ export class AdminRepository {
         tasks: {
           select: { status: true, dueDate: true }
         },
-        stages: {
+        targets: {
           where: { status: 'ACTIVE' },
           take: 1,
         },
@@ -54,8 +54,8 @@ export class AdminRepository {
     });
   }
 
-  async getAllStages() {
-    return prisma.stage.findMany({
+  async getAllTargets() {
+    return prisma.target.findMany({
       include: {
         project: true,
         tasks: {
@@ -112,7 +112,7 @@ export class AdminRepository {
       where: { isResolved: false },
       include: {
         task: {
-          include: { project: true, stage: true }
+          include: { project: true, target: true }
         },
         reporter: true,
       },

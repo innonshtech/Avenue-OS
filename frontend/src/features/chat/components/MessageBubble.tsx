@@ -76,7 +76,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onConvert
     // Matches PROJECT-SPS or PROJECT-HRMS
     // Matches @Name
     const tokens: React.ReactNode[] = [];
-    const entityRegex = /(@[a-zA-Z0-9_\-\.]+)|(PROJECT-[A-Z0-9]+)|(STAGE-[A-Z0-9\-]+)|([A-Z]+-[0-9]+)/gi;
+    const entityRegex = /(@[a-zA-Z0-9_\-\.]+)|(PROJECT-[A-Z0-9]+)|(TARGET-[A-Z0-9\-]+)|([A-Z]+-[0-9]+)/gi;
 
     let lastIndex = 0;
     let match;
@@ -108,11 +108,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onConvert
             {matchText}
           </Link>
         );
-      } else if (matchText.toUpperCase().startsWith('STAGE-')) {
+      } else if (matchText.toUpperCase().startsWith('TARGET-')) {
         tokens.push(
           <Link
             key={matchIndex}
-            to={`/dashboard/stages`}
+            to={`/dashboard/targets`}
             className="px-1.5 py-0.5 rounded bg-amber-600/10 text-amber-400 border border-amber-500/20 hover:bg-amber-600/20 transition-all font-bold text-xs"
           >
             {matchText}

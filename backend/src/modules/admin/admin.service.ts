@@ -11,16 +11,16 @@ export class AdminService {
       ? Math.round((stats.completedTasks / stats.totalTasks) * 100) 
       : 100;
        
-    const stageSuccessRate = 85; // This could be calculated from past stage reports
+    const targetSuccessRate = 85; // This could be calculated from past target reports
     const progressReportCompliance = 92; // Could be calculated from progress report logs vs active members
     
     return {
       ...stats,
       productivityScore,
-      stageSuccessRate,
+      targetSuccessRate,
       progressReportCompliance,
-      pendingReviews: Math.floor(stats.activeStages * 3), // mock
-      qaDelays: Math.floor(stats.activeStages * 1.5), // mock
+      pendingReviews: Math.floor(stats.activeTargets * 3), // mock
+      qaDelays: Math.floor(stats.activeTargets * 1.5), // mock
     };
   }
 
@@ -42,7 +42,7 @@ export class AdminService {
         name: p.name,
         status: p.status,
         owner: p.owner?.name,
-        activeStage: p.stages[0]?.name || 'None',
+        activeTarget: p.targets[0]?.name || 'None',
         completionPercent,
         totalTasks,
         completedTasks,
@@ -53,9 +53,9 @@ export class AdminService {
     });
   }
 
-  async getStages() {
-    const stages = await adminRepository.getAllStages();
-    return stages.map((s: any) => {
+  async getTargets() {
+    const targets = await adminRepository.getAllTargets();
+    return targets.map((s: any) => {
       const completedTasks = s.tasks.filter((t: any) => t.status === 'DONE').length;
       const totalTasks = s.tasks.length;
       const completionPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;

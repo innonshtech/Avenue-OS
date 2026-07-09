@@ -5,8 +5,8 @@ const dashboardService = new DashboardService();
 
 export const getSprintHealth = async (req: Request, res: Response) => {
   try {
-    const stageId = req.query.stageId as string || req.query.sprintId as string;
-    const data = await dashboardService.getStageHealth(stageId);
+    const targetId = req.query.targetId as string || req.query.sprintId as string;
+    const data = await dashboardService.getTargetHealth(targetId);
     res.json(data);
   } catch (error: any) {
     console.error(error);
@@ -16,8 +16,8 @@ export const getSprintHealth = async (req: Request, res: Response) => {
 
 export const getTeamWorkload = async (req: Request, res: Response) => {
   try {
-    const stageId = req.query.stageId as string || req.query.sprintId as string;
-    const data = await dashboardService.getTeamWorkload(stageId);
+    const targetId = req.query.targetId as string || req.query.sprintId as string;
+    const data = await dashboardService.getTeamWorkload(targetId);
     res.json(data);
   } catch (error) {
     console.error('Error fetching team workload:', error);
@@ -27,8 +27,8 @@ export const getTeamWorkload = async (req: Request, res: Response) => {
 
 export const getBoardSnapshot = async (req: Request, res: Response) => {
   try {
-    const stageId = req.query.stageId as string || req.query.sprintId as string;
-    const data = await dashboardService.getBoardSnapshot(stageId);
+    const targetId = req.query.targetId as string || req.query.sprintId as string;
+    const data = await dashboardService.getBoardSnapshot(targetId);
     res.json(data);
   } catch (error) {
     console.error('Error fetching board snapshot:', error);
@@ -38,8 +38,8 @@ export const getBoardSnapshot = async (req: Request, res: Response) => {
 
 export const getStandupMonitoring = async (req: Request, res: Response) => {
   try {
-    const stageId = req.query.stageId as string || req.query.sprintId as string;
-    const data = await dashboardService.getProgressReportMonitoring(stageId);
+    const targetId = req.query.targetId as string || req.query.sprintId as string;
+    const data = await dashboardService.getProgressReportMonitoring(targetId);
     res.json(data);
   } catch (error) {
     console.error('Error fetching progress report monitoring:', error);
@@ -49,8 +49,8 @@ export const getStandupMonitoring = async (req: Request, res: Response) => {
 
 export const getPMSummary = async (req: Request, res: Response) => {
   try {
-    const stageId = req.query.stageId as string || req.query.sprintId as string;
-    const data = await dashboardService.getPMSummary(stageId);
+    const targetId = req.query.targetId as string || req.query.sprintId as string;
+    const data = await dashboardService.getPMSummary(targetId);
     res.json(data);
   } catch (error) {
     console.error('Error fetching PM summary:', error);

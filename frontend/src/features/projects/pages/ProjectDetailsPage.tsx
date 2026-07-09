@@ -30,7 +30,7 @@ export default function ProjectDetailsPage() {
   if (isLoading) return <div className="flex justify-center p-10">Loading project...</div>;
   if (!project) return <div>Project not found.</div>;
 
-  const projectStages = project.stages || [];
+  const projectTargets = project.targets || [];
   const projectTasks = project.tasks || [];
   
   const completedTasks = projectTasks.filter(t => t.status === 'DONE').length;
@@ -129,11 +129,11 @@ export default function ProjectDetailsPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-medium flex items-center text-muted-foreground">
                   <Target className="w-3 h-3 mr-1" />
-                  Active Stages
+                  Active Targets
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{projectStages.filter((s: any) => s.status === 'ACTIVE').length}</div>
+                <div className="text-2xl font-bold">{projectTargets.filter((s: any) => s.status === 'ACTIVE').length}</div>
               </CardContent>
             </Card>
             <Card className="bg-card shadow-soft border-muted">
@@ -151,37 +151,37 @@ export default function ProjectDetailsPage() {
         </div>
       </div>
 
-      <h2 className="text-xl font-semibold mt-10 mb-4">Stages</h2>
+      <h2 className="text-xl font-semibold mt-10 mb-4">Targets</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {projectStages.map((stage: any) => (
-          <Link key={stage.id} to={`/dashboard/stages/${stage.id}`} className="group outline-none">
+        {projectTargets.map((target: any) => (
+          <Link key={target.id} to={`/dashboard/targets/${target.id}`} className="group outline-none">
             <Card className="h-full bg-card shadow-soft hover:shadow-md transition-all duration-200 border-muted group-hover:border-indigo-500/30 group-focus-visible:ring-2 ring-indigo-500">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between mb-2">
-                  <Badge variant={stage.status === 'ACTIVE' ? 'default' : 'secondary'} className={stage.status === 'ACTIVE' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' : ''}>
-                    {stage.status}
+                  <Badge variant={target.status === 'ACTIVE' ? 'default' : 'secondary'} className={target.status === 'ACTIVE' ? 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' : ''}>
+                    {target.status}
                   </Badge>
                   <span className="text-xs text-muted-foreground flex items-center">
                     <Clock className="w-3 h-3 mr-1" />
-                    {new Date(stage.endDate).toLocaleDateString()}
+                    {new Date(target.endDate).toLocaleDateString()}
                   </span>
                 </div>
-                <CardTitle className="text-lg group-hover:text-indigo-600 transition-colors">{stage.name}</CardTitle>
+                <CardTitle className="text-lg group-hover:text-indigo-600 transition-colors">{target.name}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground line-clamp-2">{stage.goal}</p>
+                <p className="text-sm text-muted-foreground line-clamp-2">{target.goal}</p>
                 <div className="flex items-center gap-2 mt-4 text-xs font-medium text-foreground">
                   <Activity className="w-4 h-4 text-indigo-500" />
-                  View Stage Dashboard
+                  View Target Dashboard
                 </div>
               </CardContent>
             </Card>
           </Link>
         ))}
-        {projectStages.length === 0 && (
+        {projectTargets.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center py-12 text-center bg-card rounded-lg border border-dashed border-border">
             <LayoutDashboard className="w-8 h-8 text-muted-foreground mb-3" />
-            <h3 className="text-sm font-medium">No stages yet</h3>
+            <h3 className="text-sm font-medium">No targets yet</h3>
           </div>
         )}
       </div>

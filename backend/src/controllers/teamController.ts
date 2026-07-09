@@ -22,8 +22,8 @@ export const getTeam = async (req: Request, res: Response) => {
         rfisReported: {
           where: { isResolved: false }
         },
-        stageMembers: {
-          include: { stage: true }
+        targetMembers: {
+          include: { target: true }
         }
       }
     });
@@ -31,7 +31,7 @@ export const getTeam = async (req: Request, res: Response) => {
     const formattedTeam = team.map(u => {
       const assignedTasks = u.tasksAssigned.length;
       const completedTasks = u.tasksAssigned.filter(t => t.status === 'DONE').length;
-      const activeStage = u.stageMembers.find(sm => sm.stage.status === 'ACTIVE')?.stage;
+      const activeTarget = u.targetMembers.find(sm => sm.target.status === 'ACTIVE')?.target;
       
       // Calculate utilization based on relative scale of active tasks
       const activeTasks = u.tasksAssigned.filter(t => t.status !== 'DONE').length;
@@ -47,7 +47,7 @@ export const getTeam = async (req: Request, res: Response) => {
         avatar: u.avatar,
         assignedTasks,
         completedTasks,
-        activeStage: activeStage ? activeStage.name : null,
+        activeTarget: activeTarget ? activeTarget.name : null,
         blockersCount: u.rfisReported.length,
         utilizationPercent: Math.round(utilizationPercent),
         isOnline: Math.random() > 0.5 // mock online status
@@ -69,7 +69,7 @@ export const getTeamMember = async (req: Request, res: Response) => {
       where: { id },
       include: {
         tasksAssigned: true,
-        stageMembers: { include: { stage: true } },
+        targetMembers: { include: { target: true } },
         rfisReported: true,
         progressReports: true,
         projectMembers: { include: { project: true } }
@@ -140,18 +140,18 @@ export const assignSprint = async (req: Request, res: Response) => {
   if (!checkPMRole(req, res)) return;
   try {
     const { id } = req.params;
-    const { stageId } = req.body;
+    const { targetId } = req.body;
 
-    const sm = await prisma.stageMember.create({
+    const sm = await prisma.targetMember.create({
       data: {
         userId: id,
-        stageId
+        targetId
       }
     });
 
     res.status(200).json(sm);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to assign stage' });
+    res.status(500).json({ error: 'Failed to assign target' });
   }
 };
 
@@ -194,10 +194,14 @@ export const updateTeamMember = async (req: Request, res: Response) => {
   if (!checkPMRole(req, res)) return;
   try {
     const { id } = req.params;
-    const { name, role, department, avatar, isActive } = req.body;
+    const { name, email, password, role, department, avatar, isActive } = req.body;
     
     const dataToUpdate: any = {};
     if (name) dataToUpdate.name = name;
+    if (email) dataToUpdate.email = email;
+    if (password) {
+      dataToUpdate.password = await bcrypt.hash(password, 10);
+    }
     if (role) dataToUpdate.role = role;
     if (department) dataToUpdate.department = department;
     if (avatar !== undefined) dataToUpdate.avatar = avatar;

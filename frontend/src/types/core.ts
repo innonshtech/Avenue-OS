@@ -1,5 +1,5 @@
 export type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'ARCHIVED';
-export type StageStatus = 'PLANNED' | 'ACTIVE' | 'COMPLETED' | 'CANCELED';
+export type TargetStatus = 'PLANNED' | 'ACTIVE' | 'COMPLETED' | 'CANCELED';
 export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'INTERNAL_REVIEW' | 'EXTERNAL_REVIEW' | 'MODIFICATION_REQUIRED' | 'APPROVED' | 'DONE';
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT' | 'CRITICAL';
 export type RFISeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -24,17 +24,18 @@ export interface Project {
   updatedAt: string;
   startDate?: string | null;
   deadline?: string | null;
-  stages?: Stage[];
+  targets?: Target[];
   tasks?: Task[];
 }
 
-export interface Stage {
+export interface Target {
   id: string;
   name: string;
   goal: string | null;
   startDate: string;
   endDate: string;
-  status: StageStatus;
+  status: TargetStatus;
+  budgetedHours?: number | null;
   projectId: string;
   createdAt: string;
   updatedAt: string;
@@ -47,14 +48,17 @@ export interface Task {
   key: string;
   title: string;
   description: string | null;
+  taskCategory?: string | null;
   type: string; // DESIGN, DRAFTING, MODELING, ANALYSIS, SITE_CHECK, REVIEW
   status: TaskStatus;
   priority: TaskPriority;
   storyPoints: number | null;
+  estimatedHours?: number | null;
+  actualHours?: number | null;
   drawingNumber: string | null;
   revisionNumber: string | null;
   projectId: string;
-  stageId: string | null;
+  targetId: string | null;
   assigneeId: string | null;
   creatorId: string;
   createdAt: string;
@@ -62,7 +66,7 @@ export interface Task {
 
   // Optional relations and extra fields returned by API
   project?: Project;
-  stage?: Stage;
+  target?: Target;
   assignee?: any;
   creator?: any;
   comments?: any[];
@@ -102,9 +106,9 @@ export interface ProgressReport {
   today: string;
   blockers: string | null;
   userId: string;
-  stageId: string;
+  targetId: string;
   createdAt: string;
-  stage?: Stage & { project?: Project };
+  target?: Target & { project?: Project };
   task?: Task;
   reportedRFIs?: RFI[];
 }

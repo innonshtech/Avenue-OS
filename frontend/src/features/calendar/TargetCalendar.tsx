@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
-import { useStages } from '@/features/stages/api/stageApi';
+import { useTargets } from '@/features/targets/api/targetApi';
 import { useTasks } from '@/features/tasks/api/taskApi';
 import { useProjects } from '@/features/projects/api/projectApi';
 import { useAuthStore } from '@/features/auth/store/authStore';
@@ -13,14 +13,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 
-export const StageCalendar: React.FC = () => {
-  const { data: stages = [] } = useStages();
+export const TargetCalendar: React.FC = () => {
+  const { data: targets = [] } = useTargets();
   const { data: tasks = [] } = useTasks();
   const { data: projects = [] } = useProjects();
   const { user: currentUser } = useAuthStore();
 
   const [showTasks, setShowTasks] = useState(true);
-  const [showStages, setShowStages] = useState(true);
+  const [showTargets, setShowTargets] = useState(true);
   const [onlyMyTasks, setOnlyMyTasks] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
   const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null);
@@ -29,27 +29,27 @@ export const StageCalendar: React.FC = () => {
   const calendarEvents = useMemo(() => {
     const events: any[] = [];
 
-    // 1. Stages mapping
-    if (showStages) {
-      stages.forEach((stage: any) => {
+    // 1. Targets mapping
+    if (showTargets) {
+      targets.forEach((target: any) => {
         let color = '#4f46e5'; // Indigo for active
-        if (stage.status === 'PLANNED') color = '#0ea5e9'; // Light Blue
-        if (stage.status === 'COMPLETED') color = '#10b981'; // Emerald
+        if (target.status === 'PLANNED') color = '#0ea5e9'; // Light Blue
+        if (target.status === 'COMPLETED') color = '#10b981'; // Emerald
 
         events.push({
-          id: `stage-${stage.id}`,
-          title: `🏗️ STAGE: ${stage.name}`,
-          start: stage.startDate,
-          end: stage.endDate,
+          id: `target-${target.id}`,
+          title: `🏗️ TARGET: ${target.name}`,
+          start: target.startDate,
+          end: target.endDate,
           allDay: true,
           backgroundColor: color,
           borderColor: 'transparent',
           textColor: '#ffffff',
           extendedProps: {
-            type: 'stage',
-            status: stage.status,
-            goal: stage.goal,
-            projectId: stage.projectId
+            type: 'target',
+            status: target.status,
+            goal: target.goal,
+            projectId: target.projectId
           }
         });
       });
@@ -93,11 +93,11 @@ export const StageCalendar: React.FC = () => {
     }
 
     return events;
-  }, [stages, tasks, showTasks, showStages, onlyMyTasks, currentUser]);
+  }, [targets, tasks, showTasks, showTargets, onlyMyTasks, currentUser]);
 
   const handleEventClick = (info: any) => {
     const props = info.event.extendedProps;
-    const id = info.event.id.replace('stage-', '').replace('task-', '');
+    const id = info.event.id.replace('target-', '').replace('task-', '');
     
     setSelectedEvent({
       id,
@@ -133,16 +133,16 @@ export const StageCalendar: React.FC = () => {
           </CardHeader>
           <CardContent className="pt-4 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground font-semibold">Show Stages</span>
+              <span className="text-xs text-muted-foreground font-semibold">Show Targets</span>
               <button
-                onClick={() => setShowStages(!showStages)}
+                onClick={() => setShowTargets(!showTargets)}
                 className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                  showStages ? 'bg-primary' : 'bg-muted'
+                  showTargets ? 'bg-primary' : 'bg-muted'
                 }`}
               >
                 <span
                   className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                    showStages ? 'translate-x-5' : 'translate-x-0'
+                    showTargets ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
               </button>
@@ -199,7 +199,7 @@ export const StageCalendar: React.FC = () => {
                 <h4 className="text-sm font-bold leading-snug">{selectedEvent.title}</h4>
               </div>
 
-              {selectedEvent.type === 'stage' && (
+              {selectedEvent.type === 'target' && (
                 <>
                   <div>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Status</p>
@@ -209,7 +209,7 @@ export const StageCalendar: React.FC = () => {
                   </div>
                   {selectedEvent.goal && (
                     <div>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Stage Goal</p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Target Goal</p>
                       <p className="text-xs text-muted-foreground leading-relaxed">{selectedEvent.goal}</p>
                     </div>
                   )}
@@ -309,4 +309,4 @@ export const StageCalendar: React.FC = () => {
   );
 };
 
-export default StageCalendar;
+export default TargetCalendar;

@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Activity, Zap, AlertTriangle, LayoutDashboard } from 'lucide-react';
+import { Activity, Zap, AlertTriangle, LayoutDashboard, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,11 +7,11 @@ interface KPIsProps {
   activeProjects: number;
   totalActiveTasks: number;
   globalBlockers: number;
-  teamVelocity: number;
+  weeklyManHours: number;
   isLoading?: boolean;
 }
 
-export default function DashboardKPIs({ activeProjects, totalActiveTasks, globalBlockers, teamVelocity, isLoading }: KPIsProps) {
+export default function DashboardKPIs({ activeProjects, totalActiveTasks, globalBlockers, weeklyManHours, isLoading }: KPIsProps) {
   const navigate = useNavigate();
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -61,7 +61,7 @@ export default function DashboardKPIs({ activeProjects, totalActiveTasks, global
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
         <Card 
-          className="bg-card shadow-soft border-red-500/20 hover:border-red-500/50 transition-all cursor-pointer group hover:shadow-md"
+          className="bg-card shadow-soft border-muted hover:border-red-500/50 transition-all cursor-pointer group hover:shadow-md"
           onClick={() => navigate('/dashboard/tasks?blocked=true')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -87,7 +87,7 @@ export default function DashboardKPIs({ activeProjects, totalActiveTasks, global
           onClick={() => navigate('/dashboard/reports')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Team Velocity</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">Weekly Man-Hours</CardTitle>
             <div className="bg-emerald-500/10 p-2 rounded-md group-hover:bg-emerald-500/20 transition-colors">
               <Activity className="h-4 w-4 text-emerald-500" />
             </div>
@@ -96,10 +96,10 @@ export default function DashboardKPIs({ activeProjects, totalActiveTasks, global
             {isLoading ? (
               <div className="h-8 w-24 bg-muted animate-pulse rounded-md mt-1"></div>
             ) : (
-              <div className="text-2xl font-bold">{teamVelocity} pts</div>
+              <div className="text-2xl font-bold">{weeklyManHours} hrs</div>
             )}
             <p className="text-xs text-emerald-500 mt-1 font-medium flex items-center">
-              <Activity className="w-3 h-3 mr-1" /> Trending upward
+              <TrendingUp className="w-3 h-3 mr-1" /> Trending upward
             </p>
           </CardContent>
         </Card>

@@ -1,13 +1,13 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 
-// Helper to get current active stage for user if not provided
-const resolveStageId = async (stageId?: string): Promise<string | null> => {
-  if (stageId) return stageId;
-  const activeStage = await prisma.stage.findFirst({
+// Helper to get current active target for user if not provided
+const resolveTargetId = async (targetId?: string): Promise<string | null> => {
+  if (targetId) return targetId;
+  const activeTarget = await prisma.target.findFirst({
     where: { status: 'ACTIVE' }
   });
-  return activeStage?.id || null;
+  return activeTarget?.id || null;
 };
 
 export const getSprintSummary = async (req: Request, res: Response) => {
@@ -15,30 +15,30 @@ export const getSprintSummary = async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const stageId = await resolveStageId(req.query.sprintId as string || req.query.stageId as string);
-    if (!stageId) return res.status(404).json({ error: 'No active stage found' });
+    const targetId = await resolveTargetId(req.query.sprintId as string || req.query.targetId as string);
+    if (!targetId) return res.status(404).json({ error: 'No active target found' });
 
-    const stage = await prisma.stage.findUnique({
-      where: { id: stageId }
+    const target = await prisma.target.findUnique({
+      where: { id: targetId }
     });
-    if (!stage) return res.status(404).json({ error: 'Stage not found' });
+    if (!target) return res.status(404).json({ error: 'Target not found' });
 
     const now = new Date();
-    const totalDays = Math.ceil((stage.endDate.getTime() - stage.startDate.getTime()) / (1000 * 60 * 60 * 24));
-    const elapsedDays = Math.max(0, Math.ceil((now.getTime() - stage.startDate.getTime()) / (1000 * 60 * 60 * 24)));
+    const totalDays = Math.ceil((target.endDate.getTime() - target.startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const elapsedDays = Math.max(0, Math.ceil((now.getTime() - target.startDate.getTime()) / (1000 * 60 * 60 * 24)));
     const daysRemaining = Math.max(0, totalDays - elapsedDays);
     const progress = Math.min(100, Math.round((elapsedDays / totalDays) * 100)) || 0;
 
     res.status(200).json({
-      id: stage.id,
-      name: stage.name,
+      id: target.id,
+      name: target.name,
       totalDays,
       elapsedDays,
       daysRemaining,
       progress
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch stage summary' });
+    res.status(500).json({ error: 'Failed to fetch target summary' });
   }
 };
 
@@ -47,13 +47,13 @@ export const getCompletedTasks = async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const stageId = await resolveStageId(req.query.sprintId as string || req.query.stageId as string);
-    if (!stageId) return res.status(404).json({ error: 'No stage found' });
+    const targetId = await resolveTargetId(req.query.sprintId as string || req.query.targetId as string);
+    if (!targetId) return res.status(404).json({ error: 'No target found' });
 
     const tasks = await prisma.task.findMany({
       where: {
         assigneeId: userId,
-        stageId,
+        targetId,
         status: 'DONE'
       },
       orderBy: { updatedAt: 'desc' }
@@ -70,13 +70,13 @@ export const getPendingTasks = async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const stageId = await resolveStageId(req.query.sprintId as string || req.query.stageId as string);
-    if (!stageId) return res.status(404).json({ error: 'No stage found' });
+    const targetId = await resolveTargetId(req.query.sprintId as string || req.query.targetId as string);
+    if (!targetId) return res.status(404).json({ error: 'No target found' });
 
     const tasks = await prisma.task.findMany({
       where: {
         assigneeId: userId,
-        stageId,
+        targetId,
         status: { not: 'DONE' }
       },
       orderBy: { dueDate: 'asc' }
@@ -113,41 +113,41 @@ export const getProductivity = async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const stageId = await resolveStageId(req.query.sprintId as string || req.query.stageId as string);
-    if (!stageId) return res.status(404).json({ error: 'No stage found' });
+    const targetId = await resolveTargetId(req.query.sprintId as string || req.query.targetId as string);
+    if (!targetId) return res.status(404).json({ error: 'No target found' });
 
     const completed = await prisma.task.count({
-      where: { assigneeId: userId, stageId, status: 'DONE' }
+      where: { assigneeId: userId, targetId, status: 'DONE' }
     });
 
     const pending = await prisma.task.count({
-      where: { assigneeId: userId, stageId, status: { not: 'DONE' } }
+      where: { assigneeId: userId, targetId, status: { not: 'DONE' } }
     });
 
     const blockersCount = await prisma.rFI.count({
-      where: { reporterId: userId, task: { stageId } }
+      where: { reporterId: userId, task: { targetId } }
     });
 
     const totalTasks = completed + pending;
     const completionRate = totalTasks > 0 ? (completed / totalTasks) * 100 : 0;
 
     const allStoryPoints = await prisma.task.aggregate({
-      where: { assigneeId: userId, stageId, status: 'DONE' },
+      where: { assigneeId: userId, targetId, status: 'DONE' },
       _sum: { storyPoints: true }
     });
     
-    // Calculate or fetch MemberStageStats
-    let stats = await prisma.memberStageStats.findFirst({
-      where: { userId, stageId }
+    // Calculate or fetch MemberTargetStats
+    let stats = await prisma.memberTargetStats.findFirst({
+      where: { userId, targetId }
     });
 
     const storyPointsSum = allStoryPoints._sum?.storyPoints || 0;
 
     if (!stats) {
-      stats = await prisma.memberStageStats.create({
+      stats = await prisma.memberTargetStats.create({
         data: {
           userId,
-          stageId,
+          targetId,
           completedTasks: completed,
           pendingTasks: pending,
           storyPoints: storyPointsSum,
@@ -157,7 +157,7 @@ export const getProductivity = async (req: Request, res: Response) => {
       });
     } else {
       // Update with latest dynamically calculated
-      stats = await prisma.memberStageStats.update({
+      stats = await prisma.memberTargetStats.update({
         where: { id: stats.id },
         data: {
           completedTasks: completed,

@@ -9,11 +9,11 @@ import { ChatService } from '../modules/chat/chat.service';
 
 export const getTasks = async (req: Request, res: Response) => {
   try {
-    const { projectId, stageId, assigneeId, isArchived } = req.query;
+    const { projectId, targetId, assigneeId, isArchived } = req.query;
     
     const query: any = {};
     if (projectId) query.projectId = String(projectId);
-    if (stageId) query.stageId = String(stageId);
+    if (targetId) query.targetId = String(targetId);
     
     if (assigneeId) {
       query.assigneeId = String(assigneeId);
@@ -26,7 +26,7 @@ export const getTasks = async (req: Request, res: Response) => {
       include: {
         assignee: true,
         project: true,
-        stage: true,
+        target: true,
         rfis: {
           where: { isResolved: false }
         }
@@ -49,7 +49,7 @@ export const getTaskById = async (req: Request, res: Response) => {
         assignee: true,
         creator: true,
         project: true,
-        stage: true,
+        target: true,
         rfis: true,
         subtasks: {
           orderBy: { createdAt: 'asc' }
@@ -84,28 +84,31 @@ export const getTaskById = async (req: Request, res: Response) => {
 
 export const createTask = async (req: Request, res: Response) => {
   try {
-    const { key, title, description, type, status, priority, storyPoints, drawingNumber, revisionNumber, projectId, stageId, assigneeId, creatorId } = req.body;
+    const { key, title, description, taskCategory, type, status, priority, storyPoints, estimatedHours, actualHours, drawingNumber, revisionNumber, projectId, targetId, assigneeId, creatorId } = req.body;
 
     const task = await prisma.task.create({
       data: {
         key,
         title,
         description,
-        type: type || 'DESIGN',
+        taskCategory: taskCategory || 'DESIGN',
+        type: type || 'MODELING',
         status: status || 'PENDING',
         priority: priority || 'MEDIUM',
         storyPoints: storyPoints ? parseInt(storyPoints) : null,
+        estimatedHours: estimatedHours ? parseFloat(estimatedHours) : null,
+        actualHours: actualHours ? parseFloat(actualHours) : null,
         drawingNumber,
         revisionNumber,
         projectId,
-        stageId,
+        targetId,
         assigneeId,
         creatorId,
       },
       include: {
         assignee: true,
         project: true,
-        stage: true,
+        target: true,
         rfis: true
       }
     });
@@ -119,7 +122,7 @@ export const createTask = async (req: Request, res: Response) => {
         assigneeEmail: task.assignee.email,
         assigneeName: task.assignee.name,
         projectName: task.project.name,
-        sprintName: task.stage ? task.stage.name : 'Unassigned',
+        sprintName: task.target ? task.target.name : 'Unassigned',
         taskTitle: task.title,
         taskKey: task.key,
         priority: task.priority,
@@ -182,12 +185,15 @@ export const updateTask = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Forbidden: You can only edit your own assigned tasks' });
     }
 
-    const { title, description, type, status, priority, storyPoints, drawingNumber, revisionNumber, stageId, assigneeId, dueDate, startDate, acceptanceCriteria, labels } = req.body;
+    const { title, description, taskCategory, type, status, priority, storyPoints, estimatedHours, actualHours, drawingNumber, revisionNumber, targetId, assigneeId, dueDate, startDate, acceptanceCriteria, labels } = req.body;
 
     const dataToUpdate: any = {};
     if (title !== undefined) dataToUpdate.title = title;
     if (description !== undefined) dataToUpdate.description = description;
+    if (taskCategory !== undefined) dataToUpdate.taskCategory = taskCategory;
     if (type !== undefined) dataToUpdate.type = type;
+    if (estimatedHours !== undefined) dataToUpdate.estimatedHours = estimatedHours ? parseFloat(estimatedHours) : null;
+    if (actualHours !== undefined) dataToUpdate.actualHours = actualHours ? parseFloat(actualHours) : null;
     const fromInternalReviewToDone = (existingTask.status === 'INTERNAL_REVIEW' && status === 'DONE');
     if (status !== undefined) {
       dataToUpdate.status = status;
@@ -200,7 +206,7 @@ export const updateTask = async (req: Request, res: Response) => {
     if (storyPoints !== undefined) dataToUpdate.storyPoints = storyPoints ? parseInt(storyPoints) : null;
     if (drawingNumber !== undefined) dataToUpdate.drawingNumber = drawingNumber;
     if (revisionNumber !== undefined) dataToUpdate.revisionNumber = revisionNumber;
-    if (stageId !== undefined) dataToUpdate.stageId = stageId;
+    if (targetId !== undefined) dataToUpdate.targetId = targetId;
     if (assigneeId !== undefined) dataToUpdate.assigneeId = assigneeId;
     if (dueDate !== undefined) dataToUpdate.dueDate = dueDate ? new Date(dueDate) : null;
     if (startDate !== undefined) dataToUpdate.startDate = startDate ? new Date(startDate) : null;
@@ -273,7 +279,7 @@ export const updateTask = async (req: Request, res: Response) => {
       if (description !== undefined && description !== existingTask.description) changes.push('description');
       if (statusChanged) changes.push(`status to ${status}`);
       if (priority !== undefined && priority !== existingTask.priority) changes.push(`priority to ${priority}`);
-      if (stageId !== undefined && stageId !== existingTask.stageId) changes.push('stage');
+      if (targetId !== undefined && targetId !== existingTask.targetId) changes.push('target');
 
       if (changes.length > 0) {
         await inAppNotificationService.createNotification(
@@ -313,14 +319,14 @@ export const deleteTask = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Only Project Managers or Admins can delete tasks' });
     }
 
-    // Soft delete: remove stage and archive
+    // Soft delete: remove target and archive
     const task = await prisma.task.update({
       where: { id },
       data: {
         isArchived: true,
         archivedAt: new Date(),
         archivedById: user?.id,
-        stageId: null // Remove from stage
+        targetId: null // Remove from target
       }
     });
     
@@ -422,7 +428,7 @@ export const restoreTask = async (req: Request, res: Response) => {
 export const moveSprint = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { stageId } = req.body;
+    const { targetId } = req.body;
     const user = req.user;
     
     // Check edit permission
@@ -435,13 +441,13 @@ export const moveSprint = async (req: Request, res: Response) => {
 
     const task = await prisma.task.update({
       where: { id },
-      data: { stageId }
+      data: { targetId }
     });
 
     try {
       const io = getIO();
       io.to(`project:${task.projectId}`).to('organization').emit(SOCKET_EVENTS.TASK_UPDATED, {
-        action: 'MOVE_STAGE',
+        action: 'MOVE_TARGET',
         taskId: task.id,
         projectId: task.projectId
       });
@@ -452,7 +458,7 @@ export const moveSprint = async (req: Request, res: Response) => {
     res.status(200).json(task);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to move task to stage' });
+    res.status(500).json({ error: 'Failed to move task to target' });
   }
 };
 
@@ -463,7 +469,7 @@ export const getMyTasks = async (req: Request, res: Response) => {
 
     const tasks = await prisma.task.findMany({
       where: { assigneeId: userId },
-      include: { project: true, stage: true, rfis: { where: { isResolved: false } } },
+      include: { project: true, target: true, rfis: { where: { isResolved: false } } },
       orderBy: { createdAt: 'desc' }
     });
     res.status(200).json(tasks);

@@ -17,11 +17,11 @@ export default function FeedbacksPage() {
 
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [comparison, setComparison] = useState<any>(null);
-  const [stages, setStages] = useState<any[]>([]);
+  const [targets, setTargets] = useState<any[]>([]);
   
   // Form state
-  const [selectedStage, setSelectedStage] = useState('');
-  const [category, setCategory] = useState('STAGE');
+  const [selectedTarget, setSelectedTarget] = useState('');
+  const [category, setCategory] = useState('TARGET');
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -31,11 +31,11 @@ export default function FeedbacksPage() {
         const [fb, comp, sp] = await Promise.all([
           api.get('/feedbacks').then(res => res.data).catch(() => []),
           api.get('/feedbacks/comparison').then(res => res.data).catch(() => null),
-          api.get('/stages').then(res => res.data).catch(() => []),
+          api.get('/targets').then(res => res.data).catch(() => []),
         ]);
         setFeedbacks(fb);
         setComparison(comp);
-        setStages(sp);
+        setTargets(sp);
       } catch (error) {
         console.error('Failed to fetch feedback data', error);
       } finally {
@@ -47,10 +47,10 @@ export default function FeedbacksPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStage || !content) return;
+    if (!selectedTarget || !content) return;
     try {
       const newFb = await api.post('/feedbacks', {
-        stageId: selectedStage,
+        targetId: selectedTarget,
         category,
         content
       });
@@ -68,7 +68,7 @@ export default function FeedbacksPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Retrospectives & Feedback</h1>
-        <p className="text-muted-foreground mt-2">Continuous improvement and stage analysis.</p>
+        <p className="text-muted-foreground mt-2">Continuous improvement and target analysis.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -106,7 +106,7 @@ export default function FeedbacksPage() {
                     <p className="font-semibold text-emerald-600">{comparison.deadlineIssues}</p>
                   </div>
                   <div className="p-4 bg-background/50 rounded-lg backdrop-blur-sm border">
-                    <p className="text-sm text-muted-foreground mb-1">Stage Health</p>
+                    <p className="text-sm text-muted-foreground mb-1">Target Health</p>
                     <p className="font-semibold text-indigo-600">{comparison.sprintHealthChanges}</p>
                   </div>
                 </div>
@@ -120,18 +120,18 @@ export default function FeedbacksPage() {
           <Card>
             <CardHeader>
               <CardTitle>Submit Feedback</CardTitle>
-              <CardDescription>Share your thoughts on the stage</CardDescription>
+              <CardDescription>Share your thoughts on the target</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Select Stage</label>
-                  <Select value={selectedStage} onValueChange={setSelectedStage}>
+                  <label className="text-sm font-medium">Select Target</label>
+                  <Select value={selectedTarget} onValueChange={setSelectedTarget}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Stage" />
+                      <SelectValue placeholder="Select Target" />
                     </SelectTrigger>
                     <SelectContent>
-                      {stages.map(s => (
+                      {targets.map(s => (
                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -145,7 +145,7 @@ export default function FeedbacksPage() {
                       <SelectValue placeholder="Select Category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="STAGE">Stage Overall</SelectItem>
+                      <SelectItem value="TARGET">Target Overall</SelectItem>
                       <SelectItem value="TASK_ASSIGNMENT">Task Assignment</SelectItem>
                       <SelectItem value="DEADLINE">Deadlines</SelectItem>
                       <SelectItem value="COMMUNICATION">Communication</SelectItem>
@@ -190,7 +190,7 @@ export default function FeedbacksPage() {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold">{fb.user?.name}</span>
-                        <span className="text-xs text-muted-foreground">• {fb.stage?.name}</span>
+                        <span className="text-xs text-muted-foreground">• {fb.target?.name}</span>
                         <span className="text-xs bg-muted px-2 py-0.5 rounded-full">{fb.category}</span>
                       </div>
                       <p className="text-sm">{fb.content}</p>

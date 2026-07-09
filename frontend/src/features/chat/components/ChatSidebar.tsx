@@ -43,7 +43,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onSearchOpen }) => {
   const announcements = channels.filter((c) => c.type === 'ANNOUNCEMENT').sort(sortByLatest);
   const dms = channels.filter((c) => c.type === 'DIRECT').sort(sortByLatest);
   const projectChannels = channels.filter((c) => c.type === 'PROJECT').sort(sortByLatest);
-  const stageChannels = channels.filter((c) => c.type === 'STAGE').sort(sortByLatest);
+  const targetChannels = channels.filter((c) => c.type === 'TARGET').sort(sortByLatest);
   const recentDiscussions = channels.filter((c) => c.type === 'TASK' || c.type === 'RFI').sort(sortByLatest);
 
   return (
@@ -131,16 +131,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onSearchOpen }) => {
               )}
             </div>
 
-            {/* Stage Channels */}
+            {/* Target Channels */}
             <div className="space-y-1">
               <div className="text-xs font-extrabold text-zinc-500 uppercase tracking-wider px-2.5 mb-1.5 flex items-center justify-between">
-                <span>Stages</span>
+                <span>Targets</span>
                 <Layers className="w-3.5 h-3.5" />
               </div>
-              {stageChannels.length === 0 ? (
-                <div className="text-xs text-zinc-400 italic px-2.5">No active stage rooms</div>
+              {targetChannels.length === 0 ? (
+                <div className="text-xs text-zinc-400 italic px-2.5">No active target rooms</div>
               ) : (
-                stageChannels.map((c) => (
+                targetChannels.map((c) => (
                   <button
                     key={c.id}
                     onClick={() => setActiveChannelId(c.id)}

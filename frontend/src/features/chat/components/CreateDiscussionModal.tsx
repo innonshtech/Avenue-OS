@@ -39,7 +39,7 @@ export const CreateDiscussionModal: React.FC<CreateDiscussionModalProps> = ({ is
       type: 'TASK',
       taskId: task.id,
       projectId: task.projectId,
-      stageId: task.stageId,
+      targetId: task.targetId,
       memberIds: selectedMembers,
     }, {
       onSuccess: () => {
@@ -148,7 +148,7 @@ export const CreateDiscussionModal: React.FC<CreateDiscussionModalProps> = ({ is
             <Textarea 
               value={initialMessage}
               onChange={(e) => setInitialMessage(e.target.value)}
-              placeholder="Add discussion context... e.g. Please review structural details before stage deadline."
+              placeholder="Add discussion context... e.g. Please review structural details before target deadline."
               className="bg-zinc-900 border-zinc-800 text-sm resize-none focus-visible:ring-indigo-500"
               rows={3}
             />
