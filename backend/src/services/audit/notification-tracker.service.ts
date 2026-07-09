@@ -20,7 +20,7 @@ export class NotificationTrackerService {
     receiverId: string;
     receiverEmail: string;
     taskId?: string;
-    stageId?: string;
+    targetId?: string;
     projectId?: string;
   }) {
     let mailSent = false;
@@ -56,7 +56,7 @@ export class NotificationTrackerService {
           senderId: data.senderId,
           receiverId: data.receiverId,
           taskId: data.taskId,
-          stageId: data.stageId,
+          targetId: data.targetId,
           projectId: data.projectId,
           mailSent,
           deliveryStatus,

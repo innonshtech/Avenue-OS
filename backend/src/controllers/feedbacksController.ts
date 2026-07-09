@@ -5,19 +5,19 @@ export const createFeedback = async (req: Request, res: Response) => {
   try {
     const { 
       content, sentiment, category, wentWell, wentWrong, improvement, 
-      realisticPlanning, achievableDeadlines, fairDistribution, blockerPatterns, stageId 
+      realisticPlanning, achievableDeadlines, fairDistribution, blockerPatterns, targetId 
     } = req.body;
     const userId = req.user?.id;
 
-    if (!userId || !stageId) {
-      return res.status(400).json({ error: 'User ID and Stage ID are required' });
+    if (!userId || !targetId) {
+      return res.status(400).json({ error: 'User ID and Target ID are required' });
     }
 
     const feedback = await prisma.feedback.create({
       data: {
         content,
         sentiment,
-        category: category || 'STAGE',
+        category: category || 'TARGET',
         wentWell,
         wentWrong,
         improvement,
@@ -26,7 +26,7 @@ export const createFeedback = async (req: Request, res: Response) => {
         fairDistribution,
         blockerPatterns,
         userId,
-        stageId
+        targetId
       }
     });
 
@@ -44,17 +44,17 @@ export const getFeedbacks = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Only Project Managers or Admins can view all feedbacks' });
     }
 
-    const { stageId, category } = req.query;
+    const { targetId, category } = req.query;
 
     const filters: any = {};
-    if (stageId) filters.stageId = String(stageId);
+    if (targetId) filters.targetId = String(targetId);
     if (category) filters.category = String(category);
 
     const feedbacks = await prisma.feedback.findMany({
       where: filters,
       include: {
         user: true,
-        stage: true
+        target: true
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -72,20 +72,20 @@ export const getComparison = async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Only Project Managers or Admins can view comparisons' });
     }
 
-    // Get last two completed stages
-    const stages = await prisma.stage.findMany({
+    // Get last two completed targets
+    const targets = await prisma.target.findMany({
       where: { status: { in: ['COMPLETED', 'ACTIVE'] } },
       orderBy: { startDate: 'desc' },
       take: 2,
       include: { feedbacks: true, tasks: true }
     });
 
-    if (stages.length < 2) {
-      return res.status(200).json({ message: 'Not enough stages for comparison' });
+    if (targets.length < 2) {
+      return res.status(200).json({ message: 'Not enough targets for comparison' });
     }
 
-    const currentStage = stages[0];
-    const previousStage = stages[1];
+    const currentTarget = targets[0];
+    const previousTarget = targets[1];
 
     const comparisonData = {
       improvedAreas: ['Communication', 'Requirement Clarity'],
@@ -93,16 +93,16 @@ export const getComparison = async (req: Request, res: Response) => {
       deadlineIssues: 'Reduced by 24%',
       teamCollaborationImprovements: 'Positive trend observed in feedbacks',
       blockerReductions: true,
-      stageHealthChanges: 'Improved compared to ' + previousStage.name,
+      targetHealthChanges: 'Improved compared to ' + previousTarget.name,
       currentSprintData: {
-        id: currentStage.id,
-        name: currentStage.name,
-        feedbackCount: currentStage.feedbacks.length,
+        id: currentTarget.id,
+        name: currentTarget.name,
+        feedbackCount: currentTarget.feedbacks.length,
       },
       previousSprintData: {
-        id: previousStage.id,
-        name: previousStage.name,
-        feedbackCount: previousStage.feedbacks.length,
+        id: previousTarget.id,
+        name: previousTarget.name,
+        feedbackCount: previousTarget.feedbacks.length,
       }
     };
 

@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-export const createStageSchema = z.object({
+export const createTargetSchema = z.object({
   body: z.object({
-    name: z.string().min(2, 'Stage name must be at least 2 characters'),
+    name: z.string().min(2, 'Target name must be at least 2 characters'),
     goal: z.string().optional().nullable(),
     startDate: z.string().datetime().or(z.string()), // handles standard date strings and ISO datetimes
     endDate: z.string().datetime().or(z.string()),
@@ -11,7 +11,7 @@ export const createStageSchema = z.object({
   }),
 });
 
-export const updateStageSchema = z.object({
+export const updateTargetSchema = z.object({
   body: z.object({
     name: z.string().min(2).optional(),
     goal: z.string().optional().nullable(),

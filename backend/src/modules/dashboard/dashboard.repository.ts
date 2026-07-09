@@ -1,14 +1,14 @@
 import prisma from '../../utils/prisma';
-import { autoUpdateStageStatuses } from '../../utils/stageUpdater';
+import { autoUpdateTargetStatuses } from '../../utils/targetUpdater';
 
 export class DashboardRepository {
-  async getStage(stageId?: string) {
+  async getTarget(targetId?: string) {
     // Run asynchronously to prevent blocking the dashboard load
-    autoUpdateStageStatuses().catch(console.error);
+    autoUpdateTargetStatuses().catch(console.error);
     
-    if (stageId) {
-      return prisma.stage.findUnique({
-        where: { id: stageId },
+    if (targetId) {
+      return prisma.target.findUnique({
+        where: { id: targetId },
         include: {
           tasks: {
             include: {
@@ -20,7 +20,7 @@ export class DashboardRepository {
       });
     }
 
-    return prisma.stage.findFirst({
+    return prisma.target.findFirst({
       where: { status: 'ACTIVE' },
       include: {
         tasks: {
@@ -33,9 +33,9 @@ export class DashboardRepository {
     });
   }
 
-  async getStageTasks(stageId: string) {
+  async getTargetTasks(targetId: string) {
     return prisma.task.findMany({
-      where: { stageId },
+      where: { targetId },
       include: {
         assignee: true,
         rfis: true
@@ -43,10 +43,10 @@ export class DashboardRepository {
     });
   }
 
-  async getRFITasks(stageId: string) {
+  async getRFITasks(targetId: string) {
     return prisma.task.findMany({
       where: {
-        stageId,
+        targetId,
         rfis: {
           some: {
             isResolved: false
@@ -71,7 +71,7 @@ export class DashboardRepository {
     });
   }
 
-  async getLatestProgressReports(stageId: string) {
+  async getLatestProgressReports(targetId: string) {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
@@ -80,7 +80,7 @@ export class DashboardRepository {
 
     return prisma.progressReport.findMany({
       where: { 
-        stageId,
+        targetId,
         date: {
           gte: todayStart,
           lte: todayEnd
@@ -89,7 +89,7 @@ export class DashboardRepository {
       orderBy: { date: 'desc' },
       include: {
         user: true,
-        stage: {
+        target: {
           include: {
             project: true
           }
@@ -114,5 +114,18 @@ export class DashboardRepository {
     return prisma.task.count({
       where: { status: { not: 'DONE' } }
     });
+  }
+
+  async getWeeklyManHours() {
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const result = await prisma.task.aggregate({
+      where: {
+        updatedAt: { gte: oneWeekAgo }
+      },
+      _sum: {
+        actualHours: true
+      }
+    });
+    return result._sum.actualHours || 0;
   }
 }

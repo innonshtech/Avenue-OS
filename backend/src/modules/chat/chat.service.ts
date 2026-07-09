@@ -33,9 +33,9 @@ export class ChatService {
       return !!pm;
     }
 
-    if (channel.type === 'STAGE' && channel.stageId) {
-      const sm = await prisma.stageMember.findUnique({
-        where: { stageId_userId: { stageId: channel.stageId, userId } },
+    if (channel.type === 'TARGET' && channel.targetId) {
+      const sm = await prisma.targetMember.findUnique({
+        where: { targetId_userId: { targetId: channel.targetId, userId } },
       });
       return !!sm;
     }
@@ -125,7 +125,7 @@ export class ChatService {
     description?: string;
     type: ChannelType;
     projectId?: string;
-    stageId?: string;
+    targetId?: string;
     taskId?: string;
     rfiId?: string;
     createdById: string;
@@ -185,7 +185,7 @@ export class ChatService {
       description: `Discussion for task: ${task.title}`,
       type: 'TASK',
       projectId: task.projectId,
-      stageId: task.stageId || undefined,
+      targetId: task.targetId || undefined,
       taskId: task.id,
       createdById: task.creatorId,
     });
@@ -220,7 +220,7 @@ export class ChatService {
       description: `RFI Escalation: ${rfi.description}`,
       type: 'RFI',
       projectId: rfi.task.projectId,
-      stageId: rfi.task.stageId || undefined,
+      targetId: rfi.task.targetId || undefined,
       taskId: rfi.taskId,
       rfiId: rfi.id,
       createdById: rfi.reporterId,

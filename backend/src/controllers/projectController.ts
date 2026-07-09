@@ -41,7 +41,7 @@ export const getProjectById = async (req: Request, res: Response) => {
           include: { user: true }
         },
         owner: true,
-        stages: true,
+        targets: true,
         tasks: true,
       }
     });
@@ -100,10 +100,10 @@ export const createProject = async (req: Request, res: Response) => {
       }
     });
 
-    // Auto-generate default project stages and tasks (Project Template Engine)
+    // Auto-generate default project targets and tasks (Project Template Engine)
     const projectStart = startDate ? new Date(startDate) : new Date();
     
-    const stageTemplates = [
+    const targetTemplates = [
       {
         name: "Framing",
         goal: "Creating structural framing layout and review phases",
@@ -159,31 +159,31 @@ export const createProject = async (req: Request, res: Response) => {
     ];
 
     let taskIndex = 1;
-    for (const st of stageTemplates) {
-      const stageStart = new Date(projectStart);
-      stageStart.setDate(stageStart.getDate() + st.startOffsetDays);
-      const stageEnd = new Date(projectStart);
-      stageEnd.setDate(stageEnd.getDate() + st.endOffsetDays);
+    for (const st of targetTemplates) {
+      const targetStart = new Date(projectStart);
+      targetStart.setDate(targetStart.getDate() + st.startOffsetDays);
+      const targetEnd = new Date(projectStart);
+      targetEnd.setDate(targetEnd.getDate() + st.endOffsetDays);
 
-      const createdStage = await prisma.stage.create({
+      const createdTarget = await prisma.target.create({
         data: {
           name: st.name,
           goal: st.goal,
-          startDate: stageStart,
-          endDate: stageEnd,
+          startDate: targetStart,
+          endDate: targetEnd,
           projectId: project.id,
           status: st.startOffsetDays === 0 ? 'ACTIVE' : 'PLANNED'
         }
       });
 
-      // Auto-create Stage Chat Channel
+      // Auto-create Target Chat Channel
       await prisma.chatChannel.create({
         data: {
-          name: `stage-${st.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-          description: `Discussion for ${st.name} stage`,
-          type: 'STAGE',
+          name: `target-${st.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+          description: `Discussion for ${st.name} target`,
+          type: 'TARGET',
           projectId: project.id,
-          stageId: createdStage.id,
+          targetId: createdTarget.id,
           createdById: ownerId,
         }
       });
@@ -196,7 +196,7 @@ export const createProject = async (req: Request, res: Response) => {
             type: t.type,
             status: 'PENDING',
             projectId: project.id,
-            stageId: createdStage.id,
+            targetId: createdTarget.id,
             creatorId: ownerId
           }
         });

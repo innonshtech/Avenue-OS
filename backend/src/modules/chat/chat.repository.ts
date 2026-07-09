@@ -8,7 +8,7 @@ export class ChatRepository {
     description?: string;
     type: ChannelType;
     projectId?: string;
-    stageId?: string;
+    targetId?: string;
     taskId?: string;
     rfiId?: string;
     createdById: string;
@@ -19,7 +19,7 @@ export class ChatRepository {
         description: data.description,
         type: data.type,
         projectId: data.projectId || null,
-        stageId: data.stageId || null,
+        targetId: data.targetId || null,
         taskId: data.taskId || null,
         rfiId: data.rfiId || null,
         createdById: data.createdById,
@@ -41,7 +41,7 @@ export class ChatRepository {
           },
         },
         project: true,
-        stage: true,
+        target: true,
         task: true,
         rfi: true,
       },
@@ -51,7 +51,7 @@ export class ChatRepository {
   static async findChannelByEntity(type: ChannelType, entityId: string) {
     const query: any = { type, isArchived: false };
     if (type === 'PROJECT') query.projectId = entityId;
-    else if (type === 'STAGE') query.stageId = entityId;
+    else if (type === 'TARGET') query.targetId = entityId;
     else if (type === 'TASK') query.taskId = entityId;
     else if (type === 'RFI') query.rfiId = entityId;
 
@@ -93,7 +93,7 @@ export class ChatRepository {
           { type: 'ANNOUNCEMENT' },
           { members: { some: { userId } } },
           { type: 'PROJECT', project: { members: { some: { userId } } } },
-          { type: 'STAGE', stage: { members: { some: { userId } } } }
+          { type: 'TARGET', target: { members: { some: { userId } } } }
         ],
       },
       include: {

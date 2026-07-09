@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTasks, useUpdateTaskStatus } from '@/features/tasks/api/taskApi';
-import { useStages } from '@/features/stages/api/stageApi';
+import { useTargets } from '@/features/targets/api/targetApi';
+import { useProjects } from '@/features/projects/api/projectApi';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { TEAM_MEMBERS } from '@/constants/teamMembers';
+import { useTeam } from '@/features/team/api/teamApi';
 import { useSocket } from '@/features/realtime/SocketProvider';
 import type { TaskStatus, Task } from '@/types/core';
 import { AdvancedFilterPanel, initialFilterState } from '@/features/filters/AdvancedFilterPanel';
@@ -63,7 +64,7 @@ function SortableTaskCard({ task, onClick }: { task: Task; onClick: () => void }
     transition,
   };
 
-  const assignee = TEAM_MEMBERS.find(m => m.id === task.assigneeId);
+  const assignee = task.assignee;
 
   const priorityColors: Record<string, string> = {
     CRITICAL: 'bg-red-500/10 text-red-600',
@@ -130,6 +131,11 @@ function SortableTaskCard({ task, onClick }: { task: Task; onClick: () => void }
                   {task.revisionNumber && ` (${task.revisionNumber})`}
                 </span>
               )}
+              {(task.estimatedHours || task.actualHours) && (
+                <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded-sm border border-indigo-100 dark:border-indigo-500/20" title="Actual / Estimated Hours">
+                  ⏳ {task.actualHours || 0}/{task.estimatedHours || 0}h
+                </span>
+              )}
               {assignee && (
                 <Avatar className="h-5 w-5 border border-border">
                   <AvatarImage src={assignee.avatar} />
@@ -183,11 +189,18 @@ function Column({ col, tasks, onTaskClick }: { col: { id: TaskStatus; title: str
 }
 
 export default function KanbanBoardPage() {
-  const { data: stages = [] } = useStages();
-  const activeStageIds = useMemo(() => stages.filter((s: any) => s.status === 'ACTIVE').map((s: any) => s.id), [stages]);
+  const { data: targets = [] } = useTargets();
+  const { data: projects = [] } = useProjects();
+  const { data: team = [] } = useTeam();
+  const activeTargetIds = useMemo(() => targets.filter((s: any) => s.status === 'ACTIVE').map((s: any) => s.id), [targets]);
   
-  const [stageFilter, setStageFilter] = useState<string | null>(null);
-  const { data: tasks = [], isLoading } = useTasks(stageFilter ? { stageId: stageFilter } : undefined);
+  const [targetFilter, setTargetFilter] = useState<string | null>(null);
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const queryParams = {
+    ...(targetFilter && { targetId: targetFilter }),
+    ...(projectFilter && { projectId: projectFilter })
+  };
+  const { data: tasks = [], isLoading } = useTasks(Object.keys(queryParams).length > 0 ? queryParams : undefined);
   const updateTaskStatus = useUpdateTaskStatus();
   const { user } = useAuthStore();
   const { joinProject, leaveProject } = useSocket();
@@ -213,12 +226,12 @@ export default function KanbanBoardPage() {
       .filter((t: any) => {
         if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.key.toLowerCase().includes(search.toLowerCase())) return false;
         
-        if (stageFilter) {
-          if (t.stageId !== stageFilter) return false;
+        if (targetFilter) {
+          if (t.targetId !== targetFilter) return false;
         } else if (advancedFilters.sprintIds.length > 0) {
-          if (!advancedFilters.sprintIds.includes(t.stageId)) return false;
+          if (!advancedFilters.sprintIds.includes(t.targetId)) return false;
         } else {
-          if (!activeStageIds.includes(t.stageId)) return false;
+          if (!activeTargetIds.includes(t.targetId)) return false;
         }
 
         if (advancedFilters.priorities.length > 0 && !advancedFilters.priorities.includes(t.priority)) return false;
@@ -229,7 +242,11 @@ export default function KanbanBoardPage() {
           if (!t.assigneeId || !advancedFilters.assigneeIds.includes(t.assigneeId)) return false;
         }
 
-        if (advancedFilters.projectIds.length > 0 && !advancedFilters.projectIds.includes(t.projectId)) return false;
+        if (projectFilter) {
+          if (t.projectId !== projectFilter) return false;
+        } else if (advancedFilters.projectIds.length > 0) {
+          if (!advancedFilters.projectIds.includes(t.projectId)) return false;
+        }
 
         if (advancedFilters.isOverdue) {
           if (!t.dueDate || t.status === 'DONE') return false;
@@ -243,7 +260,7 @@ export default function KanbanBoardPage() {
 
         return true;
       });
-  }, [tasks, search, assigneeFilter, stageFilter, activeStageIds, advancedFilters]);
+  }, [tasks, search, assigneeFilter, targetFilter, projectFilter, activeTargetIds, advancedFilters]);
 
   const columns = useMemo(() => COLUMNS, []);
 
@@ -302,7 +319,7 @@ export default function KanbanBoardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 shrink-0">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Active Board</h1>
-          <p className="text-muted-foreground">Manage and progress tasks for active project stages.</p>
+          <p className="text-muted-foreground">Manage and progress tasks for active project targets.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative w-64">
@@ -315,9 +332,13 @@ export default function KanbanBoardPage() {
             />
           </div>
           <div className="flex gap-2">
-            <select className="bg-background border rounded-md text-sm px-2" value={stageFilter || ''} onChange={e => setStageFilter(e.target.value || null)}>
-              <option value="">All Stages</option>
-              {stages.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            <select className="bg-background border rounded-md text-sm px-2" value={projectFilter || ''} onChange={e => setProjectFilter(e.target.value || null)}>
+              <option value="">All Projects</option>
+              {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <select className="bg-background border rounded-md text-sm px-2" value={targetFilter || ''} onChange={e => setTargetFilter(e.target.value || null)}>
+              <option value="">All Targets</option>
+              {targets.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
             <Select 
               value={assigneeFilter || 'ALL'} 
@@ -328,7 +349,7 @@ export default function KanbanBoardPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ALL">All Members</SelectItem>
-                {TEAM_MEMBERS.map(m => (
+                {team.map((m: any) => (
                   <SelectItem key={m.id} value={m.id}>
                     {m.name}
                   </SelectItem>
@@ -344,9 +365,9 @@ export default function KanbanBoardPage() {
       </div>
 
       {isLoading && <div className="flex justify-center p-10">Loading board...</div>}
-      {activeStageIds.length === 0 && !isLoading && (
+      {activeTargetIds.length === 0 && !isLoading && (
         <div className="flex justify-center p-10 text-muted-foreground">
-          No active stages found. Please activate a stage in Project view to see task board.
+          No active targets found. Please activate a target in Project view to see task board.
         </div>
       )}
 
@@ -385,7 +406,9 @@ export default function KanbanBoardPage() {
         onClose={() => setIsFilterPanelOpen(false)} 
         filters={advancedFilters} 
         setFilters={setAdvancedFilters} 
-        sprints={stages}
+        team={team}
+        projects={projects}
+        sprints={targets}
         isBoardView={true}
       />
     </div>

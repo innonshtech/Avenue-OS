@@ -8,16 +8,18 @@ import api from '@/lib/api';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { Button } from '@/components/ui/button';
 import OnboardEmployeeModal from '../components/OnboardEmployeeModal';
+import EditEmployeeModal from '../components/EditEmployeeModal';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Edit2 } from 'lucide-react';
 
 export default function TeamManagementPage() {
   const [team, setTeam] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [onboardModalOpen, setOnboardModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<{ id: string, name: string } | null>(null);
+  const [memberToEdit, setMemberToEdit] = useState<any | null>(null);
   const { user } = useAuthStore();
-  const isPM = user?.role === 'PROJECT_MANAGER';
+  const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
   const { toast } = useToast();
 
   const fetchTeam = async () => {
@@ -77,6 +79,13 @@ export default function TeamManagementPage() {
       </div>
 
       <OnboardEmployeeModal open={onboardModalOpen} onOpenChange={setOnboardModalOpen} onSuccess={fetchTeam} />
+      
+      <EditEmployeeModal 
+        open={!!memberToEdit} 
+        onOpenChange={(open) => !open && setMemberToEdit(null)} 
+        onSuccess={fetchTeam} 
+        employee={memberToEdit} 
+      />
 
       <Dialog open={!!memberToDelete} onOpenChange={(open) => !open && setMemberToDelete(null)}>
         <DialogContent className="sm:max-w-[425px]">
@@ -101,16 +110,28 @@ export default function TeamManagementPage() {
             {/* Online Status Indicator */}
             <div className={`absolute top-4 right-4 w-3 h-3 rounded-full ${member.isOnline ? 'bg-emerald-500' : 'bg-muted'} ring-2 ring-background`} />
             
-            {/* Delete Button */}
-            {isPM && member.id !== user?.id && (
-              <button 
-                onClick={() => handleDeleteClick(member.id, member.name)}
-                className="absolute top-3.5 left-3.5 text-muted-foreground hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded-md"
-                title="Remove Employee"
-                aria-label={`Remove ${member.name}`}
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+            {/* Action Buttons */}
+            {isPM && (
+              <div className="absolute top-3.5 left-3.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {member.id !== user?.id && (
+                  <button 
+                    onClick={() => handleDeleteClick(member.id, member.name)}
+                    className="text-muted-foreground hover:text-red-500 transition-colors p-1 rounded-md bg-background/50 hover:bg-background"
+                    title="Remove Employee"
+                    aria-label={`Remove ${member.name}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+                <button 
+                  onClick={() => setMemberToEdit(member)}
+                  className="text-muted-foreground hover:text-indigo-500 transition-colors p-1 rounded-md bg-background/50 hover:bg-background"
+                  title="Edit Employee"
+                  aria-label={`Edit ${member.name}`}
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              </div>
             )}
 
             <CardHeader className="text-center pb-2 pt-6">
@@ -150,11 +171,11 @@ export default function TeamManagementPage() {
                 />
               </div>
 
-              {member.activeStage && (
+              {member.activeTarget && (
                 <div className="pt-2">
-                  <p className="text-xs text-muted-foreground mb-1">Active Stage</p>
+                  <p className="text-xs text-muted-foreground mb-1">Active Target</p>
                   <div className="bg-muted px-3 py-1.5 rounded-md text-sm font-medium truncate">
-                    {member.activeStage}
+                    {member.activeTarget}
                   </div>
                 </div>
               )}

@@ -46,6 +46,11 @@ export default function AssignedTaskCard({ task, onMarkBlocked, onAddUpdate }: {
                   {task.storyPoints} SP
                 </Badge>
               )}
+              {(task.estimatedHours || task.actualHours) && (
+                <Badge variant="outline" className="text-[10px] bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20">
+                  ⏳ {task.actualHours || 0}/{task.estimatedHours || 0}h
+                </Badge>
+              )}
             </div>
             <h4 className="font-medium text-sm leading-tight">{task.title}</h4>
           </div>

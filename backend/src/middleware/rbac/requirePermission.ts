@@ -28,12 +28,12 @@ export const requirePermission = (action: string) => {
         }
         return res.status(403).json({ success: false, message: 'Forbidden: Only Project Managers or Principal Engineers can resolve RFIs' });
 
-      case 'MANAGE_STAGE':
-        // Only ADMIN or PROJECT_MANAGER can manage stages
+      case 'MANAGE_TARGET':
+        // Only ADMIN or PROJECT_MANAGER can manage targets
         if (role === 'PROJECT_MANAGER') {
           return next();
         }
-        return res.status(403).json({ success: false, message: 'Forbidden: Stages can only be managed by Project Managers or Admins' });
+        return res.status(403).json({ success: false, message: 'Forbidden: Targets can only be managed by Project Managers or Admins' });
 
       case 'MANAGE_PROJECT':
         if (role === 'PROJECT_MANAGER') {

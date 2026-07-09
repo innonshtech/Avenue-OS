@@ -4,7 +4,8 @@ export const createTaskSchema = z.object({
   body: z.object({
     title: z.string().min(2, 'Title must be at least 2 characters'),
     description: z.string().optional(),
-    type: z.enum(['DESIGN', 'DRAFTING', 'MODELING', 'ANALYSIS', 'SITE_CHECK', 'REVIEW']).optional(),
+    taskCategory: z.enum(['DESIGN', 'DRAFTING', 'STUDY']).optional(),
+    type: z.enum(['MODELING', 'ANALYSIS', 'SITE_CHECK', 'REVIEW']).optional(),
     status: z.enum(['PENDING', 'IN_PROGRESS', 'INTERNAL_REVIEW', 'EXTERNAL_REVIEW', 'MODIFICATION_REQUIRED', 'APPROVED', 'DONE']).optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT', 'CRITICAL']).optional(),
     storyPoints: z.number().nullable().optional(),
@@ -12,9 +13,11 @@ export const createTaskSchema = z.object({
     revisionNumber: z.string().nullable().optional(),
     dueDate: z.string().datetime({ precision: 3 }).nullable().optional().or(z.string().nullable().optional()),
     projectId: z.string().uuid('Invalid project ID format'),
-    stageId: z.string().uuid('Invalid stage ID format').nullable().optional(),
+    targetId: z.string().uuid('Invalid target ID format').nullable().optional(),
     assigneeId: z.string().uuid('Invalid assignee ID format').nullable().optional(),
     labels: z.array(z.string()).optional(),
+    estimatedHours: z.number().nullable().optional(),
+    actualHours: z.number().nullable().optional(),
   }),
 });
 
@@ -30,8 +33,10 @@ export const updateTaskSchema = z.object({
     revisionNumber: z.string().nullable().optional(),
     dueDate: z.string().nullable().optional(),
     assigneeId: z.string().nullable().optional(),
-    stageId: z.string().nullable().optional(),
+    targetId: z.string().nullable().optional(),
     labels: z.array(z.string()).optional(),
+    estimatedHours: z.number().nullable().optional(),
+    actualHours: z.number().nullable().optional(),
   }),
 });
 

@@ -21,7 +21,7 @@ router.put('/:id', validateRequest(updateTaskSchema), updateTask);
 router.delete('/:id', requirePermission('DELETE_TASK'), deleteTask);
 router.patch('/:id/archive', archiveTask);
 router.patch('/:id/restore', restoreTask);
-router.patch('/:id/move-stage', moveSprint);
+router.patch('/:id/move-target', moveSprint);
 router.post('/:id/rfi', addBlocker);
 router.patch('/:id/rfi/:blockerId/resolve', requirePermission('RESOLVE_RFI'), validateRequest(resolveBlockerSchema), resolveBlocker);
 router.post('/:id/update', addQuickUpdate);

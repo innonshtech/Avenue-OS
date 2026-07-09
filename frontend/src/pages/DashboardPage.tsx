@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/features/auth/store/authStore';
-import { useStages } from '@/features/stages/api/stageApi';
+import { useTargets } from '@/features/targets/api/targetApi';
 import { ROLE_COLORS } from '@/constants/teamMembers';
 
 // New Operational PM Components
@@ -23,30 +23,30 @@ export default function DashboardPage() {
   const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
 
   // DEV/MARKETING DATA
-  const { data: stages = [] } = useStages();
+  const { data: targets = [] } = useTargets();
 
   // PM OPERATIONAL DATA
-  const [selectedStageId, setSelectedStageId] = useState<string>('');
+  const [selectedTargetId, setSelectedTargetId] = useState<string>('');
 
-  // Set default to first active stage if available
+  // Set default to first active target if available
   useEffect(() => {
-    if (stages.length > 0 && !selectedStageId) {
-      const activeStage = stages.find((s: any) => s.status === 'ACTIVE');
-      if (activeStage) {
-        setSelectedStageId(activeStage.id);
+    if (targets.length > 0 && !selectedTargetId) {
+      const activeTarget = targets.find((s: any) => s.status === 'ACTIVE');
+      if (activeTarget) {
+        setSelectedTargetId(activeTarget.id);
       } else {
-        setSelectedStageId(stages[0].id);
+        setSelectedTargetId(targets[0].id);
       }
     }
-  }, [stages, selectedStageId]);
+  }, [targets, selectedTargetId]);
 
-  const { data: pmSummary, isLoading: isLoadingSummary } = usePMSummary(selectedStageId);
+  const { data: pmSummary, isLoading: isLoadingSummary } = usePMSummary(selectedTargetId);
 
   // Derived KPIs for PM
   const activeProjectsCount = pmSummary?.kpis?.activeProjects || 0;
   const globalBlockersCount = pmSummary?.kpis?.globalBlockers || 0;
   const totalActiveTasksCount = pmSummary?.kpis?.totalActiveTasks || 0;
-  const teamVelocityScore = 84; // Can be derived from previous stage or analytics endpoint
+  const weeklyManHoursScore = pmSummary?.kpis?.weeklyManHours || 0;
 
   return (
     <div className="space-y-6 pb-12">
@@ -61,14 +61,14 @@ export default function DashboardPage() {
               </span>
             )}
             
-            {isPM && stages.length > 0 && (
+            {isPM && targets.length > 0 && (
               <div className="ml-2 flex items-center">
-                <Select value={selectedStageId} onValueChange={setSelectedStageId}>
+                <Select value={selectedTargetId} onValueChange={setSelectedTargetId}>
                   <SelectTrigger className="w-[200px] h-8 bg-card border-indigo-200 shadow-soft">
-                    <SelectValue placeholder="Select Stage" />
+                    <SelectValue placeholder="Select Target" />
                   </SelectTrigger>
                   <SelectContent>
-                    {stages.map((s: any) => (
+                    {targets.map((s: any) => (
                       <SelectItem key={s.id} value={s.id}>
                         {s.name} <span className="text-[10px] text-muted-foreground ml-2">({s.status})</span>
                       </SelectItem>
@@ -79,7 +79,7 @@ export default function DashboardPage() {
             )}
           </div>
           <p className="text-muted-foreground">
-            Welcome back, <span className="font-medium text-foreground">{user?.name}</span>. Operational overview for current active stage.
+            Welcome back, <span className="font-medium text-foreground">{user?.name}</span>. Operational overview for current active target.
           </p>
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function DashboardPage() {
             activeProjects={activeProjectsCount}
             totalActiveTasks={totalActiveTasksCount}
             globalBlockers={globalBlockersCount}
-            teamVelocity={teamVelocityScore}
+            weeklyManHours={weeklyManHoursScore}
             isLoading={isLoadingSummary}
           />
 

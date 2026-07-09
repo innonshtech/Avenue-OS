@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/store/authStore';
 import { 
@@ -46,7 +46,7 @@ const SIDEBAR_CONFIG: Record<UserRole, { icon: any, label: string, path: string 
   PROJECT_MANAGER: [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Briefcase, label: 'Projects', path: '/dashboard/projects' },
-    { icon: Clock, label: 'Target', path: '/dashboard/stages' },
+    { icon: Clock, label: 'Target', path: '/dashboard/targets' },
     { icon: CheckSquare, label: 'Tasks', path: '/dashboard/tasks' },
     { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
     { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
@@ -68,7 +68,7 @@ const SIDEBAR_CONFIG: Record<UserRole, { icon: any, label: string, path: string 
     { icon: Users, label: 'Progress Reports', path: '/dashboard/standups' },
     { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
     { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
-    { icon: BarChart, label: 'Target Report', path: '/dashboard/stage-reports' },
+    { icon: BarChart, label: 'Target Report', path: '/dashboard/target-reports' },
     { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
     { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
@@ -81,7 +81,7 @@ const SIDEBAR_CONFIG: Record<UserRole, { icon: any, label: string, path: string 
     { icon: Users, label: 'Progress Reports', path: '/dashboard/standups' },
     { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
     { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
-    { icon: BarChart, label: 'Target Report', path: '/dashboard/stage-reports' },
+    { icon: BarChart, label: 'Target Report', path: '/dashboard/target-reports' },
     { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
     { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
@@ -139,6 +139,48 @@ export default function DashboardLayout() {
   const clearAllNotifications = useClearAllNotifications();
 
   const unreadCount = notifications.filter((n: any) => !n.isRead).length;
+
+  const previousUnreadCount = useRef(unreadCount);
+
+  useEffect(() => {
+    if (unreadCount > previousUnreadCount.current) {
+      try {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContext) {
+          const ctx = new AudioContext();
+          
+          // First note (ding)
+          const osc1 = ctx.createOscillator();
+          const gain1 = ctx.createGain();
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(880.00, ctx.currentTime); // A5
+          gain1.gain.setValueAtTime(0, ctx.currentTime);
+          gain1.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.02);
+          gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+          osc1.connect(gain1);
+          gain1.connect(ctx.destination);
+          osc1.start(ctx.currentTime);
+          osc1.stop(ctx.currentTime + 0.5);
+
+          // Second note (dong)
+          const osc2 = ctx.createOscillator();
+          const gain2 = ctx.createGain();
+          osc2.type = 'sine';
+          osc2.frequency.setValueAtTime(1108.73, ctx.currentTime + 0.15); // C#6
+          gain2.gain.setValueAtTime(0, ctx.currentTime + 0.15);
+          gain2.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.17);
+          gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+          osc2.connect(gain2);
+          gain2.connect(ctx.destination);
+          osc2.start(ctx.currentTime + 0.15);
+          osc2.stop(ctx.currentTime + 0.7);
+        }
+      } catch(e) {
+        console.error("Failed to play notification sound", e);
+      }
+    }
+    previousUnreadCount.current = unreadCount;
+  }, [unreadCount]);
 
   const unreadNotifications = useMemo(() => {
     return notifications.filter((n: any) => !n.isRead);

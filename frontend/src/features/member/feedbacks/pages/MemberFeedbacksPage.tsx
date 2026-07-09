@@ -3,21 +3,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useStages } from '@/features/stages/api/stageApi';
+import { useTargets } from '@/features/targets/api/targetApi';
 import { useMyFeedbacks, useSubmitFeedback, useDeleteFeedback } from '../api/memberFeedbacksApi';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MessageSquare, Trash2, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function MemberFeedbacksPage() {
-  const { data: stages = [] } = useStages();
+  const { data: targets = [] } = useTargets();
   const { data: feedbacks = [] } = useMyFeedbacks();
   const submitFeedback = useSubmitFeedback();
   const deleteFeedback = useDeleteFeedback();
   const { toast } = useToast();
   
-  const [selectedStage, setSelectedStage] = useState('');
-  const [category, setCategory] = useState('STAGE');
+  const [selectedTarget, setSelectedTarget] = useState('');
+  const [category, setCategory] = useState('TARGET');
   const [content, setContent] = useState('');
   const [wentWell, setWentWell] = useState('');
   const [wentWrong, setWentWrong] = useState('');
@@ -29,10 +29,10 @@ export default function MemberFeedbacksPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedStage || !content) return;
+    if (!selectedTarget || !content) return;
 
     submitFeedback.mutate({
-      stageId: selectedStage,
+      targetId: selectedTarget,
       category,
       content,
       wentWell,
@@ -74,22 +74,22 @@ export default function MemberFeedbacksPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-indigo-500" />
-                Stage Feedback Form
+                Target Feedback Form
               </CardTitle>
-              <CardDescription>Share your thoughts on the stage execution, planning, and team collaboration.</CardDescription>
+              <CardDescription>Share your thoughts on the target execution, planning, and team collaboration.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Select Stage</label>
-                    <Select value={selectedStage} onValueChange={setSelectedStage}>
+                    <label className="text-sm font-medium">Select Target</label>
+                    <Select value={selectedTarget} onValueChange={setSelectedTarget}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Stage" />
+                        <SelectValue placeholder="Select Target" />
                       </SelectTrigger>
                       <SelectContent>
-                        {stages.map((s: any) => (
+                        {targets.map((s: any) => (
                           <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -103,7 +103,7 @@ export default function MemberFeedbacksPage() {
                         <SelectValue placeholder="Select Category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="STAGE">Stage Overall</SelectItem>
+                        <SelectItem value="TARGET">Target Overall</SelectItem>
                         <SelectItem value="TASK_ASSIGNMENT">Task Assignment</SelectItem>
                         <SelectItem value="DEADLINE">Deadlines</SelectItem>
                         <SelectItem value="COMMUNICATION">Communication</SelectItem>
@@ -118,7 +118,7 @@ export default function MemberFeedbacksPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Overall Summary <span className="text-red-500">*</span></label>
                     <Textarea 
-                      placeholder="General thoughts about the stage..."
+                      placeholder="General thoughts about the target..."
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
                       required
@@ -146,7 +146,7 @@ export default function MemberFeedbacksPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Suggestions for Improvement</label>
                     <Textarea 
-                      placeholder="How can we do better next stage?"
+                      placeholder="How can we do better next target?"
                       value={improvement}
                       onChange={(e) => setImprovement(e.target.value)}
                     />
@@ -178,7 +178,7 @@ export default function MemberFeedbacksPage() {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={submitFeedback.isPending || !content || !selectedStage}>
+                <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={submitFeedback.isPending || !content || !selectedTarget}>
                   <Send className="w-4 h-4 mr-2" />
                   {submitFeedback.isPending ? 'Submitting...' : 'Submit Feedback'}
                 </Button>
@@ -201,7 +201,7 @@ export default function MemberFeedbacksPage() {
                   <CardHeader className="p-4 pb-2">
                     <div className="flex justify-between items-start">
                       <div>
-                        <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-1">{fb.stage?.name}</div>
+                        <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-1">{fb.target?.name}</div>
                         <div className="text-xs bg-muted px-2 py-0.5 rounded-full inline-block">{fb.category}</div>
                       </div>
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-500" onClick={() => handleDelete(fb.id)}>

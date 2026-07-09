@@ -23,11 +23,11 @@ export const getProjects = async (req: Request, res: Response) => {
 
 export const getSprints = async (req: Request, res: Response) => {
   try {
-    const stages = await adminService.getStages();
-    res.json(stages);
+    const targets = await adminService.getTargets();
+    res.json(targets);
   } catch (error: any) {
     console.error(error);
-    res.status(500).json({ error: error.message || 'Failed to fetch admin stages' });
+    res.status(500).json({ error: error.message || 'Failed to fetch admin targets' });
   }
 };
 

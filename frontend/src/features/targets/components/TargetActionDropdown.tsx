@@ -8,37 +8,37 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { MoreVertical, Edit, Trash2, CheckCircle2 } from 'lucide-react';
-import { EditStageModal } from './EditStageModal';
-import { DeleteStageDialog } from './DeleteStageDialog';
-import { useUpdateStage } from '../api/stageApi';
+import { EditTargetModal } from './EditTargetModal';
+import { DeleteTargetDialog } from './DeleteTargetDialog';
+import { useUpdateTarget } from '../api/targetApi';
 import { useToast } from '@/hooks/use-toast';
-import type { Stage } from '@/types/core';
+import type { Target } from '@/types/core';
 
-interface StageActionDropdownProps {
-  stage: Stage;
+interface TargetActionDropdownProps {
+  target: Target;
 }
 
-export function StageActionDropdown({ stage }: StageActionDropdownProps) {
+export function TargetActionDropdown({ target }: TargetActionDropdownProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   
-  const updateStage = useUpdateStage();
+  const updateTarget = useUpdateTarget();
   const { toast } = useToast();
 
   const handleComplete = async () => {
     try {
-      await updateStage.mutateAsync({
-        id: stage.id,
+      await updateTarget.mutateAsync({
+        id: target.id,
         status: 'COMPLETED',
       });
       toast({
-        title: "Stage Completed!",
-        description: "Great job completing the stage.",
+        title: "Target Completed!",
+        description: "Great job completing the target.",
       });
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error completing stage",
+        title: "Error completing target",
         description: error.response?.data?.error || "An unexpected error occurred."
       });
     }
@@ -55,12 +55,12 @@ export function StageActionDropdown({ stage }: StageActionDropdownProps) {
         <DropdownMenuContent align="end" className="w-48">
           <DropdownMenuItem onClick={() => setIsEditOpen(true)} className="cursor-pointer">
             <Edit className="mr-2 h-4 w-4" />
-            <span>Edit Stage</span>
+            <span>Edit Target</span>
           </DropdownMenuItem>
-          {stage.status !== 'COMPLETED' && (
+          {target.status !== 'COMPLETED' && (
             <DropdownMenuItem onClick={handleComplete} className="cursor-pointer text-emerald-600 focus:bg-emerald-50 dark:focus:bg-emerald-950">
               <CheckCircle2 className="mr-2 h-4 w-4" />
-              <span>Complete Stage</span>
+              <span>Complete Target</span>
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
@@ -71,8 +71,8 @@ export function StageActionDropdown({ stage }: StageActionDropdownProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <EditStageModal open={isEditOpen} onOpenChange={setIsEditOpen} stage={stage} />
-      <DeleteStageDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen} stage={stage} />
+      <EditTargetModal open={isEditOpen} onOpenChange={setIsEditOpen} target={target} />
+      <DeleteTargetDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen} target={target} />
     </>
   );
 }

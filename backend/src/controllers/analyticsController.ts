@@ -14,11 +14,11 @@ const checkPMRole = (req: Request, res: Response) => {
 export const getOverview = async (req: Request, res: Response) => {
   if (!checkPMRole(req, res)) return;
   try {
-    const stageId = req.query.stageId as string || req.query.sprintId as string;
+    const targetId = req.query.targetId as string || req.query.sprintId as string;
 
     const baseTaskQuery: any = {};
-    if (stageId) {
-      baseTaskQuery.stageId = String(stageId);
+    if (targetId) {
+      baseTaskQuery.targetId = String(targetId);
     }
 
     const totalActiveTasks = await prisma.task.count({
@@ -37,7 +37,7 @@ export const getOverview = async (req: Request, res: Response) => {
     const completedTasks = tasks.filter(t => t.status === 'DONE');
     const completedTasksCount = completedTasks.length;
 
-    const stageCompletionRate = totalTasksCount > 0 
+    const targetCompletionRate = totalTasksCount > 0 
       ? (completedTasksCount / totalTasksCount) * 100 
       : 0;
 
@@ -52,7 +52,7 @@ export const getOverview = async (req: Request, res: Response) => {
     const blockersCount = await prisma.rFI.count({
       where: { 
         isResolved: false,
-        ...(stageId ? { task: { stageId: String(stageId) } } : {})
+        ...(targetId ? { task: { targetId: String(targetId) } } : {})
       }
     });
 
@@ -62,6 +62,16 @@ export const getOverview = async (req: Request, res: Response) => {
 
     // Velocity (completed story points)
     const teamVelocity = completedTasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
+
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const recentTasks = await prisma.task.findMany({
+      where: {
+        ...baseTaskQuery,
+        updatedAt: { gte: oneWeekAgo },
+        actualHours: { not: null }
+      }
+    });
+    const weeklyManHours = recentTasks.reduce((sum, t) => sum + (t.actualHours || 0), 0);
 
     // Avg completion time
     let avgCompletionTime = 0;
@@ -74,10 +84,11 @@ export const getOverview = async (req: Request, res: Response) => {
 
     res.status(200).json({
       totalActiveTasks,
-      sprintCompletionRate: stageCompletionRate,
+      sprintCompletionRate: targetCompletionRate,
       delayedTasks,
       blockersCount,
       teamVelocity,
+      weeklyManHours,
       avgCompletionTime,
       activeProjects,
       teamUtilization,
@@ -91,14 +102,14 @@ export const getOverview = async (req: Request, res: Response) => {
 export const getSprintsAnalytics = async (req: Request, res: Response) => {
   if (!checkPMRole(req, res)) return;
   try {
-    const stages = await prisma.stage.findMany({
+    const targets = await prisma.target.findMany({
       where: { status: { in: ['ACTIVE', 'COMPLETED'] } },
       include: { tasks: true },
       orderBy: { startDate: 'asc' },
       take: 10
     });
 
-    const data = stages.map(s => {
+    const data = targets.map(s => {
       const plannedPoints = s.tasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
       const completedPoints = s.tasks.filter(t => t.status === 'DONE').reduce((sum, t) => sum + (t.storyPoints || 0), 0);
       return {
@@ -111,18 +122,18 @@ export const getSprintsAnalytics = async (req: Request, res: Response) => {
 
     res.status(200).json(data);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch stage analytics' });
+    res.status(500).json({ error: 'Failed to fetch target analytics' });
   }
 };
 
 export const getTeamWorkload = async (req: Request, res: Response) => {
   if (!checkPMRole(req, res)) return;
   try {
-    const stageId = req.query.stageId as string || req.query.sprintId as string;
+    const targetId = req.query.targetId as string || req.query.sprintId as string;
     
     const taskFilter: any = {};
-    if (stageId) {
-      taskFilter.stageId = String(stageId);
+    if (targetId) {
+      taskFilter.targetId = String(targetId);
     }
 
     const users = await prisma.user.findMany({
@@ -154,11 +165,11 @@ export const getTeamWorkload = async (req: Request, res: Response) => {
 export const getBlockersAnalytics = async (req: Request, res: Response) => {
   if (!checkPMRole(req, res)) return;
   try {
-    const stageId = req.query.stageId as string || req.query.sprintId as string;
+    const targetId = req.query.targetId as string || req.query.sprintId as string;
 
     const rfis = await prisma.rFI.findMany({
       where: {
-        ...(stageId ? { task: { stageId: String(stageId) } } : {})
+        ...(targetId ? { task: { targetId: String(targetId) } } : {})
       }
     });
 
@@ -181,11 +192,11 @@ export const getBlockersAnalytics = async (req: Request, res: Response) => {
 export const getProductivityTimeline = async (req: Request, res: Response) => {
   if (!checkPMRole(req, res)) return;
   try {
-    const stageId = req.query.stageId as string || req.query.sprintId as string;
+    const targetId = req.query.targetId as string || req.query.sprintId as string;
     
     const taskFilter: any = { status: 'DONE' };
-    if (stageId) {
-      taskFilter.stageId = String(stageId);
+    if (targetId) {
+      taskFilter.targetId = String(targetId);
     }
 
     const completedTasks = await prisma.task.findMany({
@@ -194,8 +205,8 @@ export const getProductivityTimeline = async (req: Request, res: Response) => {
     });
 
     const reportFilter: any = {};
-    if (stageId) {
-      reportFilter.stageId = String(stageId);
+    if (targetId) {
+      reportFilter.targetId = String(targetId);
     }
 
     const reports = await prisma.progressReport.findMany({
@@ -233,30 +244,30 @@ export const getProductivityTimeline = async (req: Request, res: Response) => {
 export const getBurndown = async (req: Request, res: Response) => {
   if (!checkPMRole(req, res)) return;
   try {
-    const stageId = req.query.stageId as string || req.query.sprintId as string;
+    const targetId = req.query.targetId as string || req.query.sprintId as string;
 
-    let targetStage;
-    if (stageId) {
-      targetStage = await prisma.stage.findUnique({
-        where: { id: String(stageId) },
+    let targetTarget;
+    if (targetId) {
+      targetTarget = await prisma.target.findUnique({
+        where: { id: String(targetId) },
         include: { tasks: true }
       });
     } else {
-      targetStage = await prisma.stage.findFirst({
+      targetTarget = await prisma.target.findFirst({
         where: { status: 'ACTIVE' },
         include: { tasks: true }
       });
     }
 
-    if (!targetStage || !targetStage.startDate || !targetStage.endDate) {
+    if (!targetTarget || !targetTarget.startDate || !targetTarget.endDate) {
       return res.status(200).json([]);
     }
 
-    const tasks = targetStage.tasks;
+    const tasks = targetTarget.tasks;
     const totalPoints = tasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
     
-    const start = new Date(targetStage.startDate);
-    const end = new Date(targetStage.endDate);
+    const start = new Date(targetTarget.startDate);
+    const end = new Date(targetTarget.endDate);
     
     start.setHours(0,0,0,0);
     end.setHours(23,59,59,999);

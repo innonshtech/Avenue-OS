@@ -3,13 +3,13 @@ import api from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import type { Task } from '@/types/core';
 
-export const useTasks = (filters?: { projectId?: string; stageId?: string; assigneeId?: string }) => {
+export const useTasks = (filters?: { projectId?: string; targetId?: string; assigneeId?: string }) => {
   return useQuery<Task[]>({
     queryKey: ['tasks', filters],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters?.projectId) params.append('projectId', filters.projectId);
-      if (filters?.stageId) params.append('stageId', filters.stageId);
+      if (filters?.targetId) params.append('targetId', filters.targetId);
       if (filters?.assigneeId) params.append('assigneeId', filters.assigneeId);
       
       const url = `/tasks${params.toString() ? `?${params.toString()}` : ''}`;
@@ -158,11 +158,11 @@ export const useAddAttachment = () => {
   });
 };
 
-export const useMoveTaskStage = () => {
+export const useMoveTaskTarget = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, stageId }: { id: string; stageId: string | null }) => {
-      const { data } = await api.patch(`/tasks/${id}/move-stage`, { stageId });
+    mutationFn: async ({ id, targetId }: { id: string; targetId: string | null }) => {
+      const { data } = await api.patch(`/tasks/${id}/move-target`, { targetId });
       return data;
     },
     onSuccess: (data, variables) => {

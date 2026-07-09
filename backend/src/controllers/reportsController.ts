@@ -13,7 +13,7 @@ const checkPMRole = (req: Request, res: Response) => {
 export const getSprintReports = async (req: Request, res: Response) => {
   if (!checkPMRole(req, res)) return;
   try {
-    const stages = await prisma.stage.findMany({
+    const targets = await prisma.target.findMany({
       where: {
         status: { in: ['ACTIVE', 'COMPLETED'] }
       },
@@ -28,30 +28,29 @@ export const getSprintReports = async (req: Request, res: Response) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    const formattedReports = stages.map(stage => {
-      const totalTasks = stage.tasks.length;
-      const completedTasks = stage.tasks.filter(t => t.status === 'DONE').length;
+    const formattedReports = targets.map(target => {
+      const totalTasks = target.tasks.length;
+      const completedTasks = target.tasks.filter(t => t.status === 'DONE').length;
       const successRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
       
-      const velocity = stage.tasks
-        .filter(t => t.status === 'DONE')
-        .reduce((sum, t) => sum + (t.storyPoints || 0), 0);
+      const targetManHours = target.tasks
+        .reduce((sum, t) => sum + (t.actualHours || 0), 0);
         
-      const rfiCount = stage.tasks.reduce((sum, t) => sum + t.rfis.length, 0);
+      const rfiCount = target.tasks.reduce((sum, t) => sum + t.rfis.length, 0);
 
       let summary = '';
-      if (stage.status === 'COMPLETED') {
-        summary = successRate === 100 ? 'Excellent stage with all goals achieved.' : `Stage completed with ${successRate}% success rate.`;
+      if (target.status === 'COMPLETED') {
+        summary = successRate === 100 ? 'Excellent target with all goals achieved.' : `Target completed with ${successRate}% success rate.`;
       } else {
-        summary = successRate > 50 ? 'Stage is progressing well.' : 'Stage is currently at risk. Monitor RFIs.';
+        summary = successRate > 50 ? 'Target is progressing well.' : 'Target is currently at risk. Monitor RFIs.';
       }
 
       return {
-        id: stage.id,
-        stage: { name: stage.name },
-        project: { name: stage.project.name },
+        id: target.id,
+        target: { name: target.name },
+        project: { name: target.project.name },
         successRate,
-        velocity,
+        targetManHours,
         completedTasks,
         pendingTasks: totalTasks - completedTasks,
         rfiCount,
@@ -62,32 +61,32 @@ export const getSprintReports = async (req: Request, res: Response) => {
     res.status(200).json(formattedReports);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to fetch stage reports' });
+    res.status(500).json({ error: 'Failed to fetch target reports' });
   }
 };
 
 export const getTeamReports = async (req: Request, res: Response) => {
   if (!checkPMRole(req, res)) return;
   try {
-    const activeStage = await prisma.stage.findFirst({
+    const activeTarget = await prisma.target.findFirst({
       where: { status: 'ACTIVE' },
       orderBy: { createdAt: 'desc' }
     });
 
-    const stageFilter = activeStage ? { stageId: activeStage.id } : {};
+    const targetFilter = activeTarget ? { targetId: activeTarget.id } : {};
 
     const users = await prisma.user.findMany({
       include: {
         tasksAssigned: {
-          where: stageFilter
+          where: targetFilter
         },
         rfisReported: {
-          where: stageFilter.stageId ? {
-            task: { stageId: stageFilter.stageId }
+          where: targetFilter.targetId ? {
+            task: { targetId: targetFilter.targetId }
           } : {}
         },
         progressReports: {
-          where: stageFilter
+          where: targetFilter
         }
       },
       orderBy: { name: 'asc' }
@@ -100,12 +99,12 @@ export const getTeamReports = async (req: Request, res: Response) => {
       const blockersRaised = user.rfisReported.length;
 
       let standupConsistency = 0;
-      if (activeStage) {
-        const stageStart = new Date(activeStage.startDate);
+      if (activeTarget) {
+        const targetStart = new Date(activeTarget.startDate);
         const today = new Date();
-        const endDay = new Date(activeStage.endDate) < today ? new Date(activeStage.endDate) : today;
+        const endDay = new Date(activeTarget.endDate) < today ? new Date(activeTarget.endDate) : today;
         let workingDays = 0;
-        let curr = new Date(stageStart);
+        let curr = new Date(targetStart);
         while (curr <= endDay) {
           const dayOfWeek = curr.getDay();
           if (dayOfWeek !== 0 && dayOfWeek !== 6) workingDays++; // skip weekends
@@ -120,7 +119,7 @@ export const getTeamReports = async (req: Request, res: Response) => {
       return {
         id: user.id,
         user: { name: user.name },
-        stage: { name: activeStage?.name || 'No Active Stage' },
+        target: { name: activeTarget?.name || 'No Active Target' },
         assignedTasks,
         completedTasks,
         delayedTasks,
@@ -143,9 +142,11 @@ export const getProjectReports = async (req: Request, res: Response) => {
   try {
     const projects = await prisma.project.findMany({
       include: {
-        stageReports: true,
+        targetReports: true,
         tasks: {
-          select: { status: true, dueDate: true }
+          include: {
+            assignee: { select: { name: true } }
+          }
         }
       }
     });
@@ -164,7 +165,8 @@ export const getProjectReports = async (req: Request, res: Response) => {
         totalTasks: total,
         completedTasks: completed,
         overdueTasks: overdue,
-        stageReports: p.stageReports
+        targetReports: p.targetReports,
+        tasks: p.tasks // Include tasks for task-wise report
       };
     });
 
@@ -180,8 +182,14 @@ export const getProductivityReports = async (req: Request, res: Response) => {
     // Dynamic global stats
     const allTasks = await prisma.task.findMany();
     const completedTasks = allTasks.filter(t => t.status === 'DONE');
-    const overallVelocity = completedTasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
+    // Calculate Weekly Man Hours
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
+    const weeklyManHours = completedTasks
+      .filter(t => t.completedAt && new Date(t.completedAt) >= sevenDaysAgo)
+      .reduce((sum, t) => sum + (t.actualHours || 0), 0);
+
     // Average completion time (createdAt to updatedAt)
     let avgTime = 0;
     if (completedTasks.length > 0) {
@@ -191,11 +199,26 @@ export const getProductivityReports = async (req: Request, res: Response) => {
     
     const activeBlockers = await prisma.rFI.count({ where: { isResolved: false } });
 
+    // Calculate Average Target Man Hours
+    const allTargets = await prisma.target.findMany({
+      include: { tasks: true }
+    });
+    
+    let averageTargetManHours = 0;
+    if (allTargets.length > 0) {
+      const totalTargetHours = allTargets.reduce((sum, target) => {
+        const targetHours = target.tasks.reduce((tSum, task) => tSum + (task.actualHours || 0), 0);
+        return sum + targetHours;
+      }, 0);
+      averageTargetManHours = Math.round((totalTargetHours / allTargets.length) * 10) / 10;
+    }
+
     res.status(200).json({
-      overallVelocity,
+      weeklyManHours,
       averageCompletionTime: avgTime,
       activeBlockers,
-      standupConsistency: 95
+      standupConsistency: 95,
+      averageTargetManHours
     });
   } catch (error) {
     console.error(error);

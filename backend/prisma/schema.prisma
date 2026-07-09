@@ -50,7 +50,7 @@ enum TaskStatus {
   DONE
 }
 
-enum StageStatus {
+enum TargetStatus {
   PLANNED
   ACTIVE
   COMPLETED
@@ -61,14 +61,14 @@ enum NotificationType {
   MENTION
   ASSIGNED
   STATUS_CHANGE
-  STAGE_STARTED
-  STAGE_ENDED
+  TARGET_STARTED
+  TARGET_ENDED
   RFI_ALERT
   SYSTEM
 }
 
 enum FeedbackCategory {
-  STAGE
+  TARGET
   TASK_ASSIGNMENT
   DEADLINE
   COMMUNICATION
@@ -109,7 +109,7 @@ model User {
   performanceMetrics   TeamPerformanceMetric[]
 
   projectMembers ProjectMember[]
-  stageMembers   StageMember[]
+  targetMembers   TargetMember[]
   rfisHelped     RFI[]       @relation("RFIHelper")
   focuses        TodayFocus[]
   sessions       UserSession[]
@@ -139,10 +139,10 @@ model Project {
 
   owner User @relation("ProjectOwner", fields: [ownerId], references: [id])
 
-  stages        Stage[]
+  targets        Target[]
   tasks         Task[]
   members       ProjectMember[]
-  stageReports  StageReport[]
+  targetReports  TargetReport[]
   chatChannels  ChatChannel[]
 
   isArchived Boolean @default(false)
@@ -167,13 +167,14 @@ model ProjectMember {
   @@unique([projectId, userId])
 }
 
-model Stage {
+model Target {
   id        String      @id @default(uuid())
   name      String
   goal      String?
   startDate DateTime
   endDate   DateTime
-  status    StageStatus @default(PLANNED)
+  status    TargetStatus @default(PLANNED)
+  budgetedHours Float?
   projectId String
 
   project            Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -181,9 +182,9 @@ model Stage {
   progressReports    ProgressReport[]
   feedbacks          Feedback[]
   retrospectives     RetrospectiveComparison[]
-  report             StageReport?
+  report             TargetReport?
   performanceMetrics TeamPerformanceMetric[]
-  members            StageMember[]
+  members            TargetMember[]
   chatChannels       ChatChannel[]
 
   isArchived Boolean @default(false)
@@ -194,17 +195,17 @@ model Stage {
   @@index([projectId])
 }
 
-model StageMember {
+model TargetMember {
   id      String @id @default(uuid())
-  stageId String
+  targetId String
   userId  String
 
-  stage Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  target Target @relation(fields: [targetId], references: [id], onDelete: Cascade)
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
-  @@unique([stageId, userId])
+  @@unique([targetId, userId])
 }
 
 model Task {
@@ -212,10 +213,13 @@ model Task {
   key                String       @unique // e.g., "PROJ-123"
   title              String
   description        String?
-  type               String       @default("DESIGN") // DESIGN, DRAFTING, MODELING, ANALYSIS, SITE_CHECK, REVIEW
+  taskCategory       String?      @default("DESIGN") // DESIGN, DRAFTING, STUDY
+  type               String       @default("MODELING") // MODELING, ANALYSIS, SITE_CHECK, REVIEW
   status             TaskStatus   @default(PENDING)
   priority           TaskPriority @default(MEDIUM)
   storyPoints        Int?
+  estimatedHours     Float?
+  actualHours        Float?
   drawingNumber      String?
   revisionNumber     String?
   dueDate            DateTime?
@@ -224,12 +228,12 @@ model Task {
   labels             String[]
 
   projectId  String
-  stageId    String?
+  targetId    String?
   assigneeId String?
   creatorId  String
 
   project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  stage    Stage?  @relation(fields: [stageId], references: [id])
+  target    Target?  @relation(fields: [targetId], references: [id])
   assignee User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
   creator  User    @relation("TaskCreator", fields: [creatorId], references: [id])
 
@@ -252,7 +256,7 @@ model Task {
 
   @@index([projectId])
   @@index([assigneeId])
-  @@index([stageId])
+  @@index([targetId])
 }
 
 model Comment {
@@ -317,18 +321,18 @@ model ProgressReport {
   today     String
   blockers  String?
   userId    String
-  stageId   String
+  targetId   String
   taskId    String?
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stage       Stage    @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  target       Target    @relation(fields: [targetId], references: [id], onDelete: Cascade)
   task        Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
   reportedRFIs RFI[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([userId, stageId, date])
+  @@unique([userId, targetId, date])
 }
 
 model RFI {
@@ -363,7 +367,7 @@ model Feedback {
   id        String           @id @default(uuid())
   content   String
   sentiment String? // POSITIVE, NEUTRAL, NEGATIVE
-  category  FeedbackCategory @default(STAGE)
+  category  FeedbackCategory @default(TARGET)
 
   // Specific questions
   wentWell            String?
@@ -375,18 +379,18 @@ model Feedback {
   blockerPatterns     String?
 
   userId  String
-  stageId String
+  targetId String
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stage Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  target Target @relation(fields: [targetId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model StageReport {
+model TargetReport {
   id             String  @id @default(uuid())
-  stageId        String  @unique
+  targetId        String  @unique
   projectId      String
   successRate    Float
   velocity       Int
@@ -395,7 +399,7 @@ model StageReport {
   rfiCount       Int
   summary        String?
 
-  stage   Stage   @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  target   Target   @relation(fields: [targetId], references: [id], onDelete: Cascade)
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -404,7 +408,7 @@ model StageReport {
 model TeamPerformanceMetric {
   id                 String @id @default(uuid())
   userId             String
-  stageId            String
+  targetId            String
   assignedTasks      Int
   completedTasks     Int
   delayedTasks       Int
@@ -414,18 +418,18 @@ model TeamPerformanceMetric {
   utilizationRate    Float // percentage
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stage Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  target Target @relation(fields: [targetId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
-  @@unique([userId, stageId])
+  @@unique([userId, targetId])
 }
 
 model AnalyticsSnapshot {
   id                   String   @id @default(uuid())
   date                 DateTime @default(now())
   totalActiveTasks     Int
-  stageCompletionRate  Float
+  targetCompletionRate  Float
   delayedTasks         Int
   rfisCount            Int
   teamVelocity         Int
@@ -436,10 +440,10 @@ model AnalyticsSnapshot {
 
 model RetrospectiveComparison {
   id       String @id @default(uuid())
-  metrics  Json // Stores stage velocity, completed points, etc.
-  stageId  String
+  metrics  Json // Stores target velocity, completed points, etc.
+  targetId  String
 
-  stage Stage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  target Target @relation(fields: [targetId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 }
@@ -483,10 +487,10 @@ model AuditLog {
   createdAt DateTime @default(now())
 }
 
-model MemberStageStats {
+model MemberTargetStats {
   id             String @id @default(uuid())
   userId         String
-  stageId        String
+  targetId        String
   completedTasks Int
   pendingTasks   Int
   storyPoints    Int
@@ -555,7 +559,7 @@ model NotificationHistory {
   senderId       String
   receiverId     String?
   taskId         String?
-  stageId        String?
+  targetId        String?
   projectId      String?
   mailSent       Boolean  @default(false)
   deliveryStatus String
@@ -626,9 +630,9 @@ model ChatChannel {
   id          String   @id @default(uuid())
   name        String
   description String?
-  type        String // DIRECT, PROJECT, STAGE, TASK, RFI, ANNOUNCEMENT
+  type        String // DIRECT, PROJECT, TARGET, TASK, RFI, ANNOUNCEMENT
   projectId   String?
-  stageId     String?
+  targetId     String?
   taskId      String?
   rfiId       String?
   createdById String
@@ -637,7 +641,7 @@ model ChatChannel {
 
   createdBy User     @relation("CreatedChannels", fields: [createdById], references: [id], onDelete: Cascade)
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  stage     Stage?   @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  target     Target?   @relation(fields: [targetId], references: [id], onDelete: Cascade)
   task      Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
   rfi       RFI?     @relation(fields: [rfiId], references: [id], onDelete: Cascade)
 

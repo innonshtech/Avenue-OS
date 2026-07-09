@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Download, Printer, FileText } from 'lucide-react';
 import api from '@/lib/api';
-import { exportToCSV, exportToPDF, type ExportColumn } from '@/utils/exportUtils';
+import { exportToCSV, exportToPDF, exportProjectReportsToPDF, type ExportColumn } from '@/utils/exportUtils';
 
 export default function ReportsPage() {
   const [sprintReports, setSprintReports] = useState<any[]>([]);
@@ -18,7 +18,7 @@ export default function ReportsPage() {
     { header: 'Sprint Name', key: 'sprint.name' },
     { header: 'Project', key: 'project.name' },
     { header: 'Success Rate (%)', key: 'successRate' },
-    { header: 'Velocity (pts)', key: 'velocity' },
+    { header: 'Total Man-Hours (hrs)', key: 'targetManHours' },
     { header: 'Completed Tasks', key: 'completedTasks' },
     { header: 'Blockers Encountered', key: 'blockerCount' },
     { header: 'Summary', key: 'summary' }
@@ -44,8 +44,8 @@ export default function ReportsPage() {
   ];
 
   const PRODUCTIVITY_COLUMNS: ExportColumn[] = [
-    { header: 'Overall Velocity', key: 'overallVelocity' },
-    { header: 'Avg Completion Time (hrs)', key: 'averageCompletionTime' },
+    { header: 'Weekly Man-Hours', key: 'weeklyManHours' },
+    { header: 'Average Completion Time (hrs)', key: 'averageCompletionTime' },
     { header: 'Active Blockers', key: 'activeBlockers' },
     { header: 'Standup Consistency (%)', key: 'standupConsistency' }
   ];
@@ -85,7 +85,7 @@ export default function ReportsPage() {
     switch (activeTab) {
       case 'sprints': exportToPDF('Sprint Performance Reports', 'Sprint_Reports', SPRINT_COLUMNS, sprintReports); break;
       case 'team': exportToPDF('Team Performance Metrics', 'Team_Reports', TEAM_COLUMNS, teamReports); break;
-      case 'projects': exportToPDF('Project Status Reports', 'Project_Reports', PROJECT_COLUMNS, projectReports); break;
+      case 'projects': exportProjectReportsToPDF('Project Status Reports', 'Project_Reports', projectReports); break;
       case 'productivity': exportToPDF('Overall Productivity Report', 'Productivity_Report', PRODUCTIVITY_COLUMNS, productivityReports ? [productivityReports] : []); break;
     }
   };
@@ -146,8 +146,8 @@ export default function ReportsPage() {
                       <p className="text-xl font-semibold">{report.successRate}%</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Velocity</p>
-                      <p className="text-xl font-semibold">{report.velocity} pts</p>
+                      <p className="text-sm text-muted-foreground">Total Man-Hours</p>
+                      <p className="text-xl font-semibold">{report.targetManHours} hrs</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Completed Tasks</p>
@@ -219,19 +219,30 @@ export default function ReportsPage() {
             projectReports.map(project => (
               <Card key={project.id}>
                 <CardHeader>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-start">
                     <div>
                       <CardTitle>{project.name}</CardTitle>
                       <CardDescription>Status: {project.status}</CardDescription>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Completion</p>
-                      <p className="text-2xl font-bold text-indigo-600">{project.completionPercentage.toFixed(1)}%</p>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">Completion</p>
+                        <p className="text-2xl font-bold text-indigo-600">{project.completionPercentage.toFixed(1)}%</p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => exportProjectReportsToPDF(`Project Report: ${project.name}`, `Project_Report_${project.name.replace(/\\s+/g, '_')}`, [project])}
+                        className="shadow-sm"
+                      >
+                        <FileText className="w-4 h-4 mr-2 text-indigo-600" />
+                        Export PDF
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-3 gap-4 mb-6">
                     <div className="p-4 bg-muted/30 rounded-lg text-center">
                       <p className="text-sm text-muted-foreground">Total Tasks</p>
                       <p className="text-xl font-semibold">{project.totalTasks}</p>
@@ -245,6 +256,84 @@ export default function ReportsPage() {
                       <p className="text-xl font-semibold text-rose-600">{project.overdueTasks}</p>
                     </div>
                   </div>
+
+                  {project.tasks && project.tasks.length > 0 && (
+                    <div className="mt-6 border-t pt-4 space-y-6">
+                      <h4 className="text-sm font-semibold mb-3">Task Breakdown (By Category)</h4>
+                      {(() => {
+                        // Group tasks by category
+                        const grouped = project.tasks.reduce((acc: any, task: any) => {
+                          const cat = task.taskCategory || 'Uncategorized';
+                          if (!acc[cat]) acc[cat] = [];
+                          acc[cat].push(task);
+                          return acc;
+                        }, {});
+
+                        const categories = Object.keys(grouped);
+                        if (categories.length === 0) return null;
+
+                        return (
+                          <Tabs defaultValue={categories[0]} className="w-full">
+                            <TabsList className="w-full justify-start border-b rounded-none h-auto flex-wrap bg-transparent gap-2 pb-2">
+                              {categories.map((category) => (
+                                <TabsTrigger 
+                                  key={category} 
+                                  value={category}
+                                  className="data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700 data-[state=active]:border-indigo-200 border border-transparent rounded-md px-4 py-1.5 transition-all"
+                                >
+                                  {category.replace(/_/g, ' ')}
+                                  <span className="ml-2 inline-flex items-center justify-center bg-indigo-100 text-indigo-700 rounded-full h-5 px-1.5 min-w-5 text-[10px] font-bold">
+                                    {grouped[category].length}
+                                  </span>
+                                </TabsTrigger>
+                              ))}
+                            </TabsList>
+                            {categories.map((category) => (
+                              <TabsContent key={category} value={category} className="mt-4">
+                                <div className="border rounded-md overflow-hidden bg-background">
+                                  <table className="w-full text-sm text-left">
+                                    <thead className="bg-muted/30 text-muted-foreground border-b">
+                                      <tr>
+                                        <th className="p-3 font-medium">Task</th>
+                                        <th className="p-3 font-medium">Status</th>
+                                        <th className="p-3 font-medium">Assignee</th>
+                                        <th className="p-3 font-medium">Due Date</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border">
+                                      {grouped[category].map((task: any) => (
+                                        <tr key={task.id} className="hover:bg-muted/40 transition-colors">
+                                          <td className="p-3">
+                                            <div className="font-medium text-foreground">{task.title}</div>
+                                            <div className="text-xs text-muted-foreground mt-0.5">{task.key}</div>
+                                          </td>
+                                          <td className="p-3">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                                              task.status === 'DONE' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 
+                                              task.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                              'bg-amber-50 text-amber-700 border-amber-200'
+                                            }`}>
+                                              {task.status.replace(/_/g, ' ')}
+                                            </span>
+                                          </td>
+                                          <td className="p-3 text-muted-foreground">
+                                            {task.assignee?.name || 'Unassigned'}
+                                          </td>
+                                          <td className="p-3 text-muted-foreground">
+                                            {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No date'}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </TabsContent>
+                            ))}
+                          </Tabs>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))
@@ -258,10 +347,10 @@ export default function ReportsPage() {
                 <CardTitle>Overall Productivity Report</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
                   <div className="text-center p-6 border rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-2">Overall Velocity</p>
-                    <p className="text-3xl font-bold text-indigo-600">{productivityReports.overallVelocity}</p>
+                    <p className="text-sm text-muted-foreground mb-2">Weekly Man-Hours</p>
+                    <p className="text-3xl font-bold text-indigo-600">{productivityReports.weeklyManHours || 0}</p>
                   </div>
                   <div className="text-center p-6 border rounded-lg">
                     <p className="text-sm text-muted-foreground mb-2">Avg Completion Time</p>
@@ -274,6 +363,10 @@ export default function ReportsPage() {
                   <div className="text-center p-6 border rounded-lg">
                     <p className="text-sm text-muted-foreground mb-2">Standup Consistency</p>
                     <p className="text-3xl font-bold text-emerald-600">{productivityReports.standupConsistency}%</p>
+                  </div>
+                  <div className="text-center p-6 border rounded-lg">
+                    <p className="text-sm text-muted-foreground mb-2">Avg Target Hours</p>
+                    <p className="text-3xl font-bold text-blue-600">{productivityReports.averageTargetManHours || 0} hrs</p>
                   </div>
                 </div>
               </CardContent>

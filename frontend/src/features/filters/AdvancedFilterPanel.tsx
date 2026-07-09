@@ -1,6 +1,5 @@
 import React from 'react';
 import { X, Check } from 'lucide-react';
-import { TEAM_MEMBERS } from '@/constants/teamMembers';
 import { Button } from '@/components/ui/button';
 
 export interface FilterState {
@@ -20,6 +19,7 @@ interface AdvancedFilterPanelProps {
   setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
   projects?: any[];
   sprints?: any[];
+  team?: any[];
   isBoardView?: boolean;
 }
 
@@ -51,6 +51,7 @@ export const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
   setFilters,
   projects = [],
   sprints = [],
+  team = [],
   isBoardView = false,
 }) => {
   if (!isOpen) return null;
@@ -183,7 +184,7 @@ export const AdvancedFilterPanel: React.FC<AdvancedFilterPanelProps> = ({
           <div>
             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-2.5">Assignee</label>
             <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-              {TEAM_MEMBERS.map((member) => {
+              {team.map((member: any) => {
                 const isSelected = filters.assigneeIds.includes(member.id);
                 return (
                   <button

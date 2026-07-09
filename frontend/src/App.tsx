@@ -10,8 +10,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 // New Feature Pages
 import ProjectListPage from './features/projects/pages/ProjectListPage';
 import ProjectDetailsPage from './features/projects/pages/ProjectDetailsPage';
-import StageListPage from './features/stages/pages/StageListPage';
-import StageDetailsPage from './features/stages/pages/StageDetailsPage';
+import TargetListPage from './features/targets/pages/TargetListPage';
+import TargetDetailsPage from './features/targets/pages/TargetDetailsPage';
 import TaskListPage from './features/tasks/pages/TaskListPage';
 import KanbanBoardPage from './features/boards/pages/KanbanBoardPage';
 import ProgressReportPage from './features/progress-reports/pages/ProgressReportPage';
@@ -20,7 +20,7 @@ import ReportsPage from './features/reports/pages/ReportsPage';
 import FeedbacksPage from './features/feedbacks/pages/FeedbacksPage';
 import TeamManagementPage from './features/team/pages/TeamManagementPage';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
-import StageReportsPage from './features/member/stage-reports/pages/StageReportsPage';
+import TargetReportsPage from './features/member/target-reports/pages/TargetReportsPage';
 import AdminDashboard from './features/admin/pages/AdminDashboard';
 import MyActivityLogPage from './features/activity/pages/MyActivityLogPage';
 import OrganizationAuditLogPage from './features/activity/pages/OrganizationAuditLogPage';
@@ -111,8 +111,8 @@ function App() {
               <Route path="projects" element={<ProjectListPage />} />
               <Route path="projects/:id" element={<ProjectDetailsPage />} />
               
-              <Route path="stages" element={<StageListPage />} />
-              <Route path="stages/:id" element={<StageDetailsPage />} />
+              <Route path="targets" element={<TargetListPage />} />
+              <Route path="targets/:id" element={<TargetDetailsPage />} />
               
               <Route path="tasks" element={<TaskListPage />} />
               {/* Engineering and drafting aliases pointing to same task view for simplicity, 
@@ -138,7 +138,7 @@ function App() {
 
               {/* Member-Only Routes */}
               <Route element={<RoleProtectedRoute allowedRoles={['PRINCIPAL_ENGINEER', 'ENGINEER', 'DRAFTSMAN', 'ARCHITECT']} />}>
-                <Route path="stage-reports" element={<StageReportsPage />} />
+                <Route path="target-reports" element={<TargetReportsPage />} />
                 <Route path="activity" element={<MyActivityLogPage />} />
               </Route>
 
