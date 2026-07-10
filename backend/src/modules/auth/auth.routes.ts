@@ -17,6 +17,7 @@ const authRateLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+router.get('/public-users', AuthController.getPublicUsers);
 router.post('/login', authRateLimiter, AuthController.login);
 router.post('/refresh', authRateLimiter, AuthController.refresh);
 router.post('/logout', AuthController.logout);

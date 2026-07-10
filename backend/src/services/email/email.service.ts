@@ -1,6 +1,6 @@
 import prisma from '../../utils/prisma';
 import { SendTaskAssignedMailParams } from './email.types';
-import { MAIL_FROM, MAIL_CC, EMAIL_MAPPINGS } from './email.constants';
+import { MAIL_FROM, EMAIL_MAPPINGS } from './email.constants';
 import { getTaskAssignedTemplate } from './templates/taskAssignedTemplate';
 import { transporter } from './transporter';
 
@@ -32,7 +32,7 @@ export class EmailService {
   }
 
   async sendTaskAssignedMail(params: SendTaskAssignedMailParams): Promise<boolean> {
-    const subject = `[ SprintOS ] New Task Assigned — ${params.taskKey}`;
+    const subject = `[ AvenueOS ] New Task Assigned — ${params.taskKey}`;
     
     // Resolve email: Prefer passed email (from user table), fallback to mapping
     const toEmail = params.assigneeEmail || EMAIL_MAPPINGS[params.assigneeName] || 'unknown@innonsh.com';
@@ -49,7 +49,6 @@ export class EmailService {
       await transporter.sendMail({
         from: MAIL_FROM,
         to: toEmail,
-        cc: MAIL_CC,
         subject,
         html,
       });
@@ -65,7 +64,7 @@ export class EmailService {
   }
 
   async sendStandupReminderMail(userName: string, userEmail: string): Promise<boolean> {
-    const subject = `[ SprintOS ] Daily Standup Reminder`;
+    const subject = `[ AvenueOS ] Daily Standup Reminder`;
     try {
       if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
         console.warn('MAIL_USER or MAIL_PASS is missing. Mocking standup reminder email send.');
@@ -92,7 +91,7 @@ export class EmailService {
                       <table border="0" cellpadding="0" cellspacing="0" width="100%">
                         <tr>
                           <td>
-                            <span style="color: #ffffff; font-size: 24px; font-weight: 800; tracking-tight: -0.025em; font-family: -apple-system, sans-serif;">Innonsh SprintOS</span>
+                            <span style="color: #ffffff; font-size: 24px; font-weight: 800; tracking-tight: -0.025em; font-family: -apple-system, sans-serif;">AvenueOS</span>
                           </td>
                         </tr>
                       </table>
@@ -131,7 +130,7 @@ export class EmailService {
                   <tr>
                     <td style="padding: 30px 40px 40px 40px; background-color: #f8fafc; border-top: 1px solid #f1f5f9; text-align: left;">
                       <p style="margin: 0 0 8px 0; color: #94a3b8; font-size: 12px; line-height: 1.4;">
-                        This email was sent automatically by Innonsh SprintOS in accordance with project management policy. Please do not reply directly to this mailbox.
+                        This email was sent automatically by AvenueOS in accordance with project management policy. Please do not reply directly to this mailbox.
                       </p>
                       <p style="margin: 0; color: #94a3b8; font-size: 12px; line-height: 1.4;">
                         &copy; 2026 Innonsh Technologies. All rights reserved.
@@ -149,7 +148,6 @@ export class EmailService {
       await transporter.sendMail({
         from: MAIL_FROM,
         to: userEmail,
-        cc: MAIL_CC,
         subject,
         html,
       });
@@ -170,7 +168,7 @@ export class EmailService {
   }
 
   async sendPasswordResetMail(email: string, token: string): Promise<boolean> {
-    const subject = `[ SprintOS ] Password Reset Request`;
+    const subject = `[ AvenueOS ] Password Reset Request`;
     try {
       if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
         console.warn('MAIL_USER or MAIL_PASS is missing. Mocking password reset email send.');

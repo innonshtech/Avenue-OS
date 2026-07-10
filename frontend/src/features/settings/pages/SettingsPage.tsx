@@ -10,9 +10,12 @@ import { Bell, Shield, User, Palette, Save, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { AuthApi } from '@/features/auth/authApi';
+import { useUIStore } from '@/store/uiStore';
+import { Slider } from '@/components/ui/slider';
 
 export default function SettingsPage() {
   const { user } = useAuthStore();
+  const { zoomLevel, setZoomLevel } = useUIStore();
   const { toast } = useToast();
 
   const [isDarkMode, setIsDarkMode] = React.useState(() => {
@@ -173,6 +176,25 @@ export default function SettingsPage() {
                     </p>
                   </div>
                   <Switch defaultChecked={false} />
+                </div>
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-base">Application Zoom</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Scale the entire application interface. Default is 90%.
+                      </p>
+                    </div>
+                    <span className="font-bold text-lg text-primary">{zoomLevel}%</span>
+                  </div>
+                  <Slider 
+                    value={[zoomLevel]} 
+                    min={50} 
+                    max={150} 
+                    step={5} 
+                    onValueChange={(vals) => setZoomLevel(vals[0])}
+                    className="w-full"
+                  />
                 </div>
               </CardContent>
             </Card>
