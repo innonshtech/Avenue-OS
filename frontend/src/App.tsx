@@ -45,12 +45,15 @@ function App() {
   const zoomLevel = useUIStore((state) => state.zoomLevel);
 
   useEffect(() => {
-    // Apply zoom globally to the body tag
-    document.body.style.zoom = `${zoomLevel}%`;
-    // For Firefox compatibility
-    document.body.style.transform = `scale(${zoomLevel / 100})`;
-    document.body.style.transformOrigin = 'top left';
-    document.body.style.width = `${100 / (zoomLevel / 100)}%`;
+    // Apply zoom globally to html (avoids double scaling and fixes viewport height gaps)
+    document.documentElement.style.setProperty('zoom', `${zoomLevel}%`);
+    
+    // Clean up any legacy body styles that were causing the layout clipping
+    document.body.style.removeProperty('zoom');
+    document.body.style.removeProperty('transform');
+    document.body.style.removeProperty('transform-origin');
+    document.body.style.removeProperty('width');
+    document.body.style.removeProperty('height');
   }, [zoomLevel]);
 
   useEffect(() => {
@@ -106,71 +109,73 @@ function App() {
           </div>
         </div>
       )}
-      <Router>
-        <Routes>
-          <Route path="/" element={<Navigate to="/signin" replace />} />
-          {/* Auth Routes */}
-          <Route path="/signin" element={<SignInPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          
-          {/* Protected Routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<DashboardLayout />}>
-              <Route index element={<DashboardPage />} />
-              
-              <Route path="projects" element={<ProjectListPage />} />
-              <Route path="projects/:id" element={<ProjectDetailsPage />} />
-              
-              <Route path="targets" element={<TargetListPage />} />
-              <Route path="targets/:id" element={<TargetDetailsPage />} />
-              
-              <Route path="tasks" element={<TaskListPage />} />
-              {/* Engineering and drafting aliases pointing to same task view for simplicity, 
-                  access filtered internally in TaskListPage */}
-              <Route path="my-tasks" element={<TaskListPage />} />
-              <Route path="campaign-tasks" element={<TaskListPage />} />
-              
-              <Route path="boards" element={<KanbanBoardPage />} />
-              
-              <Route path="standups" element={<ProgressReportPage />} />
-              <Route path="timesheets" element={<TimesheetsPage />} />
-              
-              {/* Project Manager Only Routes */}
-              <Route element={<RoleProtectedRoute allowedRoles={['PROJECT_MANAGER', 'ADMIN']} />}>
-                <Route path="analytics" element={<AnalyticsDashboardPage />} />
-                <Route path="reports" element={<ReportsPage />} />
-                <Route path="team" element={<TeamManagementPage />} />
-                <Route path="organization-audit" element={<OrganizationAuditLogPage />} />
+      <div className="min-h-screen w-full flex flex-col">
+        <Router>
+          <Routes>
+            <Route path="/" element={<Navigate to="/signin" replace />} />
+            {/* Auth Routes */}
+            <Route path="/signin" element={<SignInPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            
+            {/* Protected Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<DashboardLayout />}>
+                <Route index element={<DashboardPage />} />
+                
+                <Route path="projects" element={<ProjectListPage />} />
+                <Route path="projects/:id" element={<ProjectDetailsPage />} />
+                
+                <Route path="targets" element={<TargetListPage />} />
+                <Route path="targets/:id" element={<TargetDetailsPage />} />
+                
+                <Route path="tasks" element={<TaskListPage />} />
+                {/* Engineering and drafting aliases pointing to same task view for simplicity, 
+                    access filtered internally in TaskListPage */}
+                <Route path="my-tasks" element={<TaskListPage />} />
+                <Route path="campaign-tasks" element={<TaskListPage />} />
+                
+                <Route path="boards" element={<KanbanBoardPage />} />
+                
+                <Route path="standups" element={<ProgressReportPage />} />
+                <Route path="timesheets" element={<TimesheetsPage />} />
+                
+                {/* Project Manager Only Routes */}
+                <Route element={<RoleProtectedRoute allowedRoles={['PROJECT_MANAGER', 'ADMIN']} />}>
+                  <Route path="analytics" element={<AnalyticsDashboardPage />} />
+                  <Route path="reports" element={<ReportsPage />} />
+                  <Route path="team" element={<TeamManagementPage />} />
+                  <Route path="organization-audit" element={<OrganizationAuditLogPage />} />
+                </Route>
+
+                {/* Feedbacks - Accessible to all */}
+                <Route path="feedbacks" element={<FeedbacksPage />} />
+
+                {/* Member-Only Routes */}
+                <Route element={<RoleProtectedRoute allowedRoles={['PRINCIPAL_ENGINEER', 'ENGINEER', 'DRAFTSMAN', 'ARCHITECT']} />}>
+                  <Route path="target-reports" element={<TargetReportsPage />} />
+                  <Route path="activity" element={<MyActivityLogPage />} />
+                </Route>
+
+                 {/* Chat Route - Accessible to everyone */}
+                <Route path="chat" element={<ChatPage />} />
+
+                {/* Settings Route - Accessible to everyone in the dashboard */}
+                <Route path="settings" element={<SettingsPage />} />
+                
+                {/* Calendar Timeline Route - Accessible to everyone */}
+                <Route path="calendar" element={<CalendarPage />} />
               </Route>
 
-              {/* Feedbacks - Accessible to all */}
-              <Route path="feedbacks" element={<FeedbacksPage />} />
-
-              {/* Member-Only Routes */}
-              <Route element={<RoleProtectedRoute allowedRoles={['PRINCIPAL_ENGINEER', 'ENGINEER', 'DRAFTSMAN', 'ARCHITECT']} />}>
-                <Route path="target-reports" element={<TargetReportsPage />} />
-                <Route path="activity" element={<MyActivityLogPage />} />
+              {/* Admin Route */}
+              <Route element={<RoleProtectedRoute allowedRoles={['ADMIN']} />}>
+                <Route path="/admin" element={<AdminDashboard />} />
               </Route>
-
-               {/* Chat Route - Accessible to everyone */}
-              <Route path="chat" element={<ChatPage />} />
-
-              {/* Settings Route - Accessible to everyone in the dashboard */}
-              <Route path="settings" element={<SettingsPage />} />
-              
-              {/* Calendar Timeline Route - Accessible to everyone */}
-              <Route path="calendar" element={<CalendarPage />} />
             </Route>
-
-            {/* Admin Route */}
-            <Route element={<RoleProtectedRoute allowedRoles={['ADMIN']} />}>
-              <Route path="/admin" element={<AdminDashboard />} />
-            </Route>
-          </Route>
-        </Routes>
-      </Router>
-      <Toaster />
+          </Routes>
+        </Router>
+        <Toaster />
+      </div>
       </SocketProvider>
     </QueryClientProvider>
   );

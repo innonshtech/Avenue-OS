@@ -49,7 +49,7 @@ export default function DashboardPage() {
   const weeklyManHoursScore = pmSummary?.kpis?.weeklyManHours || 0;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
