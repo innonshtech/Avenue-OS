@@ -262,7 +262,7 @@ export default function DashboardLayout() {
       </aside>
 
       {/* Desktop Sidebar */}
-      <aside className="w-64 border-r border-border bg-card/30 hidden md:flex flex-col flex-shrink-0">
+      <aside className="w-64 border-r border-border bg-card/30 hidden md:flex flex-col h-full flex-shrink-0">
         <div className="h-16 flex items-center px-6 border-b border-border">
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="Avenue Logo" className="w-8 h-8 object-contain rounded-md" />
@@ -306,7 +306,7 @@ export default function DashboardLayout() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 bg-background">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-background">
         {/* Topbar */}
         <header className="h-16 border-b border-border bg-background flex items-center justify-between px-4 md:px-6 flex-shrink-0">
           <div className="flex items-center gap-4 w-full max-w-xl">
@@ -450,7 +450,7 @@ export default function DashboardLayout() {
         </header>
 
         {/* Page Content */}
-        <main className={`flex-1 overflow-y-auto ${location.pathname.includes('/chat') ? 'p-2 md:p-4' : 'p-4 md:p-8'}`}>
+        <main className={`flex-1 min-h-0 overflow-y-auto ${location.pathname.includes('/chat') ? 'p-2 md:p-4' : 'p-4 md:p-8'}`}>
           <div className={`${location.pathname.includes('/chat') ? 'w-full h-full mx-auto' : 'max-w-7xl mx-auto'}`}>
             <Outlet />
           </div>
