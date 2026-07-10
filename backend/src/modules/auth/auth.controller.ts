@@ -31,6 +31,26 @@ function parseUserAgent(uaString: string | undefined): { browser: string; device
 }
 
 export class AuthController {
+  static async getPublicUsers(req: Request, res: Response, next: NextFunction) {
+    try {
+      const users = await prisma.user.findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          department: true,
+          avatar: true,
+        },
+        orderBy: { name: 'asc' },
+      });
+      return res.status(200).json(users);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async login(req: Request, res: Response, next: NextFunction) {
     const ipAddress = (req.headers['x-forwarded-for'] as string) || req.ip || '';
     const userAgent = req.headers['user-agent'] || '';

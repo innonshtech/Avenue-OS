@@ -36,11 +36,22 @@ import { SessionManager } from './features/auth/sessionManager';
 import { inactivityWatcher } from './features/auth/inactivityWatcher';
 import { Toaster } from '@/components/ui/toaster';
 import { SocketProvider } from './features/realtime/SocketProvider';
+import { useUIStore } from './store/uiStore';
 
 const queryClient = new QueryClient();
 
 function App() {
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
+  const zoomLevel = useUIStore((state) => state.zoomLevel);
+
+  useEffect(() => {
+    // Apply zoom globally to the body tag
+    document.body.style.zoom = `${zoomLevel}%`;
+    // For Firefox compatibility
+    document.body.style.transform = `scale(${zoomLevel / 100})`;
+    document.body.style.transformOrigin = 'top left';
+    document.body.style.width = `${100 / (zoomLevel / 100)}%`;
+  }, [zoomLevel]);
 
   useEffect(() => {
     // 1. Inactivity watcher setup

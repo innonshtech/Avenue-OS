@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Code2, Target, Users, Briefcase, ChevronRight, Activity, LayoutDashboard, Shield, Eye, EyeOff } from 'lucide-react';
+import { Code2, Target, Users, Briefcase, ChevronRight, Activity, LayoutDashboard, Shield, Eye, EyeOff, Search } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { signInSchema } from '../validations/auth.schema';
 import type { SignInFormValues } from '../validations/auth.schema';
@@ -29,11 +30,18 @@ export default function SignInPage() {
   const { login } = useAuthStore();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const { data: publicUsers = [], isLoading: loadingUsers } = useQuery({
+    queryKey: ['public-users'],
+    queryFn: AuthApi.getPublicUsers,
+  });
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(signInSchema),
@@ -45,6 +53,21 @@ export default function SignInPage() {
   });
 
   const selectedEmail = watch('email');
+  
+  const selectedMemberId = publicUsers.find((m: any) => m.email === selectedEmail)?.id || '';
+
+  const filteredUsers = publicUsers.filter((m: any) => 
+    m.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    m.role.toLowerCase().replace('_', ' ').includes(searchQuery.toLowerCase())
+  );
+
+  const handleMemberSelect = (id: string) => {
+    const member = publicUsers.find((m: any) => m.id === id);
+    if (member) {
+      setValue('email', member.email, { shouldValidate: true });
+      document.getElementById('password')?.focus();
+    }
+  };
 
   const onSubmit = async (data: SignInFormValues) => {
     try {
@@ -81,18 +104,63 @@ export default function SignInPage() {
         <div className="w-[800px] h-[800px] bg-[#564de6]/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 w-full max-w-[480px] flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-[560px] flex flex-col items-center">
         {/* Header Section */}
         <div className="text-center mb-6 space-y-2">
-          <img src="/logo.png" alt="Avenue Logo" className="h-10 w-auto object-contain mx-auto mb-1" />
+          <img src="/logo.png" alt="Avenue Logo" className="h-12 w-auto object-contain mx-auto mb-2" />
           <h1 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">Welcome to Avenue Projects</h1>
           <p className="text-xs font-bold text-slate-400 tracking-widest uppercase">Internal Engineering Management Hub</p>
         </div>
 
         {/* Auth Card */}
-        <div className="w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 sm:p-8">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <div className="w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 p-8 sm:p-10">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             
+
+            {/* Team Member Selector */}
+            <div className="space-y-2">
+              <Label htmlFor="memberSelect" className="text-xs font-bold text-slate-500 uppercase tracking-wider">Team Member Profile</Label>
+              <Select
+                value={selectedMemberId}
+                onValueChange={handleMemberSelect}
+                disabled={loadingUsers}
+              >
+                <SelectTrigger className="h-14 bg-slate-50/50 border-slate-200 focus-visible:ring-[#564de6] transition-all font-medium text-slate-700">
+                  <SelectValue placeholder={loadingUsers ? "Loading profiles..." : "Select your team member profile..."} />
+                </SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  <div className="p-2 sticky top-0 bg-white z-10 border-b border-slate-100">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <Input 
+                        placeholder="Search by name or role..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        className="pl-9 h-9 text-sm"
+                      />
+                    </div>
+                  </div>
+                  {filteredUsers.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-slate-500">No members found</div>
+                  ) : (
+                    filteredUsers.map((member: any) => (
+                      <SelectItem key={member.id} value={member.id} className="py-3 cursor-pointer">
+                        <div className="flex items-center gap-3">
+                          <div className="flex flex-col text-left">
+                            <span className="font-semibold">{member.name}</span>
+                            <span className="text-xs text-muted-foreground">{member.role.replace('_', ' ')} • {member.department}</span>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              {errors.email && (
+                <p className="text-xs text-destructive">Please select a team member profile.</p>
+              )}
+            </div>
 
             {/* Email Field */}
             <div className="space-y-2">
@@ -100,13 +168,11 @@ export default function SignInPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
-                className="h-10 bg-slate-50/50 border-slate-200 focus-visible:ring-[#564de6] font-medium text-slate-700"
+                readOnly
+                placeholder="Select a profile to autofill email"
+                className="h-10 bg-slate-50/50 border-slate-200 focus-visible:ring-[#564de6] font-medium text-slate-700 read-only:bg-slate-100 read-only:text-slate-500"
                 {...register('email')}
               />
-              {errors.email && (
-                <p className="text-xs text-destructive">{errors.email.message as string}</p>
-              )}
             </div>
 
             {/* Password Field */}

@@ -6,6 +6,11 @@ export class AuthApi {
     return response.data;
   }
 
+  static async getPublicUsers() {
+    const response = await api.get('/auth/public-users');
+    return response.data;
+  }
+
   static async refresh() {
     const response = await api.post('/auth/refresh');
     return response.data;

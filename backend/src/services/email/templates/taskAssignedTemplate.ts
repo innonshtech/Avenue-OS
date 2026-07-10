@@ -158,7 +158,7 @@ export const getTaskAssignedTemplate = (params: SendTaskAssignedMailParams): str
   <body>
     <div class="container">
       <div class="header">
-        <h1>SprintOS</h1>
+        <h1>AvenueOS</h1>
       </div>
       
       <div class="content">
@@ -212,13 +212,13 @@ export const getTaskAssignedTemplate = (params: SendTaskAssignedMailParams): str
         </div>
 
         <div style="text-align: center;">
-          <a href="#" class="btn">View in SprintOS</a>
+          <a href="#" class="btn">View in AvenueOS</a>
         </div>
       </div>
       
       <div class="footer">
         Regards,<br/>
-        <strong>SprintOS</strong><br/>
+        <strong>AvenueOS</strong><br/>
         Innonsh Technologies
       </div>
     </div>

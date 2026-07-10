@@ -148,26 +148,6 @@ export default function AnalyticsDashboardPage() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Target Velocity Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Target Velocity</CardTitle>
-          </CardHeader>
-          <CardContent className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={targetsData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <RechartsTooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }} />
-                <Legend />
-                <Line type="monotone" dataKey="planned" stroke="#94a3b8" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Planned" />
-                <Line type="monotone" dataKey="completed" stroke="#4f46e5" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Completed" />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
 
         {/* Target Burndown Chart */}
         <Card>
