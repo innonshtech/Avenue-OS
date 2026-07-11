@@ -1,6 +1,6 @@
 export const EMAIL_MAPPINGS: Record<string, string> = {
-  'Sushil': 'sushil@avenue.com',
-  'Sagar': 'sagar@avenue.com',
+  'Sushil': 'sushil.avenue@gmail.com',
+  'Sagar': 'sagar.avnue@gmail.com',
   'Sharayoo Nachane ': 'sharayoon.avenue@gmail.com',
   'sakshik': 'sakshik.avenue@gmail.com',
   'Adnyesh Petkar ': 'adnyeshp.avenue@gmail.com',

@@ -4,8 +4,8 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 const users = [
-  { name: "Sushil", email: "sushil@avenue.com", password: "sushil123", role: UserRole.PROJECT_MANAGER, department: "Project Management", avatar: "https://i.pravatar.cc/150?u=sushil" },
-  { name: "Sagar", email: "sagar@avenue.com", password: "sagar123", role: UserRole.ENGINEER, department: "Engineering", avatar: "https://i.pravatar.cc/150?u=sagar" }
+  { name: "Sushil", email: "sushil.avenue@gmail.com", password: "sushil123", role: UserRole.PROJECT_MANAGER, department: "Project Management", avatar: "https://i.pravatar.cc/150?u=sushil" },
+  { name: "Sagar", email: "sagar.avnue@gmail.com", password: "sagar123", role: UserRole.ENGINEER, department: "Engineering", avatar: "https://i.pravatar.cc/150?u=sagar" }
 ];
 
 async function main() {

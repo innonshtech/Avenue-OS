@@ -32,7 +32,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
   {
     id: "5a67a900-345d-4159-8547-032139b01e5d",
     name: "Sushil",
-    email: "sushil@avenue.com",
+    email: "sushil.avenue@gmail.com",
     password: "sushil123",
     role: "PROJECT_MANAGER",
     department: "Project Management",
@@ -43,7 +43,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
   {
     id: "526bbc44-08f1-452c-a889-8a2dcd4b31da",
     name: "Sagar",
-    email: "sagar@avenue.com",
+    email: "sagar.avnue@gmail.com",
     password: "sagar123",
     role: "ENGINEER",
     department: "Engineering",
