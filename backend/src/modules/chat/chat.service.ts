@@ -136,7 +136,7 @@ export class ChatService {
 
     // Role verification for Announcement channel: Only Admin or Project Manager
     if (data.type === 'ANNOUNCEMENT') {
-      const allowedEmails = ['sushil@avenue.com', 'sagar@avenue.com'];
+      const allowedEmails = ['sushil.avenue@gmail.com', 'sagar.avnue@gmail.com'];
       const allowedRoles = ['ADMIN', 'PROJECT_MANAGER', 'ENGINEER'];
       if (!allowedRoles.includes(user.role) || !allowedEmails.includes(user.email)) {
         throw new Error('Unauthorized: Only authorized members can post announcements');
@@ -266,7 +266,7 @@ export class ChatService {
     const channel = await ChatRepository.findChannelById(data.channelId);
     if (channel?.type === 'ANNOUNCEMENT') {
       const sender = await prisma.user.findUnique({ where: { id: data.senderId } });
-      const allowedEmails = ['sushil@avenue.com', 'sagar@avenue.com'];
+      const allowedEmails = ['sushil.avenue@gmail.com', 'sagar.avnue@gmail.com'];
       const allowedRoles = ['ADMIN', 'PROJECT_MANAGER', 'ENGINEER'];
       if (!sender || !allowedRoles.includes(sender.role) || !allowedEmails.includes(sender.email)) {
         throw new Error('Only authorized members can send messages in announcements');
