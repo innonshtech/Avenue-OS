@@ -3,6 +3,7 @@ import { ChannelType, MessageType } from './chat.types';
 import prisma from '../../utils/prisma';
 import { inAppNotificationService } from '../../services/notifications/inapp-notification.service';
 import { ActivityTrackerService } from '../../services/audit/activity-tracker.service';
+import { hasPermission } from '../../utils/permissionHelper';
 
 export class ChatService {
   // 1. ACCESS CONTROL
@@ -17,7 +18,8 @@ export class ChatService {
     if (!channel) return false;
 
     // Project Manager (Saket) has access to all operational channels (not private DMs of others)
-    if (user.role === 'PROJECT_MANAGER' && channel.type !== 'DIRECT') {
+    const canViewAll = await hasPermission(user.role, 'VIEW_TEAM');
+    if (canViewAll && channel.type !== 'DIRECT') {
       return true;
     }
 

@@ -2,14 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import bcrypt from 'bcryptjs';
 
-const checkPMRole = (req: Request, res: Response) => {
-  const user = req.user;
-  if (!user || (user.role !== 'PROJECT_MANAGER' && user.role !== 'ADMIN')) {
-    res.status(403).json({ error: 'Access denied. Only Project Managers can access team management.' });
-    return false;
-  }
-  return true;
-};
+
 
 export const getTeam = async (req: Request, res: Response) => {
   try {
@@ -62,7 +55,7 @@ export const getTeam = async (req: Request, res: Response) => {
 };
 
 export const getTeamMember = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const { id } = req.params;
     const member = await prisma.user.findUnique({
@@ -87,7 +80,7 @@ export const getTeamMember = async (req: Request, res: Response) => {
 };
 
 export const getTeamWorkload = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const users = await prisma.user.findMany({
       include: {
@@ -117,7 +110,7 @@ export const getTeamWorkload = async (req: Request, res: Response) => {
 };
 
 export const assignProject = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const { id } = req.params;
     const { projectId, role } = req.body;
@@ -137,7 +130,7 @@ export const assignProject = async (req: Request, res: Response) => {
 };
 
 export const assignSprint = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const { id } = req.params;
     const { targetId } = req.body;
@@ -156,7 +149,7 @@ export const assignSprint = async (req: Request, res: Response) => {
 };
 
 export const createTeamMember = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const { name, email, role, department, password, avatar } = req.body;
     
@@ -191,7 +184,7 @@ export const createTeamMember = async (req: Request, res: Response) => {
 };
 
 export const updateTeamMember = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const { id } = req.params;
     const { name, email, password, role, department, avatar, isActive } = req.body;
@@ -229,7 +222,7 @@ export const updateTeamMember = async (req: Request, res: Response) => {
 };
 
 export const deleteTeamMember = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const { id } = req.params;
     

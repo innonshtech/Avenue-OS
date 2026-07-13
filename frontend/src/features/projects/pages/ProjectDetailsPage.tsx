@@ -59,7 +59,7 @@ export default function ProjectDetailsPage() {
           </div>
         </div>
         
-        {isPM && (
+        {canEditProject && (
           <ProjectActionDropdown project={project} />
         )}
       </div>

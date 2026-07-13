@@ -19,8 +19,8 @@ export class ActivityTrackerService {
     }
   }
 
-  static async getActivities(user: any) {
-    if (user.role === 'ADMIN' || user.role === 'PRODUCT_MANAGER') {
+  static async getActivities(user: any, canViewAll: boolean = false) {
+    if (canViewAll) {
       // PRODUCT_MANAGER and ADMIN can see organization-wide activities
       return prisma.activityLog.findMany({
         orderBy: { createdAt: 'desc' },

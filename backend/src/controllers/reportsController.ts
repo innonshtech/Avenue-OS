@@ -1,17 +1,10 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 
-const checkPMRole = (req: Request, res: Response) => {
-  const user = req.user;
-  if (!user || (user.role !== 'PROJECT_MANAGER' && user.role !== 'ADMIN')) {
-    res.status(403).json({ error: 'Access denied. Only Project Managers can access reports.' });
-    return false;
-  }
-  return true;
-};
+
 
 export const getSprintReports = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const targets = await prisma.target.findMany({
       where: {
@@ -66,7 +59,7 @@ export const getSprintReports = async (req: Request, res: Response) => {
 };
 
 export const getTeamReports = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const activeTarget = await prisma.target.findFirst({
       where: { status: 'ACTIVE' },
@@ -138,7 +131,7 @@ export const getTeamReports = async (req: Request, res: Response) => {
 };
 
 export const getProjectReports = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const projects = await prisma.project.findMany({
       include: {
@@ -177,7 +170,7 @@ export const getProjectReports = async (req: Request, res: Response) => {
 };
 
 export const getProductivityReports = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     // Dynamic global stats
     const allTasks = await prisma.task.findMany();

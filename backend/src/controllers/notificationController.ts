@@ -1,13 +1,15 @@
 import { Request, Response } from 'express';
 import { NotificationTrackerService } from '../services/audit/notification-tracker.service';
 import prisma from '../utils/prisma';
+import { hasPermission } from '../utils/permissionHelper';
 
 export const getHistory = async (req: Request, res: Response) => {
   try {
     const user = req.user;
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    if (user.role === 'PRODUCT_MANAGER' || user.role === 'ADMIN') {
+    const canManageUsers = await hasPermission(user.role, 'MANAGE_USERS');
+    if (canManageUsers) {
       const allNotifications = await NotificationTrackerService.getAllNotifications();
       return res.status(200).json(allNotifications);
     } else {
@@ -26,7 +28,8 @@ export const getMemberNotifications = async (req: Request, res: Response) => {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
     // Only allow self or PM/Admin
-    if (user.id !== id && user.role !== 'PRODUCT_MANAGER' && user.role !== 'ADMIN') {
+    const canManageUsers = await hasPermission(user.role, 'MANAGE_USERS');
+    if (user.id !== id && !canManageUsers) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 

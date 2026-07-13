@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
+import { hasPermission } from '../utils/permissionHelper';
 import { notificationService } from '../services/notifications/notification.service';
 import { inAppNotificationService } from '../services/notifications/inapp-notification.service';
 import { ActivityTrackerService } from '../services/audit/activity-tracker.service';
@@ -181,7 +182,8 @@ export const updateTask = async (req: Request, res: Response) => {
     const dbUser = user?.id ? await prisma.user.findUnique({ where: { id: user.id } }) : null;
     const performerName = dbUser?.name || 'Saket';
 
-    if (user && user.role !== 'PROJECT_MANAGER' && user.role !== 'ADMIN' && existingTask.assigneeId !== user.id) {
+    const canManageTasks = user ? await hasPermission(user.role, 'CREATE_TASK') : false;
+    if (!canManageTasks && existingTask.assigneeId !== user?.id) {
       return res.status(403).json({ error: 'Forbidden: You can only edit your own assigned tasks' });
     }
 
@@ -315,8 +317,9 @@ export const deleteTask = async (req: Request, res: Response) => {
     const { id } = req.params;
     const user = req.user as any;
     
-    if (user?.role !== 'PROJECT_MANAGER' && user?.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Only Project Managers or Admins can delete tasks' });
+    const canDelete = user ? await hasPermission(user.role, 'DELETE_TASK') : false;
+    if (!canDelete) {
+      return res.status(403).json({ error: 'Forbidden: You do not have permission to delete tasks' });
     }
 
     // Soft delete: remove target and archive
@@ -362,8 +365,9 @@ export const archiveTask = async (req: Request, res: Response) => {
     const { id } = req.params;
     const user = req.user as any;
     
-    if (user?.role !== 'PROJECT_MANAGER' && user?.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Only Project Managers or Admins can archive tasks' });
+    const canArchive = user ? await hasPermission(user.role, 'DELETE_TASK') : false;
+    if (!canArchive) {
+      return res.status(403).json({ error: 'Forbidden: You do not have permission to archive tasks' });
     }
 
     const task = await prisma.task.update({
@@ -396,8 +400,9 @@ export const restoreTask = async (req: Request, res: Response) => {
     const { id } = req.params;
     const user = req.user as any;
     
-    if (user?.role !== 'PROJECT_MANAGER' && user?.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Only Project Managers or Admins can restore tasks' });
+    const canRestore = user ? await hasPermission(user.role, 'DELETE_TASK') : false;
+    if (!canRestore) {
+      return res.status(403).json({ error: 'Forbidden: You do not have permission to restore tasks' });
     }
 
     const task = await prisma.task.update({
@@ -435,7 +440,8 @@ export const moveSprint = async (req: Request, res: Response) => {
     const existingTask = await prisma.task.findUnique({ where: { id } });
     if (!existingTask) return res.status(404).json({ error: 'Task not found' });
     
-    if (user && user.role !== 'PROJECT_MANAGER' && user.role !== 'ADMIN' && existingTask.assigneeId !== user.id) {
+    const canManageTasks = user ? await hasPermission(user.role, 'CREATE_TASK') : false;
+    if (!canManageTasks && existingTask.assigneeId !== user?.id) {
       return res.status(403).json({ error: 'Forbidden: You can only move your own assigned tasks' });
     }
 
@@ -541,8 +547,9 @@ export const resolveBlocker = async (req: Request, res: Response) => {
     const { id, blockerId } = req.params;
     const user = req.user as any;
     
-    if (user?.role !== 'PROJECT_MANAGER' && user?.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Only Project Manager or Admin can resolve RFIs' });
+    const canResolve = user ? await hasPermission(user.role, 'RESOLVE_RFI') : false;
+    if (!canResolve) {
+      return res.status(403).json({ error: 'Forbidden: You do not have permission to resolve RFIs' });
     }
 
     const { resolutionNote } = req.body;

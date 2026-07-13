@@ -1,13 +1,15 @@
 import { Request, Response } from 'express';
 import { ActivityTrackerService } from '../services/audit/activity-tracker.service';
 import prisma from '../utils/prisma';
+import { hasPermission } from '../utils/permissionHelper';
 
 export const getActivities = async (req: Request, res: Response) => {
   try {
     const user = req.user;
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const activities = await ActivityTrackerService.getActivities(user);
+    const canViewAll = await hasPermission(user.role, 'VIEW_TEAM');
+    const activities = await ActivityTrackerService.getActivities(user, canViewAll);
 
     // Apply additional filters from query
     let filteredActivities = activities;
