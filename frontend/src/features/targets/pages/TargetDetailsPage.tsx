@@ -58,7 +58,7 @@ export default function TargetDetailsPage() {
               Go to Board
             </Button>
           </Link>
-          {(user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN') && (
+          {(user?.permissions?.includes('CREATE_PROJECT')) && (
             <TargetActionDropdown target={target} />
           )}
         </div>

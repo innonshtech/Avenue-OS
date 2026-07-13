@@ -31,6 +31,7 @@ import searchRouter from './modules/search/search.routes';
 import chatRoutes from './modules/chat/chat.routes';
 import timesheetRoutes from './routes/timesheetRoutes';
 import cronRoutes from './routes/cronRoutes';
+import roleRoutes from './modules/roles/role.routes';
 
 const app: Application = express();
 
@@ -129,6 +130,7 @@ app.use('/api/v1/comments', commentsRouter);
 app.use('/api/v1/search', searchRouter);
 app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/timesheets', timesheetRoutes);
+app.use('/api/v1/roles', roleRoutes);
 
 // 9. Centralized and Sanitized Error Handler (Never expose internal stack traces or database info)
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

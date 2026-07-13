@@ -291,7 +291,7 @@ export default function TaskComments({ taskId }: CommentProps) {
           fetchedComments.map((comment: any) => {
             const isEditing = editingId === comment.id;
             const isOwner = comment.userId === currentUser?.id;
-            const canManage = isOwner || currentUser?.role === 'ADMIN' || currentUser?.role === 'PROJECT_MANAGER';
+            const canManage = isOwner || currentUser?.permissions?.includes('CREATE_TASK');
 
             return (
               <div key={comment.id} className="group flex gap-3.5 items-start">
@@ -450,7 +450,7 @@ export default function TaskComments({ taskId }: CommentProps) {
                     <div className="pl-4 mt-3 border-l border-zinc-800 space-y-4">
                       {comment.replies.map((reply: any) => {
                         const isReplyOwner = reply.userId === currentUser?.id;
-                        const canManageReply = isReplyOwner || currentUser?.role === 'ADMIN' || currentUser?.role === 'PROJECT_MANAGER';
+                        const canManageReply = isReplyOwner || currentUser?.permissions?.includes('CREATE_TASK');
 
                         return (
                           <div key={reply.id} className="group/reply flex gap-3 items-start">

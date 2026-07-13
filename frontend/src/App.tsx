@@ -6,6 +6,7 @@ import SignInPage from './features/auth/pages/SignInPage';
 import ForgotPasswordPage from './features/auth/pages/ForgotPasswordPage';
 import ResetPasswordPage from './features/auth/pages/ResetPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import PermissionProtectedRoute from './components/PermissionProtectedRoute';
 
 // New Feature Pages
 import ProjectListPage from './features/projects/pages/ProjectListPage';
@@ -19,7 +20,6 @@ import AnalyticsDashboardPage from './features/analytics/pages/AnalyticsDashboar
 import ReportsPage from './features/reports/pages/ReportsPage';
 import FeedbacksPage from './features/feedbacks/pages/FeedbacksPage';
 import TeamManagementPage from './features/team/pages/TeamManagementPage';
-import RoleProtectedRoute from './components/RoleProtectedRoute';
 import TargetReportsPage from './features/member/target-reports/pages/TargetReportsPage';
 import AdminDashboard from './features/admin/pages/AdminDashboard';
 import MyActivityLogPage from './features/activity/pages/MyActivityLogPage';
@@ -140,20 +140,28 @@ function App() {
                 <Route path="standups" element={<ProgressReportPage />} />
                 <Route path="timesheets" element={<TimesheetsPage />} />
                 
-                {/* Project Manager Only Routes */}
-                <Route element={<RoleProtectedRoute allowedRoles={['PROJECT_MANAGER', 'ADMIN']} />}>
+                {/* Feature Flag Protected Routes */}
+                <Route element={<PermissionProtectedRoute requiredFlag="VIEW_ANALYTICS" />}>
                   <Route path="analytics" element={<AnalyticsDashboardPage />} />
+                </Route>
+                <Route element={<PermissionProtectedRoute requiredFlag="VIEW_REPORTS" />}>
                   <Route path="reports" element={<ReportsPage />} />
+                </Route>
+                <Route element={<PermissionProtectedRoute requiredFlag="VIEW_TEAM" />}>
                   <Route path="team" element={<TeamManagementPage />} />
+                </Route>
+                <Route element={<PermissionProtectedRoute requiredFlag="VIEW_AUDIT_LOG" />}>
                   <Route path="organization-audit" element={<OrganizationAuditLogPage />} />
                 </Route>
 
                 {/* Feedbacks - Accessible to all */}
                 <Route path="feedbacks" element={<FeedbacksPage />} />
 
-                {/* Member-Only Routes */}
-                <Route element={<RoleProtectedRoute allowedRoles={['PRINCIPAL_ENGINEER', 'ENGINEER', 'DRAFTSMAN', 'ARCHITECT']} />}>
+                {/* Additional Feature Flag Protected Routes */}
+                <Route element={<PermissionProtectedRoute requiredFlag="VIEW_TARGET_REPORTS" />}>
                   <Route path="target-reports" element={<TargetReportsPage />} />
+                </Route>
+                <Route element={<PermissionProtectedRoute requiredFlag="VIEW_ACTIVITY_LOG" />}>
                   <Route path="activity" element={<MyActivityLogPage />} />
                 </Route>
 
@@ -167,10 +175,8 @@ function App() {
                 <Route path="calendar" element={<CalendarPage />} />
               </Route>
 
-              {/* Admin Route */}
-              <Route element={<RoleProtectedRoute allowedRoles={['ADMIN']} />}>
-                <Route path="/admin" element={<AdminDashboard />} />
-              </Route>
+              {/* Redirect old Admin Route to Dashboard */}
+              <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
             </Route>
           </Routes>
         </Router>

@@ -37,7 +37,7 @@ export default function ProjectDetailsPage() {
   const totalTasks = projectTasks.length;
   const progress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
-  const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
+  const canEditProject = user?.permissions?.includes('EDIT_PROJECT');
 
   return (
     <div className="space-y-6">
@@ -97,7 +97,7 @@ export default function ProjectDetailsPage() {
                 <Users className="w-4 h-4 mr-2" />
                 Team Members
               </CardTitle>
-              {isPM && (
+              {canEditProject && (
                 <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2 -mt-2" onClick={() => setIsEditOpen(true)}>
                   <Settings className="h-4 w-4 text-muted-foreground" />
                 </Button>

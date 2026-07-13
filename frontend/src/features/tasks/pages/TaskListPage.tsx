@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { useTasks, useUpdateTask } from '../api/taskApi';
 import { useProjects } from '@/features/projects/api/projectApi';
 import { AdvancedFilterPanel, initialFilterState } from '@/features/filters/AdvancedFilterPanel';
@@ -20,6 +20,7 @@ export default function TaskListPage() {
   const { user } = useAuthStore();
   
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   
   const [search, setSearch] = useState(searchParams.get('q') || '');
   const [drawerTaskId, setDrawerTaskId] = useState<string | null>(null);
@@ -74,13 +75,22 @@ export default function TaskListPage() {
     }
   }, [searchParams]);
 
-  // Filter tasks based on user role
-  const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
+  // Filter tasks based on route and permissions
+  const canViewAllTasks = user?.permissions?.includes('VIEW_ALL_TASKS');
+  const canCreateTask = user?.permissions?.includes('CREATE_TASK');
+  const canEditTask = user?.permissions?.includes('CREATE_TASK') || user?.permissions?.includes('ASSIGN_TASK');
+  const isMyTasksRoute = location.pathname.includes('/my-tasks');
   
   const visibleTasks = useMemo(() => {
     return tasks.filter((t: any) => {
-      // Role permission check
-      if (!isPM && t.assigneeId !== user?.id) return false;
+      // Role permission & Route check
+      // If they are on "My Tasks" route, strictly show only their tasks.
+      // If they are on "Tasks" (org tasks), show only if they have VIEW_ALL_TASKS permission.
+      if (isMyTasksRoute) {
+        if (t.assigneeId !== user?.id) return false;
+      } else {
+        if (!canViewAllTasks && t.assigneeId !== user?.id) return false;
+      }
 
       // Search query
       if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.key.toLowerCase().includes(search.toLowerCase())) return false;
@@ -111,7 +121,7 @@ export default function TaskListPage() {
 
       return true;
     });
-  }, [tasks, search, isPM, user, advancedFilters]);
+  }, [tasks, search, isMyTasksRoute, canViewAllTasks, user, advancedFilters]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -128,11 +138,11 @@ export default function TaskListPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{isPM ? 'All Tasks' : 'My Tasks'}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{isMyTasksRoute ? 'My Tasks' : 'All Tasks'}</h1>
           <p className="text-muted-foreground">Manage and track your assigned work items.</p>
         </div>
         
-        {isPM && (
+        {canCreateTask && !isMyTasksRoute && (
           <Button onClick={() => setIsModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-soft">
             <Plus className="w-4 h-4 mr-2" />
             Create Task
@@ -179,7 +189,7 @@ export default function TaskListPage() {
               </Badge>
             ))}
             {advancedFilters.assigneeIds.map(aId => {
-              const u = false; // We would need users list to show names, fallback to ID for now, or just hide assignee logic if complex
+              // We would need users list to show names, fallback to ID for now, or just hide assignee logic if complex
               return (
                 <Badge key={`assignee-${aId}`} variant="secondary" className="bg-sky-50 text-sky-700 hover:bg-sky-100 flex items-center gap-1 pr-1.5">
                   Assignee ID: {aId.substring(0,6)}...
@@ -259,7 +269,7 @@ export default function TaskListPage() {
                       </Badge>
                     </td>
                     <td className="px-6 py-4">
-                      {isPM || task.assigneeId === user?.id ? (
+                      {canEditTask || task.assigneeId === user?.id ? (
                         <div onClick={(e) => e.stopPropagation()}>
                           <Select 
                             value={task.priority} 

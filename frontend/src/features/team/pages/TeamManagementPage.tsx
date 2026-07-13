@@ -10,7 +10,9 @@ import { Button } from '@/components/ui/button';
 import OnboardEmployeeModal from '../components/OnboardEmployeeModal';
 import EditEmployeeModal from '../components/EditEmployeeModal';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Edit2 } from 'lucide-react';
+import { Trash2, Edit2, Users, Key } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import RolePermissions from '../../settings/components/RolePermissions';
 
 export default function TeamManagementPage() {
   const [team, setTeam] = useState<any[]>([]);
@@ -19,7 +21,7 @@ export default function TeamManagementPage() {
   const [memberToDelete, setMemberToDelete] = useState<{ id: string, name: string } | null>(null);
   const [memberToEdit, setMemberToEdit] = useState<any | null>(null);
   const { user } = useAuthStore();
-  const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
+  const canManageUsers = user?.permissions?.includes('MANAGE_USERS');
   const { toast } = useToast();
 
   const fetchTeam = async () => {
@@ -71,12 +73,26 @@ export default function TeamManagementPage() {
           <h1 className="text-3xl font-bold tracking-tight">Team Control Center</h1>
           <p className="text-muted-foreground mt-2">Manage team workload, utilization, and assignments.</p>
         </div>
-        {isPM && (
+        {canManageUsers && (
           <Button onClick={() => setOnboardModalOpen(true)}>
             Onboard Employee
           </Button>
         )}
       </div>
+
+      <Tabs defaultValue="directory" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
+          <TabsTrigger value="directory" className="flex items-center gap-2">
+            <Users className="w-4 h-4" /> Team Directory
+          </TabsTrigger>
+          {user?.role === 'ADMIN' && (
+            <TabsTrigger value="roles" className="flex items-center gap-2">
+              <Key className="w-4 h-4" /> Roles & Permissions
+            </TabsTrigger>
+          )}
+        </TabsList>
+
+        <TabsContent value="directory" className="mt-0 space-y-6">
 
       <OnboardEmployeeModal open={onboardModalOpen} onOpenChange={setOnboardModalOpen} onSuccess={fetchTeam} />
       
@@ -111,7 +127,7 @@ export default function TeamManagementPage() {
             <div className={`absolute top-4 right-4 w-3 h-3 rounded-full ${member.isOnline ? 'bg-emerald-500' : 'bg-muted'} ring-2 ring-background`} />
             
             {/* Action Buttons */}
-            {isPM && (
+            {canManageUsers && (
               <div className="absolute top-3.5 left-3.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 {member.id !== user?.id && (
                   <button 
@@ -183,6 +199,18 @@ export default function TeamManagementPage() {
           </Card>
         ))}
       </div>
+        </TabsContent>
+
+        {user?.role === 'ADMIN' && (
+          <TabsContent value="roles" className="mt-0">
+            <Card>
+              <CardContent className="pt-6">
+                <RolePermissions />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }

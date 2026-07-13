@@ -18,7 +18,7 @@ export default function ProjectListPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState('ACTIVE');
-  const isSaket = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
+  const canCreateProject = user?.permissions?.includes('CREATE_PROJECT');
 
   const isOverdue = (deadline: string | null | undefined, status: string) => {
     if (!deadline || status === 'COMPLETED') return false;
@@ -39,7 +39,7 @@ export default function ProjectListPage() {
           <p className="text-muted-foreground">Manage and track all engineering initiatives.</p>
         </div>
         
-        {isSaket && (
+        {canCreateProject && (
           <Button onClick={() => setIsModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-soft">
             <Plus className="w-4 h-4 mr-2" />
             New Project
