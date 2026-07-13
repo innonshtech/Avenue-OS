@@ -41,88 +41,29 @@ import type { UserRole } from '@/types/user';
 import { GlobalSearchBar } from '@/features/search/GlobalSearchBar';
 import { useChannels } from '@/features/chat/api/chatApi';
 
+import type { FeatureFlag } from '@/types/user';
+
 // Access Control config
-const SIDEBAR_CONFIG: Record<UserRole, { icon: any, label: string, path: string }[]> = {
-  PROJECT_MANAGER: [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: Briefcase, label: 'Projects', path: '/dashboard/projects' },
-    { icon: Clock, label: 'Target', path: '/dashboard/targets' },
-    { icon: CheckSquare, label: 'Tasks', path: '/dashboard/tasks' },
-    { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
-    { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
-    { icon: Users, label: 'Progress Reports', path: '/dashboard/standups' },
-    { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
-    { icon: BarChart, label: 'Analytics', path: '/dashboard/analytics' },
-    { icon: BarChart, label: 'Reports', path: '/dashboard/reports' },
-    { icon: ShieldCheck, label: 'Audit Log', path: '/dashboard/organization-audit' },
-    { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
-    { icon: Users, label: 'Team Management', path: '/dashboard/team' },
-    { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
-    { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
-  ],
-  PRINCIPAL_ENGINEER: [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: CheckSquare, label: 'My Tasks', path: '/dashboard/my-tasks' },
-    { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
-    { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
-    { icon: Users, label: 'Progress Reports', path: '/dashboard/standups' },
-    { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
-    { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
-    { icon: BarChart, label: 'Target Report', path: '/dashboard/target-reports' },
-    { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
-    { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
-    { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
-  ],
-  ENGINEER: [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: CheckSquare, label: 'My Tasks', path: '/dashboard/my-tasks' },
-    { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
-    { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
-    { icon: Users, label: 'Progress Reports', path: '/dashboard/standups' },
-    { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
-    { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
-    { icon: BarChart, label: 'Target Report', path: '/dashboard/target-reports' },
-    { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
-    { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
-    { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
-  ],
-  DRAFTSMAN: [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: CheckSquare, label: 'My Tasks', path: '/dashboard/my-tasks' },
-    { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
-    { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
-    { icon: Users, label: 'Progress Reports', path: '/dashboard/standups' },
-    { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
-    { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
-    { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
-    { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
-    { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
-  ],
-  ARCHITECT: [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: CheckSquare, label: 'My Tasks', path: '/dashboard/my-tasks' },
-    { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
-    { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
-    { icon: Users, label: 'Progress Reports', path: '/dashboard/standups' },
-    { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
-    { icon: Activity, label: 'Activity Log', path: '/dashboard/activity' },
-    { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
-    { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
-    { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
-  ],
-  CLIENT: [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: Kanban, label: 'Boards', path: '/dashboard/boards' },
-    { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat' },
-    { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks' },
-    { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar' },
-    { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
-  ],
-  ADMIN: [
-    { icon: LayoutDashboard, label: 'Admin Dashboard', path: '/admin' },
-    { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets' },
-  ]
-};
+const MASTER_SIDEBAR: { icon: any, label: string, path: string, flag: FeatureFlag | null }[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', flag: null }, // Always visible
+  { icon: Briefcase, label: 'Projects', path: '/dashboard/projects', flag: 'VIEW_PROJECTS' },
+  { icon: Clock, label: 'Target', path: '/dashboard/targets', flag: 'VIEW_TARGETS' },
+  { icon: BarChart, label: 'Target Report', path: '/dashboard/target-reports', flag: 'VIEW_TARGET_REPORTS' },
+  { icon: CheckSquare, label: 'Tasks', path: '/dashboard/tasks', flag: 'VIEW_ALL_TASKS' },
+  { icon: CheckSquare, label: 'My Tasks', path: '/dashboard/my-tasks', flag: 'VIEW_MY_TASKS' },
+  { icon: Kanban, label: 'Boards', path: '/dashboard/boards', flag: 'VIEW_BOARDS' },
+  { icon: MessageSquare, label: 'Chat', path: '/dashboard/chat', flag: 'VIEW_CHAT' },
+  { icon: Users, label: 'Progress Reports', path: '/dashboard/standups', flag: 'VIEW_PROGRESS_REPORTS' },
+  { icon: FileText, label: 'Timesheets', path: '/dashboard/timesheets', flag: 'VIEW_TIMESHEETS' },
+  { icon: Activity, label: 'Activity Log', path: '/dashboard/activity', flag: 'VIEW_ACTIVITY_LOG' },
+  { icon: BarChart, label: 'Analytics', path: '/dashboard/analytics', flag: 'VIEW_ANALYTICS' },
+  { icon: BarChart, label: 'Reports', path: '/dashboard/reports', flag: 'VIEW_REPORTS' },
+  { icon: ShieldCheck, label: 'Audit Log', path: '/dashboard/organization-audit', flag: 'VIEW_AUDIT_LOG' },
+  { icon: MessageSquare, label: 'Feedbacks', path: '/dashboard/feedbacks', flag: 'VIEW_FEEDBACKS' },
+  { icon: Users, label: 'Team Management', path: '/dashboard/team', flag: 'VIEW_TEAM' },
+  { icon: Calendar, label: 'Calendar', path: '/dashboard/calendar', flag: 'VIEW_CALENDAR' },
+  { icon: Settings, label: 'Settings', path: '/dashboard/settings', flag: 'VIEW_SETTINGS' },
+];
 
 import { SessionManager } from '@/features/auth/sessionManager';
 
@@ -193,7 +134,17 @@ export default function DashboardLayout() {
     SessionManager.performLogout();
   };
 
-  const sidebarItems = user ? (SIDEBAR_CONFIG[user.role] || []) : [];
+  const sidebarItems = useMemo(() => {
+    if (!user) return [];
+    
+    // If the user is ADMIN, they bypass the permissions check (or we check their flags if they are mapped)
+    // Actually ADMIN has a hardcoded isSystem role, but wait, the prompt wanted Admin to control this.
+    // We will just filter purely based on `user.permissions`. (For ADMIN, the seed will give them ALL flags).
+    return MASTER_SIDEBAR.filter(item => {
+      if (item.flag === null) return true; // Always visible (like Dashboard)
+      return user.permissions?.includes(item.flag);
+    });
+  }, [user]);
 
   return (
     <div className="h-screen bg-background text-foreground flex overflow-hidden">

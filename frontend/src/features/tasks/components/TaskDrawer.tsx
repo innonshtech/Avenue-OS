@@ -75,7 +75,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
   const reporter = task.creator;
   const rfi = task.rfis?.find((b: any) => !b.isResolved);
 
-  const canEdit = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN' || user?.id === task.assigneeId;
+  const canEdit = user?.permissions?.includes('CREATE_TASK') || user?.permissions?.includes('ASSIGN_TASK') || user?.id === task.assigneeId;
 
   // Removed native handleStatusChange
 
@@ -136,7 +136,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                   </Badge>
                 )}
                 
-                {(user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN') && (
+                {(user?.permissions?.includes('DELETE_TASK')) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -287,7 +287,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                         <h4 className="text-sm font-semibold text-red-600 dark:text-red-400">RFI Raised: {rfi.type.replace('_', ' ')}</h4>
                         <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1 mb-2">{rfi.description}</p>
                         
-                        {(user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN') && (
+                        {(user?.permissions?.includes('RESOLVE_RFI')) && (
                           <div className="mt-3 border-t border-red-500/20 pt-3">
                             {!showResolveInput ? (
                               <Button size="sm" variant="outline" className="border-red-500 text-red-600 hover:bg-red-500 hover:text-white" onClick={() => setShowResolveInput(true)}>
@@ -470,7 +470,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <span className="text-xs text-muted-foreground block mb-1.5">Est. Hours</span>
-                      {user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN' ? (
+                      {user?.permissions?.includes('CREATE_TASK') || user?.permissions?.includes('ASSIGN_TASK') ? (
                         <Input 
                           type="number" 
                           step="0.5" 
@@ -517,7 +517,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                     </div>
                   )}
                   
-                  {task.completedAt && (user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN') && (
+                  {task.completedAt && (user?.permissions?.includes('VIEW_ALL_TASKS')) && (
                     <div className="pt-2 border-t border-border/50">
                       <span className="text-xs text-muted-foreground block mb-1.5">Completed On</span>
                       <span className="text-sm font-medium block">{new Date(task.completedAt).toLocaleDateString()} {new Date(task.completedAt).toLocaleTimeString()}</span>

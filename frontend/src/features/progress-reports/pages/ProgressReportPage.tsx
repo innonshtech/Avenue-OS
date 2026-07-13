@@ -22,7 +22,7 @@ export default function ProgressReportPage() {
   const activeTargetId = targets.find((s: any) => s.status === 'ACTIVE')?.id;
   
   const { toast } = useToast();
-  const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
+  const canViewTeamReports = user?.permissions?.includes('VIEW_TEAM');
   const [timeRange, setTimeRange] = useState<'target' | 'month' | 'year'>('target');
 
   const [selectedTargetId, setSelectedTargetId] = useState<string | undefined>(activeTargetId || targets[0]?.id);
@@ -52,13 +52,13 @@ export default function ProgressReportPage() {
     setSelectedTargetId(activeTargetId || targets[0]?.id);
   }
 
-  const { data: myReports = [], isLoading: isLoadingUser } = useMyProgressReports(selectedTargetId, { enabled: !isPM });
-  const { data: teamReports = [], isLoading: isLoadingTeam } = useTeamProgressReports(timeRange === 'target' ? selectedTargetId : undefined, { enabled: isPM });
-  const createReport = useCreateProgressReport(isPM);
+  const { data: myReports = [], isLoading: isLoadingUser } = useMyProgressReports(selectedTargetId, { enabled: !canViewTeamReports });
+  const { data: teamReports = [], isLoading: isLoadingTeam } = useTeamProgressReports(timeRange === 'target' ? selectedTargetId : undefined, { enabled: canViewTeamReports });
+  const createReport = useCreateProgressReport(canViewTeamReports);
   const { data: tasks = [] } = useTasks(selectedTargetId ? { targetId: selectedTargetId } : undefined);
 
-  const reports = isPM ? teamReports : myReports;
-  const isLoadingReports = isPM ? isLoadingTeam : isLoadingUser;
+  const reports = canViewTeamReports ? teamReports : myReports;
+  const isLoadingReports = canViewTeamReports ? isLoadingTeam : isLoadingUser;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -73,7 +73,7 @@ export default function ProgressReportPage() {
   const [blockerHelper, setBlockerHelper] = useState('');
 
   const visibleReports = useMemo(() => {
-    if (!isPM) return reports;
+    if (!canViewTeamReports) return reports;
     
     const now = new Date();
     return reports.filter((s: any) => {
@@ -86,7 +86,7 @@ export default function ProgressReportPage() {
       }
       return true;
     });
-  }, [reports, isPM, timeRange]);
+  }, [reports, canViewTeamReports, timeRange]);
 
   // Group reports by Member for display
   const groupedReportsByMember = useMemo(() => {
@@ -164,7 +164,7 @@ export default function ProgressReportPage() {
             </SelectContent>
           </Select>
 
-          {!isPM && !isSubmitting && (
+          {!canViewTeamReports && !isSubmitting && (
             <Button onClick={() => setIsSubmitting(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-soft">
               <Plus className="w-4 h-4 mr-2" />
               Submit Report
@@ -356,10 +356,10 @@ export default function ProgressReportPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold flex items-center">
             <MessagesSquare className="w-5 h-5 mr-2 text-indigo-500" />
-            {isPM ? "Team Progress Timeline" : "My Recent Updates"}
+            {canViewTeamReports ? "Team Progress Timeline" : "My Recent Updates"}
           </h2>
           
-          {isPM && (
+          {canViewTeamReports && (
             <Select value={timeRange} onValueChange={(v: any) => setTimeRange(v)}>
               <SelectTrigger className="w-40 h-9 text-sm">
                 <SelectValue placeholder="Time Range" />

@@ -8,15 +8,7 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum UserRole {
-  ADMIN
-  PROJECT_MANAGER
-  PRINCIPAL_ENGINEER
-  ENGINEER
-  DRAFTSMAN
-  ARCHITECT
-  CLIENT
-}
+
 
 enum TaskPriority {
   LOW
@@ -89,7 +81,7 @@ model User {
   name       String
   email      String   @unique
   password   String
-  role       UserRole
+  role       String
   department String
   avatar     String?
   isActive   Boolean  @default(true)
@@ -125,6 +117,15 @@ model User {
   updatedAt DateTime @updatedAt
 
   @@index([email])
+}
+
+model SystemRole {
+  name        String   @id
+  description String?
+  permissions String[]
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Project {

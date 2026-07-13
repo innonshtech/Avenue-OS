@@ -9,9 +9,9 @@ import MemberFeedbacksPage from '../../member/feedbacks/pages/MemberFeedbacksPag
 
 export default function FeedbacksPage() {
   const { user } = useAuthStore();
-  const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
+  const canManageFeedbacks = user?.permissions?.includes('VIEW_FEEDBACKS');
   
-  if (!isPM) {
+  if (!canManageFeedbacks) {
     return <MemberFeedbacksPage />;
   }
 
@@ -74,7 +74,7 @@ export default function FeedbacksPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Comparison Engine - Only for PM */}
-        {isPM && comparison && !comparison.message && (
+        {canManageFeedbacks && comparison && !comparison.message && (
           <div className="lg:col-span-3">
             <Card className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent border-indigo-500/20">
               <CardHeader>

@@ -1,5 +1,5 @@
 import prisma from '../utils/prisma';
-import { UserRole } from '@prisma/client';
+
 
 export class TimesheetService {
   /**
@@ -7,7 +7,7 @@ export class TimesheetService {
    * - ADMIN and PRODUCT_MANAGER (Saket) can see ALL timesheets.
    * - Other roles see their OWN timesheets + PRODUCT_MANAGER's timesheets.
    */
-  static async getVisibleTimesheets(userId: string, userRole: UserRole) {
+  static async getVisibleTimesheets(userId: string, userRole: string) {
     if (userRole === 'ADMIN' || userRole === 'PROJECT_MANAGER') {
       return prisma.timesheet.findMany({
         include: {

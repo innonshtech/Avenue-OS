@@ -85,7 +85,7 @@ export default function SignInPage() {
           description: `Successfully authenticated into Avenue Projects.`,
         });
 
-        const from = (location.state as any)?.from?.pathname || (response.user.role === 'ADMIN' ? '/admin' : '/dashboard');
+        const from = (location.state as any)?.from?.pathname || '/dashboard';
         navigate(from, { replace: true });
       }
     } catch (err: any) {

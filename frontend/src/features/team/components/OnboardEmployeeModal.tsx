@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function OnboardEmployeeModal({ open, onOpenChange, onSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onSuccess?: () => void }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [roles, setRoles] = useState<{name: string}[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -21,6 +22,23 @@ export default function OnboardEmployeeModal({ open, onOpenChange, onSuccess }: 
     password: '',
     avatar: ''
   });
+
+  useEffect(() => {
+    if (open) {
+      fetchRoles();
+    }
+  }, [open]);
+
+  const fetchRoles = async () => {
+    try {
+      const res = await api.get('/roles');
+      if (res.data.success) {
+        setRoles(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch roles', err);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,12 +117,11 @@ export default function OnboardEmployeeModal({ open, onOpenChange, onSuccess }: 
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="PROJECT_MANAGER">Project Manager</SelectItem>
-                <SelectItem value="PRINCIPAL_ENGINEER">Principal Engineer</SelectItem>
-                <SelectItem value="ENGINEER">Engineer</SelectItem>
-                <SelectItem value="DRAFTSMAN">Draftsman</SelectItem>
-                <SelectItem value="ARCHITECT">Architect</SelectItem>
-                <SelectItem value="CLIENT">Client</SelectItem>
+                {roles.length > 0 ? roles.map(r => (
+                  <SelectItem key={r.name} value={r.name}>{r.name}</SelectItem>
+                )) : (
+                  <SelectItem value="ENGINEER">ENGINEER</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>

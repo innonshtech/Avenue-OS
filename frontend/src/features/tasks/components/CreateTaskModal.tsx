@@ -213,7 +213,7 @@ export function CreateTaskModal({ open, onOpenChange, defaultProjectId, defaultS
               <Label htmlFor="key">Task Key</Label>
               <Input id="key" value={key} onChange={e => setKey(e.target.value)} required placeholder="e.g. PROJ-123" />
             </div>
-            {user && (user.role === 'PROJECT_MANAGER' || user.role === 'ADMIN') && (
+            {user && (user.permissions?.includes('CREATE_TASK')) && (
               <div className="space-y-2">
                 <Label htmlFor="estimatedHours">Est. Hours</Label>
                 <Input id="estimatedHours" type="number" step="0.5" min="0" value={estimatedHours} onChange={e => setEstimatedHours(e.target.value)} placeholder="e.g. 5.5" />

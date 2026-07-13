@@ -20,9 +20,5 @@ export default function ProtectedRoute() {
     return <Navigate to="/signin" state={{ from: location }} replace />;
   }
 
-  if (user?.role === 'ADMIN' && (location.pathname === '/dashboard' || location.pathname.startsWith('/dashboard/'))) {
-    return <Navigate to="/admin" replace />;
-  }
-
   return <Outlet />;
 }

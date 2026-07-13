@@ -239,6 +239,9 @@ export class AuthController {
         },
       }).catch(console.error);
 
+      const systemRole = await prisma.systemRole.findUnique({ where: { name: user.role } });
+      const permissions = systemRole?.permissions || [];
+
       return res.status(200).json({
         success: true,
         accessToken,
@@ -250,6 +253,7 @@ export class AuthController {
           role: user.role,
           department: user.department,
           avatar: user.avatar,
+          permissions,
         },
       });
     } catch (error) {
@@ -391,9 +395,15 @@ export class AuthController {
         return res.status(404).json({ success: false, message: 'User not found' });
       }
 
+      const systemRole = await prisma.systemRole.findUnique({ where: { name: user.role } });
+      const permissions = systemRole?.permissions || [];
+
       return res.status(200).json({
         success: true,
-        user,
+        user: {
+          ...user,
+          permissions
+        },
       });
     } catch (error) {
       next(error);

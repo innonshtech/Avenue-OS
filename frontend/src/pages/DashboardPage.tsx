@@ -20,7 +20,7 @@ import MemberDashboard from '@/features/dashboard/member/MemberDashboard';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  const isPM = user?.role === 'PROJECT_MANAGER' || user?.role === 'ADMIN';
+  const canViewTargets = user?.permissions?.includes('VIEW_TARGETS');
 
   // DEV/MARKETING DATA
   const { data: targets = [] } = useTargets();
@@ -61,7 +61,7 @@ export default function DashboardPage() {
               </span>
             )}
             
-            {isPM && targets.length > 0 && (
+            {canViewTargets && targets.length > 0 && (
               <div className="ml-2 flex items-center">
                 <Select value={selectedTargetId} onValueChange={setSelectedTargetId}>
                   <SelectTrigger className="w-[200px] h-8 bg-card border-indigo-200 shadow-soft">
@@ -84,7 +84,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {isPM ? (
+      {canViewTargets ? (
         // ==========================================
         // PROJECT MANAGER COMMAND CENTER LAYOUT
         // ==========================================

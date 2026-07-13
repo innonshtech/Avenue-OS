@@ -1,48 +1,37 @@
 import { Request, Response, NextFunction } from 'express';
+import prisma from '../../utils/prisma';
 
 export const requirePermission = (action: string) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return res.status(401).json({ success: false, message: 'Unauthorized: Authentication required' });
-    }
+    try {
+      if (!req.user) {
+        return res.status(401).json({ success: false, message: 'Unauthorized: Authentication required' });
+      }
 
-    const { role } = req.user;
+      const { role } = req.user;
 
-    // ADMIN has full permission access
-    if (role === 'ADMIN') {
-      return next();
-    }
+      // ADMIN has full permission access
+      if (role === 'ADMIN') {
+        return next();
+      }
 
-    switch (action) {
-      case 'DELETE_TASK':
-        // Only ADMIN or PROJECT_MANAGER can delete tasks
-        if (role === 'PROJECT_MANAGER') {
-          return next();
-        }
-        return res.status(403).json({ success: false, message: 'Forbidden: Only Project Managers or Admins can delete tasks' });
+      // Fetch dynamic role permissions from DB
+      const systemRole = await prisma.systemRole.findUnique({
+        where: { name: role }
+      });
 
-      case 'RESOLVE_RFI':
-        // Only ADMIN or PROJECT_MANAGER can resolve RFIs
-        if (role === 'PROJECT_MANAGER' || role === 'PRINCIPAL_ENGINEER') {
-          return next();
-        }
-        return res.status(403).json({ success: false, message: 'Forbidden: Only Project Managers or Principal Engineers can resolve RFIs' });
+      if (!systemRole) {
+        return res.status(403).json({ success: false, message: `Forbidden: Role '${role}' not found in system` });
+      }
 
-      case 'MANAGE_TARGET':
-        // Only ADMIN or PROJECT_MANAGER can manage targets
-        if (role === 'PROJECT_MANAGER') {
-          return next();
-        }
-        return res.status(403).json({ success: false, message: 'Forbidden: Targets can only be managed by Project Managers or Admins' });
+      if (systemRole.permissions.includes(action)) {
+        return next();
+      }
 
-      case 'MANAGE_PROJECT':
-        if (role === 'PROJECT_MANAGER') {
-          return next();
-        }
-        return res.status(403).json({ success: false, message: 'Forbidden: Projects can only be managed by Project Managers or Admins' });
-
-      default:
-        next();
+      return res.status(403).json({ success: false, message: `Forbidden: Your role does not have the '${action}' feature enabled` });
+    } catch (error) {
+      console.error('Error in requirePermission middleware:', error);
+      return res.status(500).json({ success: false, message: 'Internal server error checking permissions' });
     }
   };
 };
