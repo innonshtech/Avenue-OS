@@ -44,7 +44,7 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https://i.pravatar.cc", "https://images.unsplash.com"],
-        connectSrc: ["'self'", "http://localhost:5000", "ws://localhost:5000", "https://sbikelegvxoannghlowv.supabase.co"],
+        connectSrc: ["'self'", "http://localhost:5000", "ws://localhost:5000", "https://yiqdeyalaqyhxzjlrpft.supabase.co"],
       },
     },
     xssFilter: true,
