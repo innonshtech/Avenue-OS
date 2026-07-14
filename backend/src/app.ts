@@ -63,6 +63,7 @@ app.use(
       'http://localhost:5173',
       'http://localhost:5174',
       'https://avenue-os-frontend.vercel.app',
+      'https://avenue.innonsh.com',
       process.env.FRONTEND_URL || '',
     ].filter(Boolean),
     credentials: true,
