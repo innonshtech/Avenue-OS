@@ -24,10 +24,8 @@ export default function OnboardEmployeeModal({ open, onOpenChange, onSuccess }: 
   });
 
   useEffect(() => {
-    if (open) {
-      fetchRoles();
-    }
-  }, [open]);
+    fetchRoles();
+  }, []);
 
   const fetchRoles = async () => {
     try {
@@ -118,7 +116,7 @@ export default function OnboardEmployeeModal({ open, onOpenChange, onSuccess }: 
               </SelectTrigger>
               <SelectContent>
                 {roles.length > 0 ? roles.map(r => (
-                  <SelectItem key={r.name} value={r.name}>{r.name}</SelectItem>
+                  <SelectItem key={r.name} value={r.name}>{r.name.replace(/_/g, ' ')}</SelectItem>
                 )) : (
                   <SelectItem value="ENGINEER">ENGINEER</SelectItem>
                 )}
