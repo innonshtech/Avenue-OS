@@ -19,7 +19,6 @@ export default function EditEmployeeModal({ open, onOpenChange, onSuccess, emplo
     email: '',
     password: '',
     role: '',
-    department: '',
     avatar: ''
   });
 
@@ -30,26 +29,36 @@ export default function EditEmployeeModal({ open, onOpenChange, onSuccess, emplo
         email: employee.email || '',
         password: '', // Password is not returned from API, leave blank
         role: employee.role || 'ENGINEER',
-        department: employee.department || '',
         avatar: employee.avatar || ''
       });
     }
   }, [employee]);
 
   useEffect(() => {
-    if (open) {
-      fetchRoles();
-    }
-  }, [open]);
+    fetchRoles();
+  }, []);
 
   const fetchRoles = async () => {
     try {
       const res = await api.get('/roles');
-      if (res.data.success) {
+      if (res.data.success && res.data.data.length > 0) {
         setRoles(res.data.data);
+      } else {
+        throw new Error("Empty roles array");
       }
     } catch (err) {
-      console.error('Failed to fetch roles', err);
+      console.error('Failed to fetch roles, using fallback', err);
+      // Fallback to standard roles if API fails to load
+      setRoles([
+        { name: 'ADMIN' },
+        { name: 'ASSOCIATE_DIRECTOR' },
+        { name: 'DIRECTOR' },
+        { name: 'DESIGN_ENGINEER' },
+        { name: 'JR_DRAFTSMAN' },
+        { name: 'PROJECT_MANAGER' },
+        { name: 'ENGINEER' },
+        { name: 'INTERN' }
+      ]);
     }
   };
 
@@ -122,17 +131,13 @@ export default function EditEmployeeModal({ open, onOpenChange, onSuccess, emplo
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                {roles.length > 0 ? roles.map(r => (
-                  <SelectItem key={r.name} value={r.name}>{r.name}</SelectItem>
+                {roles.length > 0 ? Array.from(new Set([...roles.map(r => r.name), formData.role])).filter(Boolean).map(roleName => (
+                  <SelectItem key={roleName} value={roleName}>{roleName.replace(/_/g, ' ')}</SelectItem>
                 )) : (
-                  <SelectItem value="ENGINEER">ENGINEER</SelectItem>
+                  <SelectItem value={formData.role || 'ENGINEER'}>{formData.role ? formData.role.replace(/_/g, ' ') : 'ENGINEER'}</SelectItem>
                 )}
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-department">Department</Label>
-            <Input id="edit-department" value={formData.department} onChange={(e) => setFormData({...formData, department: e.target.value})} />
           </div>
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
