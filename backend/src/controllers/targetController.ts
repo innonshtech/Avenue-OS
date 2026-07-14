@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
+import { hasPermission } from '../utils/permissionHelper';
 import { autoUpdateTargetStatuses } from '../utils/targetUpdater';
 
 export const getTargets = async (req: Request, res: Response) => {
@@ -14,7 +15,8 @@ export const getTargets = async (req: Request, res: Response) => {
     }
     
     const user = req.user;
-    if (user && user.role !== 'PROJECT_MANAGER') {
+    const canManageProjects = user ? await hasPermission(user.role, 'CREATE_PROJECT') : false;
+    if (user && !canManageProjects) {
       query.project = {
         members: {
           some: {

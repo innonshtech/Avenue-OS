@@ -300,7 +300,8 @@ export default function KanbanBoardPage() {
     const isOverTask = over.data.current?.type === 'Task';
     const isOverColumn = over.data.current?.type === 'Column';
 
-    if (user?.role !== 'PROJECT_MANAGER' && user?.role !== 'ADMIN' && activeTask?.assigneeId !== user?.id) {
+    const canManageTasks = user?.permissions?.includes('CREATE_TASK') || user?.permissions?.includes('ASSIGN_TASK');
+    if (!canManageTasks && activeTask?.assigneeId !== user?.id) {
       return;
     }
 

@@ -4,6 +4,7 @@ import { ChatRepository } from './chat.repository';
 import prisma from '../../utils/prisma';
 import { CHAT_EVENTS } from './chat.events';
 import { getIO } from '../../sockets/socket.server';
+import { hasPermission } from '../../utils/permissionHelper';
 
 export class ChatController {
   // 1. DMs
@@ -117,7 +118,8 @@ export class ChatController {
       if (!channel) return res.status(404).json({ error: 'Channel not found' });
 
       const user = await prisma?.user.findUnique({ where: { id: userId } });
-      if (channel.createdById !== userId && user?.role !== 'ADMIN' && user?.role !== 'PROJECT_MANAGER') {
+      const canManageChats = user ? await hasPermission(user.role, 'VIEW_TEAM') : false; // Or MANAGE_USERS? Let's use VIEW_TEAM as it signifies a manager. Or CREATE_PROJECT.
+      if (channel.createdById !== userId && !canManageChats) {
         return res.status(403).json({ error: 'Forbidden: You cannot modify this channel' });
       }
 
@@ -139,7 +141,8 @@ export class ChatController {
       if (!channel) return res.status(404).json({ error: 'Channel not found' });
 
       const user = await prisma?.user.findUnique({ where: { id: userId } });
-      if (channel.createdById !== userId && user?.role !== 'ADMIN' && user?.role !== 'PROJECT_MANAGER') {
+      const canManageChats = user ? await hasPermission(user.role, 'VIEW_TEAM') : false;
+      if (channel.createdById !== userId && !canManageChats) {
         return res.status(403).json({ error: 'Forbidden: You cannot archive this channel' });
       }
 

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
+import { hasPermission } from '../utils/permissionHelper';
 import { autoUpdateProjectStatuses } from '../utils/projectUpdater';
 
 export const getProjects = async (req: Request, res: Response) => {
@@ -7,8 +8,9 @@ export const getProjects = async (req: Request, res: Response) => {
     await autoUpdateProjectStatuses();
     
     const user = req.user;
+    const canManageProjects = user ? await hasPermission(user.role, 'CREATE_PROJECT') : false;
     const query: any = { isArchived: false };
-    if (user && user.role !== 'PROJECT_MANAGER' && user.role !== 'ADMIN') {
+    if (user && !canManageProjects) {
       query.members = {
         some: {
           userId: user.id

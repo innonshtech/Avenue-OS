@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
+import { hasPermission } from '../utils/permissionHelper';
 import { getIO } from '../sockets/socket.server';
 import { SOCKET_EVENTS } from '../sockets/socket.events';
 
@@ -64,8 +65,9 @@ export const getMyProgressReports = async (req: Request, res: Response) => {
 export const getTeamProgressReports = async (req: Request, res: Response) => {
   try {
     const user = req.user;
-    if (!user || (user.role !== 'PROJECT_MANAGER' && user.role !== 'ADMIN')) {
-      return res.status(403).json({ error: 'Forbidden: Project Manager access required' });
+    const canViewTeam = user ? await hasPermission(user.role, 'VIEW_TEAM') : false;
+    if (!user || !canViewTeam) {
+      return res.status(403).json({ error: 'Forbidden: Team view access required' });
     }
 
     const { targetId } = req.query;

@@ -2,6 +2,8 @@ import { Socket } from 'socket.io';
 import { getIO, AuthenticatedSocket } from '../../sockets/socket.server';
 import { CHAT_EVENTS } from './chat.events';
 import { ChatService } from './chat.service';
+import { inAppNotificationService } from '../../services/notifications/inapp-notification.service';
+import { hasPermission } from '../../utils/permissionHelper';
 import { ChatRepository } from './chat.repository';
 import prisma from '../../utils/prisma';
 import { redis } from '../../utils/redis';
@@ -113,7 +115,8 @@ export const registerChatHandlers = (socket: AuthenticatedSocket) => {
       try {
         const message = await ChatRepository.findMessageById(data.messageId);
         if (!message) throw new Error('Message not found');
-        if (message.senderId !== userId && user.role !== 'ADMIN' && user.role !== 'PROJECT_MANAGER') {
+        const canManage = await hasPermission(user.role, 'VIEW_TEAM');
+        if (message.senderId !== userId && !canManage) {
           throw new Error('Unauthorized to edit this message');
         }
 
@@ -134,7 +137,8 @@ export const registerChatHandlers = (socket: AuthenticatedSocket) => {
     try {
       const message = await ChatRepository.findMessageById(messageId);
       if (!message) throw new Error('Message not found');
-      if (message.senderId !== userId && user.role !== 'ADMIN' && user.role !== 'PROJECT_MANAGER') {
+      const canManage = await hasPermission(user.role, 'VIEW_TEAM');
+      if (message.senderId !== userId && !canManage) {
         throw new Error('Unauthorized to delete this message');
       }
 

@@ -1,4 +1,5 @@
 import prisma from '../../utils/prisma';
+import { hasPermission } from '../../utils/permissionHelper';
 
 export class SearchService {
   /**
@@ -15,7 +16,8 @@ export class SearchService {
     // 1. Determine which projects this user is allowed to access
     let allowedProjectIds: string[] = [];
     
-    if (userRole === 'ADMIN' || userRole === 'PROJECT_MANAGER') {
+    const canViewAll = await hasPermission(userRole, 'VIEW_TEAM');
+    if (canViewAll) {
       const projects = await prisma.project.findMany({
         select: { id: true }
       });
@@ -121,7 +123,7 @@ export class SearchService {
             { blockers: { contains: q, mode: 'insensitive' } }
           ],
           // Engineers/Draftsmen can only search their own reports
-          ...(userRole !== 'ADMIN' && userRole !== 'PROJECT_MANAGER' ? { userId } : {})
+          ...(!canViewAll ? { userId } : {})
         },
         include: {
           user: {
@@ -154,7 +156,8 @@ export class SearchService {
 
     // 1. Allowed Project IDs
     let allowedProjectIds: string[] = [];
-    if (userRole === 'ADMIN' || userRole === 'PROJECT_MANAGER') {
+    const canViewAll = await hasPermission(userRole, 'VIEW_TEAM');
+    if (canViewAll) {
       const projects = await prisma.project.findMany({ select: { id: true } });
       allowedProjectIds = projects.map((p) => p.id);
     } else {

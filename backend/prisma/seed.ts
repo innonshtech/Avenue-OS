@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -50,8 +50,21 @@ const roles = [
     ],
     isSystem: true
   },
-  { name: 'PROJECT_MANAGER', isSystem: true, permissions: ['CREATE_PROJECT', 'EDIT_PROJECT', 'CREATE_TASK', 'ASSIGN_TASK', 'RESOLVE_RFI'] },
-  { name: 'ENGINEER', isSystem: true, permissions: ['CREATE_TASK'] }
+  { 
+    name: 'PROJECT_MANAGER', 
+    isSystem: true, 
+    permissions: [
+      'CREATE_PROJECT', 'EDIT_PROJECT', 'DELETE_PROJECT', 'CREATE_TASK', 'ASSIGN_TASK', 'DELETE_TASK', 'RESOLVE_RFI',
+      'VIEW_PROJECTS', 'VIEW_TARGETS', 'VIEW_TARGET_REPORTS', 'VIEW_ALL_TASKS', 'VIEW_MY_TASKS', 'VIEW_BOARDS', 'VIEW_CHAT', 'VIEW_PROGRESS_REPORTS', 'VIEW_TIMESHEETS', 'VIEW_ACTIVITY_LOG', 'VIEW_ANALYTICS', 'VIEW_REPORTS', 'VIEW_FEEDBACKS', 'VIEW_TEAM', 'VIEW_CALENDAR'
+    ] 
+  },
+  { 
+    name: 'ENGINEER', 
+    isSystem: true, 
+    permissions: [
+      'CREATE_TASK', 'VIEW_MY_TASKS', 'VIEW_BOARDS', 'VIEW_CHAT', 'VIEW_PROGRESS_REPORTS', 'VIEW_TIMESHEETS', 'VIEW_ACTIVITY_LOG', 'VIEW_TEAM', 'VIEW_CALENDAR'
+    ] 
+  }
 ];
 
 const users = [

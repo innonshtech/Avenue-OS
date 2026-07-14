@@ -244,7 +244,7 @@ export const TimesheetsPage = () => {
 
           <div className="mb-4 text-center">
             <span className="text-xs px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-100 dark:border-indigo-800">
-              {user?.role === 'ADMIN' || user?.role === 'PROJECT_MANAGER' ? 'Viewing All Team Logs' : 'Viewing Your Logs & Project Manager\'s Logs'}
+              {user?.permissions?.includes('VIEW_TEAM') ? 'Viewing All Team Logs' : 'Viewing Your Logs'}
             </span>
           </div>
           

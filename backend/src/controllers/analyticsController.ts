@@ -1,18 +1,10 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 
-// Helper to check PM role
-const checkPMRole = (req: Request, res: Response) => {
-  const user = req.user;
-  if (!user || (user.role !== 'PROJECT_MANAGER' && user.role !== 'ADMIN')) {
-    res.status(403).json({ error: 'Access denied. Only Project Managers can access analytics.' });
-    return false;
-  }
-  return true;
-};
+
 
 export const getOverview = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const targetId = req.query.targetId as string || req.query.sprintId as string;
 
@@ -100,7 +92,7 @@ export const getOverview = async (req: Request, res: Response) => {
 };
 
 export const getSprintsAnalytics = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const targets = await prisma.target.findMany({
       where: { status: { in: ['ACTIVE', 'COMPLETED'] } },
@@ -127,7 +119,7 @@ export const getSprintsAnalytics = async (req: Request, res: Response) => {
 };
 
 export const getTeamWorkload = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const targetId = req.query.targetId as string || req.query.sprintId as string;
     
@@ -163,7 +155,7 @@ export const getTeamWorkload = async (req: Request, res: Response) => {
 };
 
 export const getBlockersAnalytics = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const targetId = req.query.targetId as string || req.query.sprintId as string;
 
@@ -190,7 +182,7 @@ export const getBlockersAnalytics = async (req: Request, res: Response) => {
 };
 
 export const getProductivityTimeline = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const targetId = req.query.targetId as string || req.query.sprintId as string;
     
@@ -242,7 +234,7 @@ export const getProductivityTimeline = async (req: Request, res: Response) => {
 };
 
 export const getBurndown = async (req: Request, res: Response) => {
-  if (!checkPMRole(req, res)) return;
+
   try {
     const targetId = req.query.targetId as string || req.query.sprintId as string;
 

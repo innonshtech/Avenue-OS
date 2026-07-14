@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
+import { hasPermission } from '../utils/permissionHelper';
 
 export const createFeedback = async (req: Request, res: Response) => {
   try {
@@ -40,8 +41,9 @@ export const createFeedback = async (req: Request, res: Response) => {
 export const getFeedbacks = async (req: Request, res: Response) => {
   try {
     const user = req.user;
-    if (user?.role !== 'PROJECT_MANAGER' && user?.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Only Project Managers or Admins can view all feedbacks' });
+    const canView = user ? await hasPermission(user.role, 'VIEW_FEEDBACKS') : false;
+    if (!canView) {
+      return res.status(403).json({ error: 'Only authorized users can view all feedbacks' });
     }
 
     const { targetId, category } = req.query;
@@ -68,8 +70,9 @@ export const getFeedbacks = async (req: Request, res: Response) => {
 export const getComparison = async (req: Request, res: Response) => {
   try {
     const user = req.user;
-    if (user?.role !== 'PROJECT_MANAGER' && user?.role !== 'ADMIN') {
-      return res.status(403).json({ error: 'Only Project Managers or Admins can view comparisons' });
+    const canView = user ? await hasPermission(user.role, 'VIEW_FEEDBACKS') : false;
+    if (!canView) {
+      return res.status(403).json({ error: 'Only authorized users can view comparisons' });
     }
 
     // Get last two completed targets
