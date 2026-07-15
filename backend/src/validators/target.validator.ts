@@ -8,6 +8,7 @@ export const createTargetSchema = z.object({
     endDate: z.string().datetime().or(z.string()),
     projectId: z.string().uuid('Invalid project ID format'),
     status: z.enum(['PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELED']).optional(),
+    budgetedHours: z.number().optional().nullable(),
   }),
 });
 
@@ -18,5 +19,6 @@ export const updateTargetSchema = z.object({
     startDate: z.string().optional(),
     endDate: z.string().optional(),
     status: z.enum(['PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELED']).optional(),
+    budgetedHours: z.number().optional().nullable(),
   }),
 });

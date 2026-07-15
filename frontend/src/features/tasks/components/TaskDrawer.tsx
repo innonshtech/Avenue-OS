@@ -29,12 +29,15 @@ import {
   Archive,
   RefreshCw,
   CheckCircle,
-  X
+  X,
+  Edit,
+  Edit2
 } from 'lucide-react';
 import TaskComments from './TaskComments';
 import TaskActivityTimeline from './TaskActivityTimeline';
 import TaskAttachments from './TaskAttachments';
 import { CreateDiscussionModal } from '@/features/chat/components/CreateDiscussionModal';
+import { EditTaskModal } from './EditTaskModal';
 
 interface TaskDrawerProps {
   taskId: string | null;
@@ -64,6 +67,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
   const [rfiDescription, setRfiDescription] = useState('');
   const [showRaiseRFIInput, setShowRaiseRFIInput] = useState(false);
   const [showDiscussionModal, setShowDiscussionModal] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
   if (!taskId) return null;
   if (isLoading) return <Sheet open={!!taskId} onOpenChange={(open) => !open && onClose()}><SheetContent><div className="p-10 text-center">Loading task details...</div></SheetContent></Sheet>;
@@ -144,6 +148,11 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      {canEdit && (
+                        <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
+                          <Edit2 className="mr-2 h-4 w-4" /> Edit Task
+                        </DropdownMenuItem>
+                      )}
                       {!task.isArchived ? (
                         <DropdownMenuItem onClick={() => {
                           if (confirm('Archive this task?')) {
@@ -635,6 +644,11 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
           task={task} 
         />
       )}
+      <EditTaskModal 
+        open={isEditModalOpen} 
+        onOpenChange={setIsEditModalOpen} 
+        task={task} 
+      />
     </Sheet>
   );
 }

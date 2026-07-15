@@ -25,6 +25,7 @@ export const updateTaskSchema = z.object({
   body: z.object({
     title: z.string().min(2).optional(),
     description: z.string().optional(),
+    taskCategory: z.enum(['DESIGN', 'DRAFTING', 'STUDY']).optional(),
     type: z.string().optional(),
     status: z.enum(['PENDING', 'IN_PROGRESS', 'INTERNAL_REVIEW', 'EXTERNAL_REVIEW', 'MODIFICATION_REQUIRED', 'APPROVED', 'DONE']).optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT', 'CRITICAL']).optional(),
@@ -32,6 +33,8 @@ export const updateTaskSchema = z.object({
     drawingNumber: z.string().nullable().optional(),
     revisionNumber: z.string().nullable().optional(),
     dueDate: z.string().nullable().optional(),
+    startDate: z.string().nullable().optional(),
+    acceptanceCriteria: z.string().nullable().optional(),
     assigneeId: z.string().nullable().optional(),
     targetId: z.string().nullable().optional(),
     labels: z.array(z.string()).optional(),

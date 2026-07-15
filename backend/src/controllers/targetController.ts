@@ -139,7 +139,7 @@ export const updateTarget = async (req: Request, res: Response) => {
     
     if (startDate) {
       const minStartDate = new Date(Date.now() - 36 * 60 * 60 * 1000);
-      if (start < minStartDate) {
+      if (start.getTime() !== currentTarget.startDate.getTime() && start < minStartDate) {
         return res.status(400).json({ error: 'Target start date cannot be in the past.' });
       }
     }

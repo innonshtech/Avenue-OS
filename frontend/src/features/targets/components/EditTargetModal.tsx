@@ -48,7 +48,7 @@ export function EditTargetModal({ open, onOpenChange, target }: EditTargetModalP
         status: status as any,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
-        budgetedHours: budgetedHours ? parseFloat(budgetedHours) : undefined,
+        budgetedHours: budgetedHours ? parseFloat(budgetedHours) : null,
       });
       
       toast({
