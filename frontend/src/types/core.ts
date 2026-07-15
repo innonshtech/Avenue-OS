@@ -80,6 +80,7 @@ export interface Task {
   archivedById?: string | null;
   completedAt?: string | null;
   completedById?: string | null;
+  startDate?: string | null;
   dueDate?: string | null;
   labels?: string[];
   acceptanceCriteria?: string | null;
