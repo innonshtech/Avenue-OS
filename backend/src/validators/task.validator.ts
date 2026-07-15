@@ -24,9 +24,9 @@ export const createTaskSchema = z.object({
 export const updateTaskSchema = z.object({
   body: z.object({
     title: z.string().min(2).optional(),
-    description: z.string().optional(),
+    description: z.string().nullable().optional(),
     taskCategory: z.enum(['DESIGN', 'DRAFTING', 'STUDY']).optional(),
-    type: z.string().optional(),
+    type: z.string().nullable().optional(),
     status: z.enum(['PENDING', 'IN_PROGRESS', 'INTERNAL_REVIEW', 'EXTERNAL_REVIEW', 'MODIFICATION_REQUIRED', 'APPROVED', 'DONE']).optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT', 'CRITICAL']).optional(),
     storyPoints: z.number().nullable().optional(),

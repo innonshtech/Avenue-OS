@@ -15,6 +15,7 @@ import { EnterpriseDatePicker } from '@/components/EnterpriseDatePicker';
 interface EditTaskModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   task: any;
 }
 
@@ -41,6 +42,7 @@ export function EditTaskModal({ open, onOpenChange, task }: EditTaskModalProps) 
 
   useEffect(() => {
     if (open && task) {
+      /* eslint-disable react-hooks/set-state-in-effect */
       setTitle(task.title || '');
       setDescription(task.description || '');
       setTaskCategory(task.taskCategory || 'DESIGN');
@@ -54,6 +56,7 @@ export function EditTaskModal({ open, onOpenChange, task }: EditTaskModalProps) 
       setAcceptanceCriteria(task.acceptanceCriteria || '');
       setDueDate(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '');
       setStartDate(task.startDate ? new Date(task.startDate).toISOString().split('T')[0] : '');
+      /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [open, task]);
 
@@ -68,6 +71,7 @@ export function EditTaskModal({ open, onOpenChange, task }: EditTaskModalProps) 
         description: description || null,
         taskCategory,
         type,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         priority: priority as any,
         estimatedHours: estimatedHours ? parseFloat(estimatedHours) : null,
         drawingNumber: drawingNumber || null,
@@ -84,11 +88,14 @@ export function EditTaskModal({ open, onOpenChange, task }: EditTaskModalProps) 
         description: "Task updated successfully.",
       });
       onOpenChange(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
+      const errData = error.response?.data;
+      const errMsg = String(errData?.errors?.[0]?.message || errData?.message || errData?.error || "An unexpected error occurred.");
       toast({
         variant: "destructive",
         title: "Error updating task",
-        description: error.response?.data?.error || "An unexpected error occurred."
+        description: errMsg,
       });
     }
   };
@@ -116,6 +123,7 @@ export function EditTaskModal({ open, onOpenChange, task }: EditTaskModalProps) 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Backlog (No Target)</SelectItem>
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {targets.map((s: any) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
@@ -130,6 +138,7 @@ export function EditTaskModal({ open, onOpenChange, task }: EditTaskModalProps) 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Unassigned</SelectItem>
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {teamMembers.map((m: any) => (
                     <SelectItem key={m.id} value={m.id}>{m.name} ({m.role})</SelectItem>
                   ))}
