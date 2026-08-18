@@ -86,9 +86,12 @@ model User {
   avatar     String?
   isActive   Boolean  @default(true)
 
-  projectsOwned        Project[]               @relation("ProjectOwner")
-  tasksAssigned        Task[]                  @relation("TaskAssignee")
-  tasksCreated         Task[]                  @relation("TaskCreator")
+  projectsOwned             Project[]               @relation("ProjectOwner")
+  tasksAssigned             Task[]                  @relation("TaskAssignee")
+  tasksOriginallyAssigned   Task[]                  @relation("TaskOriginalAssignee")
+  tasksDelegated            Task[]                  @relation("TaskDelegatedBy")
+  tasksCreated              Task[]                  @relation("TaskCreator")
+  subtasksAssigned          TaskSubtask[]           @relation("SubtaskAssignee")
   comments             Comment[]
   commentReactions     CommentReaction[]
   inAppNotifications   InAppNotification[]
@@ -228,15 +231,19 @@ model Task {
   acceptanceCriteria String?
   labels             String[]
 
-  projectId  String
-  targetId    String?
-  assigneeId String?
-  creatorId  String
+  projectId           String
+  targetId            String?
+  assigneeId          String?
+  originalAssigneeId  String?
+  delegatedById       String?
+  creatorId           String
 
-  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  target    Target?  @relation(fields: [targetId], references: [id])
-  assignee User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  creator  User    @relation("TaskCreator", fields: [creatorId], references: [id])
+  project          Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  target           Target? @relation(fields: [targetId], references: [id])
+  assignee         User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  originalAssignee User?   @relation("TaskOriginalAssignee", fields: [originalAssigneeId], references: [id])
+  delegatedBy      User?   @relation("TaskDelegatedBy", fields: [delegatedById], references: [id])
+  creator          User    @relation("TaskCreator", fields: [creatorId], references: [id])
 
   comments        Comment[]
   activities      TaskActivity[]
@@ -257,6 +264,8 @@ model Task {
 
   @@index([projectId])
   @@index([assigneeId])
+  @@index([originalAssigneeId])
+  @@index([delegatedById])
   @@index([targetId])
 }
 
@@ -294,11 +303,15 @@ model TaskSubtask {
   title       String
   isCompleted Boolean @default(false)
   taskId      String
+  assigneeId  String?
 
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task     Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  assignee User? @relation("SubtaskAssignee", fields: [assigneeId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([assigneeId])
 }
 
 model TaskActivity {

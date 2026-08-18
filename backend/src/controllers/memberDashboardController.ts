@@ -2,6 +2,17 @@ import { Request, Response } from 'express';
 import { TaskStatus } from '@prisma/client';
 import prisma from '../utils/prisma';
 
+const userTaskFilter = (userId: string) => ({
+  isArchived: false,
+  OR: [
+    { assigneeId: userId },
+    { originalAssigneeId: userId },
+    { delegatedById: userId },
+    { creatorId: userId },
+    { subtasks: { some: { assigneeId: userId } } },
+  ],
+});
+
 // ==========================================
 // MEMBER OVERVIEW
 // ==========================================
@@ -24,7 +35,7 @@ export const getMemberOverview = async (req: Request, res: Response) => {
 
     // 2. Get user's tasks
     const allAssignedTasks = await prisma.task.findMany({
-      where: { assigneeId: userId, isArchived: false },
+      where: userTaskFilter(userId),
       include: { rfis: { where: { isResolved: false } } }
     });
 
@@ -119,8 +130,8 @@ export const getMemberSummary = async (req: Request, res: Response) => {
 
     // 2. Get user's tasks with full relations for the UI
     const tasks = await prisma.task.findMany({
-      where: { assigneeId: userId, isArchived: false },
-      include: { project: true, target: true, rfis: { where: { isResolved: false } } },
+      where: userTaskFilter(userId),
+      include: { project: true, target: true, rfis: { where: { isResolved: false } }, subtasks: { include: { assignee: true } } },
       orderBy: { createdAt: 'desc' }
     });
 

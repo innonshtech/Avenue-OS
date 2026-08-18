@@ -8,9 +8,98 @@ import { getIO } from '../sockets/socket.server';
 import { SOCKET_EVENTS } from '../sockets/socket.events';
 import { ChatService } from '../modules/chat/chat.service';
 
+const taskListInclude = {
+  assignee: true,
+  originalAssignee: true,
+  delegatedBy: true,
+  creator: true,
+  project: true,
+  target: true,
+  subtasks: {
+    select: { id: true, assigneeId: true, title: true, isCompleted: true },
+  },
+  rfis: {
+    where: { isResolved: false }
+  }
+};
+
+const subtaskInclude = {
+  assignee: true,
+};
+
+const userTaskVisibilityFilter = (userId: string) => ({
+  isArchived: false,
+  OR: [
+    { assigneeId: userId },
+    { originalAssigneeId: userId },
+    { delegatedById: userId },
+    { creatorId: userId },
+    { subtasks: { some: { assigneeId: userId } } },
+  ],
+});
+
+async function enrichTaskActivities(activities: { id: string; action: string; oldValue: string | null; newValue: string | null; user?: any; createdAt: Date }[]) {
+  const userIds = new Set<string>();
+  for (const activity of activities) {
+    if (activity.action === 'ASSIGNEE_CHANGED') {
+      if (activity.oldValue) userIds.add(activity.oldValue);
+      if (activity.newValue) userIds.add(activity.newValue);
+    }
+  }
+
+  const users = userIds.size
+    ? await prisma.user.findMany({
+        where: { id: { in: [...userIds] } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const nameById = new Map(users.map((u) => [u.id, u.name]));
+
+  return activities.map((activity) => {
+    if (activity.action === 'ASSIGNEE_CHANGED') {
+      const fromName = activity.oldValue ? nameById.get(activity.oldValue) || 'Unknown' : 'Unassigned';
+      const toName = activity.newValue ? nameById.get(activity.newValue) || 'Unknown' : 'Unassigned';
+      return { ...activity, oldAssigneeName: fromName, newAssigneeName: toName };
+    }
+    return activity;
+  });
+}
+
+async function notifyDelegatedTrackers(
+  task: { id: string; key: string; title: string; assigneeId: string | null; originalAssigneeId: string | null; delegatedById: string | null; creatorId: string },
+  performerId: string | undefined,
+  title: string,
+  message: string
+) {
+  const trackerIds = new Set<string>();
+  if (task.delegatedById && task.delegatedById !== task.assigneeId) {
+    trackerIds.add(task.delegatedById);
+  }
+  if (task.originalAssigneeId && task.originalAssigneeId !== task.assigneeId) {
+    trackerIds.add(task.originalAssigneeId);
+  }
+  if (task.creatorId && task.creatorId !== task.assigneeId) {
+    trackerIds.add(task.creatorId);
+  }
+
+  for (const trackerId of trackerIds) {
+    if (trackerId !== performerId) {
+      await inAppNotificationService.createNotification(
+        trackerId,
+        'STATUS_CHANGE',
+        title,
+        message,
+        '/dashboard/my-tasks'
+      );
+    }
+  }
+}
+
 export const getTasks = async (req: Request, res: Response) => {
   try {
     const { projectId, targetId, assigneeId, isArchived } = req.query;
+    const user = req.user;
+    const canViewAll = user ? await hasPermission(user.role, 'VIEW_ALL_TASKS') : false;
     
     const query: any = {};
     if (projectId) query.projectId = String(projectId);
@@ -19,19 +108,16 @@ export const getTasks = async (req: Request, res: Response) => {
     if (assigneeId) {
       query.assigneeId = String(assigneeId);
     }
-    
-    query.isArchived = isArchived === 'true';
+
+    if (user && !canViewAll) {
+      Object.assign(query, userTaskVisibilityFilter(user.id));
+    } else {
+      query.isArchived = isArchived === 'true';
+    }
 
     const tasks = await prisma.task.findMany({
       where: query,
-      include: {
-        assignee: true,
-        project: true,
-        target: true,
-        rfis: {
-          where: { isResolved: false }
-        }
-      },
+      include: taskListInclude,
       orderBy: { createdAt: 'desc' }
     });
     
@@ -48,11 +134,14 @@ export const getTaskById = async (req: Request, res: Response) => {
       where: { id },
       include: {
         assignee: true,
+        originalAssignee: true,
+        delegatedBy: true,
         creator: true,
         project: true,
         target: true,
         rfis: true,
         subtasks: {
+          include: subtaskInclude,
           orderBy: { createdAt: 'asc' }
         },
         attachments: {
@@ -77,7 +166,9 @@ export const getTaskById = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    res.status(200).json(task);
+    const enrichedActivities = await enrichTaskActivities(task.activities);
+
+    res.status(200).json({ ...task, activities: enrichedActivities });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch task' });
   }
@@ -104,10 +195,13 @@ export const createTask = async (req: Request, res: Response) => {
         projectId,
         targetId,
         assigneeId,
+        originalAssigneeId: assigneeId || null,
+        delegatedById: assigneeId && assigneeId !== creatorId ? creatorId : null,
         creatorId,
       },
       include: {
         assignee: true,
+        originalAssignee: true,
         project: true,
         target: true,
         rfis: true
@@ -155,6 +249,26 @@ export const createTask = async (req: Request, res: Response) => {
       console.warn('WebSocket emission failed:', wsError);
     }
 
+    await prisma.taskActivity.create({
+      data: {
+        taskId: task.id,
+        userId: creatorId,
+        action: 'TASK_CREATED',
+        newValue: task.assignee?.name || 'Unassigned',
+      },
+    });
+
+    await ActivityTrackerService.logActivity({
+      userId: creatorId,
+      actionType: 'TASK_CREATED',
+      entityType: 'TASK',
+      entityId: task.id,
+      title: `Created Task ${task.key}`,
+      description: task.assignee
+        ? `${creatorName} created "${task.title}" and assigned it to ${task.assignee.name}.`
+        : `${creatorName} created "${task.title}".`,
+    });
+
     res.status(201).json({
       success: true,
       message: 'Task created successfully',
@@ -183,11 +297,21 @@ export const updateTask = async (req: Request, res: Response) => {
     const performerName = dbUser?.name || 'Saket';
 
     const canManageTasks = user ? await hasPermission(user.role, 'CREATE_TASK') : false;
-    if (!canManageTasks && existingTask.assigneeId !== user?.id) {
+    const canAssignTasks = user ? await hasPermission(user.role, 'ASSIGN_TASK') : false;
+    const isCurrentAssignee = existingTask.assigneeId === user?.id;
+    const isOriginalAssignee = existingTask.originalAssigneeId === user?.id;
+    const isDelegatedBy = existingTask.delegatedById === user?.id;
+    const isCreator = existingTask.creatorId === user?.id;
+
+    if (!canManageTasks && !isCurrentAssignee && !isOriginalAssignee && !isDelegatedBy && !isCreator) {
       return res.status(403).json({ error: 'Forbidden: You can only edit your own assigned tasks' });
     }
 
     const { title, description, taskCategory, type, status, priority, storyPoints, estimatedHours, actualHours, drawingNumber, revisionNumber, targetId, assigneeId, dueDate, startDate, acceptanceCriteria, labels } = req.body;
+
+    if (assigneeId !== undefined && assigneeId !== existingTask.assigneeId && !canAssignTasks && !canManageTasks) {
+      return res.status(403).json({ error: 'Forbidden: You do not have permission to reassign tasks' });
+    }
 
     const dataToUpdate: any = {};
     if (title !== undefined) dataToUpdate.title = title;
@@ -209,7 +333,24 @@ export const updateTask = async (req: Request, res: Response) => {
     if (drawingNumber !== undefined) dataToUpdate.drawingNumber = drawingNumber;
     if (revisionNumber !== undefined) dataToUpdate.revisionNumber = revisionNumber;
     if (targetId !== undefined) dataToUpdate.targetId = targetId;
-    if (assigneeId !== undefined) dataToUpdate.assigneeId = assigneeId;
+    if (assigneeId !== undefined) {
+      const assigneeChanged = assigneeId !== existingTask.assigneeId;
+      dataToUpdate.assigneeId = assigneeId;
+
+      if (assigneeChanged && user?.id) {
+        dataToUpdate.delegatedById = user.id;
+
+        if (existingTask.assigneeId === user.id) {
+          dataToUpdate.originalAssigneeId = user.id;
+        } else if (existingTask.assigneeId) {
+          dataToUpdate.originalAssigneeId = existingTask.assigneeId;
+        } else if (assigneeId && !existingTask.originalAssigneeId) {
+          dataToUpdate.originalAssigneeId = assigneeId;
+        }
+      } else if (assigneeId && !existingTask.originalAssigneeId) {
+        dataToUpdate.originalAssigneeId = assigneeId;
+      }
+    }
     if (dueDate !== undefined) dataToUpdate.dueDate = dueDate ? new Date(dueDate) : null;
     if (startDate !== undefined) dataToUpdate.startDate = startDate ? new Date(startDate) : null;
     if (acceptanceCriteria !== undefined) dataToUpdate.acceptanceCriteria = acceptanceCriteria;
@@ -220,6 +361,8 @@ export const updateTask = async (req: Request, res: Response) => {
       data: dataToUpdate,
       include: {
         assignee: true,
+        originalAssignee: true,
+        delegatedBy: true,
         project: true,
         rfis: {
           where: { isResolved: false }
@@ -267,14 +410,55 @@ export const updateTask = async (req: Request, res: Response) => {
     }
 
     // In-app notifications for task assignments and updates
-    if (assigneeId !== undefined && assigneeId !== existingTask.assigneeId && task.assigneeId && task.assigneeId !== user?.id) {
-      await inAppNotificationService.createNotification(
-        task.assigneeId,
-        'ASSIGNED',
-        `Task Assigned: ${task.key}`,
-        `${performerName} assigned task "${task.title}" to you.`,
-        `/dashboard/boards`
+    if (assigneeId !== undefined && assigneeId !== existingTask.assigneeId) {
+      const oldAssignee = existingTask.assigneeId
+        ? await prisma.user.findUnique({ where: { id: existingTask.assigneeId }, select: { name: true } })
+        : null;
+      const newAssignee = assigneeId
+        ? await prisma.user.findUnique({ where: { id: assigneeId }, select: { name: true } })
+        : null;
+
+      if (task.assigneeId && task.assigneeId !== user?.id) {
+        await inAppNotificationService.createNotification(
+          task.assigneeId,
+          'ASSIGNED',
+          `Task Assigned: ${task.key}`,
+          `${performerName} assigned task "${task.title}" to you.`,
+          `/dashboard/boards`
+        );
+      }
+
+      if (existingTask.assigneeId && existingTask.assigneeId !== user?.id) {
+        await inAppNotificationService.createNotification(
+          existingTask.assigneeId,
+          'STATUS_CHANGE',
+          `Task Reassigned: ${task.key}`,
+          `${performerName} reassigned task "${task.title}" to ${newAssignee?.name || 'someone else'}.`,
+          `/dashboard/my-tasks`
+        );
+      }
+
+      await notifyDelegatedTrackers(
+        {
+          ...task,
+          originalAssigneeId: existingTask.originalAssigneeId,
+          delegatedById: dataToUpdate.delegatedById ?? existingTask.delegatedById,
+          creatorId: existingTask.creatorId,
+        },
+        user?.id,
+        `Task Reassigned: ${task.key}`,
+        `${performerName} reassigned "${task.title}" from ${oldAssignee?.name || 'Unassigned'} to ${newAssignee?.name || 'Unassigned'}.`
       );
+
+      await prisma.taskActivity.create({
+        data: {
+          taskId: task.id,
+          userId: user?.id || 'SYSTEM',
+          action: 'ASSIGNEE_CHANGED',
+          oldValue: existingTask.assigneeId,
+          newValue: assigneeId,
+        }
+      });
     } else if (task.assigneeId && task.assigneeId !== user?.id) {
       const changes: string[] = [];
       if (title !== undefined && title !== existingTask.title) changes.push('title');
@@ -291,7 +475,31 @@ export const updateTask = async (req: Request, res: Response) => {
           `${performerName} updated the ${changes.join(', ')} of your assigned task "${task.title}".`,
           `/dashboard/boards`
         );
+
+        await notifyDelegatedTrackers(
+          {
+            ...task,
+            originalAssigneeId: existingTask.originalAssigneeId,
+            delegatedById: existingTask.delegatedById,
+            creatorId: existingTask.creatorId,
+          },
+          user?.id,
+          `Delegated Task Updated: ${task.key}`,
+          `${performerName} updated ${changes.join(', ')} on "${task.title}" (now with ${task.assignee?.name || 'assignee'}).`
+        );
       }
+    }
+
+    if (statusChanged) {
+      await prisma.taskActivity.create({
+        data: {
+          taskId: task.id,
+          userId: user?.id || 'SYSTEM',
+          action: 'STATUS_CHANGED',
+          oldValue: existingTask.status,
+          newValue: status,
+        },
+      });
     }
 
     try {
@@ -474,8 +682,13 @@ export const getMyTasks = async (req: Request, res: Response) => {
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const tasks = await prisma.task.findMany({
-      where: { assigneeId: userId },
-      include: { project: true, target: true, rfis: { where: { isResolved: false } } },
+      where: userTaskVisibilityFilter(userId),
+      include: {
+        ...taskListInclude,
+        subtasks: {
+          include: subtaskInclude,
+        },
+      },
       orderBy: { createdAt: 'desc' }
     });
     res.status(200).json(tasks);

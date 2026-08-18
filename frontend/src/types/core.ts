@@ -43,6 +43,17 @@ export interface Target {
   tasks?: Task[];
 }
 
+export interface TaskSubtask {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+  taskId: string;
+  assigneeId?: string | null;
+  assignee?: any;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Task {
   id: string;
   key: string;
@@ -60,6 +71,8 @@ export interface Task {
   projectId: string;
   targetId: string | null;
   assigneeId: string | null;
+  originalAssigneeId?: string | null;
+  delegatedById?: string | null;
   creatorId: string;
   createdAt: string;
   updatedAt: string;
@@ -68,12 +81,14 @@ export interface Task {
   project?: Project;
   target?: Target;
   assignee?: any;
+  originalAssignee?: any;
+  delegatedBy?: any;
   creator?: any;
   comments?: any[];
   activities?: any[];
   attachments?: any[];
   rfis?: RFI[];
-  subtasks?: any[];
+  subtasks?: TaskSubtask[];
   progressReports?: ProgressReport[];
   isArchived?: boolean;
   archivedAt?: string | null;

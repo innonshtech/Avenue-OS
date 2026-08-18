@@ -3,7 +3,7 @@ import api from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import type { Task } from '@/types/core';
 
-export const useTasks = (filters?: { projectId?: string; targetId?: string; assigneeId?: string }) => {
+export const useTasks = (filters?: { projectId?: string; targetId?: string; assigneeId?: string }, enabled = true) => {
   return useQuery<Task[]>({
     queryKey: ['tasks', filters],
     queryFn: async () => {
@@ -16,7 +16,24 @@ export const useTasks = (filters?: { projectId?: string; targetId?: string; assi
       const { data } = await api.get(url);
       return data;
     },
+    enabled,
   });
+};
+
+export const useMyTasks = (enabled = true) => {
+  return useQuery<Task[]>({
+    queryKey: ['tasks', 'my-tasks'],
+    queryFn: async () => {
+      const { data } = await api.get('/tasks/my-tasks');
+      return data;
+    },
+    enabled,
+  });
+};
+
+const invalidateTaskQueries = (queryClient: ReturnType<typeof useQueryClient>) => {
+  queryClient.invalidateQueries({ queryKey: ['tasks'] });
+  queryClient.invalidateQueries({ queryKey: ['tasks', 'my-tasks'] });
 };
 
 export const useTask = (id: string | null) => {
@@ -38,7 +55,7 @@ export const useCreateTask = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      invalidateTaskQueries(queryClient);
     },
   });
 };
@@ -51,7 +68,7 @@ export const useUpdateTask = () => {
       return data;
     },
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      invalidateTaskQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ['task', variables.id] });
       toast({
         title: 'Task Updated',
@@ -70,22 +87,37 @@ export const useUpdateTaskStatus = () => {
     },
     onMutate: async ({ id, status }) => {
       await queryClient.cancelQueries({ queryKey: ['tasks'] });
-      const previousTasks = queryClient.getQueryData(['tasks']);
-      
-      queryClient.setQueriesData({ queryKey: ['tasks'] }, (old: Task[] | undefined) => {
-        if (!old) return old;
-        return old.map(t => t.id === id ? { ...t, status: status as any } : t);
+      await queryClient.cancelQueries({ queryKey: ['task', id] });
+
+      const previousTasksEntries = queryClient.getQueriesData<Task[]>({ queryKey: ['tasks'] });
+      const previousTask = queryClient.getQueryData<Task>(['task', id]);
+
+      const applyStatus = (task: Task) =>
+        task.id === id ? { ...task, status: status as Task['status'] } : task;
+
+      queryClient.setQueriesData<Task[]>({ queryKey: ['tasks'] }, (old) => {
+        if (!old || !Array.isArray(old)) return old;
+        return old.map(applyStatus);
       });
-      
-      return { previousTasks };
+
+      queryClient.setQueryData<Task>(['task', id], (old) => {
+        if (!old) return old;
+        return { ...old, status: status as Task['status'] };
+      });
+
+      return { previousTasksEntries, previousTask, id };
     },
-    onError: (err, variables, context) => {
-      if (context?.previousTasks) {
-        queryClient.setQueriesData({ queryKey: ['tasks'] }, context.previousTasks);
+    onError: (_err, _variables, context) => {
+      context?.previousTasksEntries.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
+      if (context?.previousTask !== undefined) {
+        queryClient.setQueryData(['task', context.id], context.previousTask);
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    onSettled: (_data, _error, variables) => {
+      invalidateTaskQueries(queryClient);
+      queryClient.invalidateQueries({ queryKey: ['task', variables.id] });
     },
   });
 };
@@ -97,7 +129,7 @@ export const useDeleteTask = () => {
       await api.delete(`/tasks/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      invalidateTaskQueries(queryClient);
     },
   });
 };
@@ -118,8 +150,8 @@ export const useAddComment = () => {
 export const useAddSubtask = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ taskId, title }: { taskId: string; title: string }) => {
-      const { data } = await api.post(`/tasks/${taskId}/subtasks`, { title });
+    mutationFn: async ({ taskId, title, assigneeId }: { taskId: string; title: string; assigneeId?: string | null }) => {
+      const { data } = await api.post(`/tasks/${taskId}/subtasks`, { title, assigneeId });
       return data;
     },
     onSuccess: (_, variables) => {
@@ -131,8 +163,8 @@ export const useAddSubtask = () => {
 export const useUpdateSubtask = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, isCompleted, title }: { id: string; isCompleted?: boolean; title?: string }) => {
-      const { data } = await api.put(`/subtasks/${id}`, { isCompleted, title });
+    mutationFn: async ({ id, isCompleted, title, assigneeId }: { id: string; isCompleted?: boolean; title?: string; assigneeId?: string | null }) => {
+      const { data } = await api.put(`/tasks/subtasks/${id}`, { isCompleted, title, assigneeId });
       return data;
     },
     onSuccess: () => {
@@ -180,7 +212,7 @@ export const useArchiveTask = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      invalidateTaskQueries(queryClient);
     },
   });
 };
@@ -193,7 +225,7 @@ export const useRestoreTask = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      invalidateTaskQueries(queryClient);
     },
   });
 };

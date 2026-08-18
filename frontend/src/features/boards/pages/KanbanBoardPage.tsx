@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useTasks, useUpdateTaskStatus } from '@/features/tasks/api/taskApi';
+import { useTasks, useMyTasks, useUpdateTaskStatus } from '@/features/tasks/api/taskApi';
 import { useTargets } from '@/features/targets/api/targetApi';
 import { useProjects } from '@/features/projects/api/projectApi';
 import { useAuthStore } from '@/features/auth/store/authStore';
@@ -36,6 +36,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Search, ListFilter, Plus } from 'lucide-react';
 import TaskDrawer from '@/features/tasks/components/TaskDrawer';
+import { CreateTaskModal } from '@/features/tasks/components/CreateTaskModal';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -189,20 +190,38 @@ function Column({ col, tasks, onTaskClick }: { col: { id: TaskStatus; title: str
 }
 
 export default function KanbanBoardPage() {
-  const { data: targets = [] } = useTargets();
+  const [targetFilter, setTargetFilter] = useState<string | null>(null);
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  
+  const { data: targets = [], isSuccess: isTargetsLoaded } = useTargets(projectFilter || undefined);
   const { data: projects = [] } = useProjects();
   const { data: team = [] } = useTeam();
   const activeTargetIds = useMemo(() => targets.filter((s: any) => s.status === 'ACTIVE').map((s: any) => s.id), [targets]);
+
+  // Reset target filter if the selected target is not in the loaded targets list (dependent filtering)
+  useEffect(() => {
+    if (targetFilter && isTargetsLoaded) {
+      const exists = targets.some((t: any) => t.id === targetFilter);
+      if (!exists) {
+        setTargetFilter(null);
+      }
+    }
+  }, [targets, targetFilter, isTargetsLoaded]);
   
-  const [targetFilter, setTargetFilter] = useState<string | null>(null);
-  const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const { user } = useAuthStore();
+  const canViewAllTasks = user?.permissions?.includes('VIEW_ALL_TASKS');
   const queryParams = {
     ...(targetFilter && { targetId: targetFilter }),
     ...(projectFilter && { projectId: projectFilter })
   };
-  const { data: tasks = [], isLoading } = useTasks(Object.keys(queryParams).length > 0 ? queryParams : undefined);
+  const { data: allBoardTasks = [], isLoading: isLoadingAll } = useTasks(
+    Object.keys(queryParams).length > 0 ? queryParams : undefined,
+    canViewAllTasks
+  );
+  const { data: myBoardTasks = [], isLoading: isLoadingMy } = useMyTasks(!canViewAllTasks);
+  const tasks = canViewAllTasks ? allBoardTasks : myBoardTasks;
+  const isLoading = canViewAllTasks ? isLoadingAll : isLoadingMy;
   const updateTaskStatus = useUpdateTaskStatus();
-  const { user } = useAuthStore();
   const { joinProject, leaveProject } = useSocket();
 
   useEffect(() => {
@@ -219,7 +238,10 @@ export default function KanbanBoardPage() {
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
   
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>(initialFilterState);
+
+  const canCreateTask = user?.permissions?.includes('CREATE_TASK');
 
   const filteredTasks = useMemo(() => {
     return tasks
@@ -230,8 +252,8 @@ export default function KanbanBoardPage() {
           if (t.targetId !== targetFilter) return false;
         } else if (advancedFilters.sprintIds.length > 0) {
           if (!advancedFilters.sprintIds.includes(t.targetId)) return false;
-        } else {
-          if (!activeTargetIds.includes(t.targetId)) return false;
+        } else if (canViewAllTasks && !activeTargetIds.includes(t.targetId)) {
+          return false;
         }
 
         if (advancedFilters.priorities.length > 0 && !advancedFilters.priorities.includes(t.priority)) return false;
@@ -260,7 +282,7 @@ export default function KanbanBoardPage() {
 
         return true;
       });
-  }, [tasks, search, assigneeFilter, targetFilter, projectFilter, activeTargetIds, advancedFilters]);
+  }, [tasks, search, assigneeFilter, targetFilter, projectFilter, activeTargetIds, advancedFilters, canViewAllTasks]);
 
   const columns = useMemo(() => COLUMNS, []);
 
@@ -317,13 +339,19 @@ export default function KanbanBoardPage() {
 
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 shrink-0">
-        <div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 shrink-0 flex-wrap">
+        <div className="shrink-0">
           <h1 className="text-3xl font-bold tracking-tight">Active Board</h1>
           <p className="text-muted-foreground">Manage and progress tasks for active project targets.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="relative w-64">
+          {canCreateTask && (
+            <Button onClick={() => setIsCreateModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-soft shrink-0">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Task
+            </Button>
+          )}
+          <div className="relative w-44">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Search board..." 
@@ -333,11 +361,11 @@ export default function KanbanBoardPage() {
             />
           </div>
           <div className="flex gap-2">
-            <select className="bg-background border rounded-md text-sm px-2" value={projectFilter || ''} onChange={e => setProjectFilter(e.target.value || null)}>
+            <select className="bg-background border rounded-md text-sm px-2 w-32" value={projectFilter || ''} onChange={e => setProjectFilter(e.target.value || null)}>
               <option value="">All Projects</option>
               {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <select className="bg-background border rounded-md text-sm px-2" value={targetFilter || ''} onChange={e => setTargetFilter(e.target.value || null)}>
+            <select className="bg-background border rounded-md text-sm px-2 w-32" value={targetFilter || ''} onChange={e => setTargetFilter(e.target.value || null)}>
               <option value="">All Targets</option>
               {targets.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
@@ -345,7 +373,7 @@ export default function KanbanBoardPage() {
               value={assigneeFilter || 'ALL'} 
               onValueChange={(val) => setAssigneeFilter(val === 'ALL' ? null : val)}
             >
-              <SelectTrigger className="w-[180px] bg-background border-border">
+              <SelectTrigger className="w-[130px] bg-background border-border">
                 <SelectValue placeholder="All Members" />
               </SelectTrigger>
               <SelectContent>
@@ -366,13 +394,18 @@ export default function KanbanBoardPage() {
       </div>
 
       {isLoading && <div className="flex justify-center p-10">Loading board...</div>}
-      {activeTargetIds.length === 0 && !isLoading && (
+      {!isLoading && canViewAllTasks && activeTargetIds.length === 0 && (
         <div className="flex justify-center p-10 text-muted-foreground">
           No active targets found. Please activate a target in Project view to see task board.
         </div>
       )}
+      {!isLoading && !canViewAllTasks && tasks.length === 0 && (
+        <div className="flex justify-center p-10 text-muted-foreground">
+          No tasks assigned to you yet.
+        </div>
+      )}
 
-      <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
+      {(canViewAllTasks ? activeTargetIds.length > 0 : tasks.length > 0) && !isLoading && (
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -399,9 +432,15 @@ export default function KanbanBoardPage() {
             ) : null}
           </DragOverlay>
         </DndContext>
-      </div>
+      )}
 
       <TaskDrawer taskId={drawerTaskId} onClose={() => setDrawerTaskId(null)} />
+      <CreateTaskModal
+        open={isCreateModalOpen}
+        onOpenChange={setIsCreateModalOpen}
+        defaultProjectId={projectFilter || undefined}
+        defaultSprintId={targetFilter || undefined}
+      />
       <AdvancedFilterPanel 
         isOpen={isFilterPanelOpen} 
         onClose={() => setIsFilterPanelOpen(false)} 

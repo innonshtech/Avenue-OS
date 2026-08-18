@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
-import { useTasks, useUpdateTask } from '../api/taskApi';
+import { useTasks, useMyTasks, useUpdateTask } from '../api/taskApi';
 import { useProjects } from '@/features/projects/api/projectApi';
 import { AdvancedFilterPanel, initialFilterState } from '@/features/filters/AdvancedFilterPanel';
 import type { FilterState } from '@/features/filters/AdvancedFilterPanel';
@@ -10,11 +10,17 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Search, ListFilter, Plus, LayoutList, X } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import TaskDrawer from '../components/TaskDrawer';
 import { useAuthStore } from '@/features/auth/store/authStore';
+import {
+  isTaskVisibleToUser,
+  getTaskTrackingLabel,
+  matchesMyTasksView,
+  type MyTasksView,
+} from '../utils/taskVisibility';
 
 export default function TaskListPage() {
-  const { data: tasks = [], isLoading } = useTasks();
   const updateTask = useUpdateTask();
   const { data: projects = [] } = useProjects();
   const { user } = useAuthStore();
@@ -80,16 +86,23 @@ export default function TaskListPage() {
   const canCreateTask = user?.permissions?.includes('CREATE_TASK');
   const canEditTask = user?.permissions?.includes('CREATE_TASK') || user?.permissions?.includes('ASSIGN_TASK');
   const isMyTasksRoute = location.pathname.includes('/my-tasks');
+  const [myTasksView, setMyTasksView] = useState<MyTasksView>(
+    (searchParams.get('view') as MyTasksView) || 'all'
+  );
+
+  const { data: allTasks = [], isLoading: isLoadingAll } = useTasks(undefined, !isMyTasksRoute);
+  const { data: myTasks = [], isLoading: isLoadingMy } = useMyTasks(isMyTasksRoute);
+
+  const tasks = isMyTasksRoute ? myTasks : allTasks;
+  const isLoading = isMyTasksRoute ? isLoadingMy : isLoadingAll;
   
   const visibleTasks = useMemo(() => {
     return tasks.filter((t: any) => {
-      // Role permission & Route check
-      // If they are on "My Tasks" route, strictly show only their tasks.
-      // If they are on "Tasks" (org tasks), show only if they have VIEW_ALL_TASKS permission.
       if (isMyTasksRoute) {
-        if (t.assigneeId !== user?.id) return false;
+        if (!isTaskVisibleToUser(t, user?.id)) return false;
+        if (!matchesMyTasksView(t, user?.id, myTasksView)) return false;
       } else {
-        if (!canViewAllTasks && t.assigneeId !== user?.id) return false;
+        if (!canViewAllTasks && !isTaskVisibleToUser(t, user?.id)) return false;
       }
 
       // Search query
@@ -121,7 +134,7 @@ export default function TaskListPage() {
 
       return true;
     });
-  }, [tasks, search, isMyTasksRoute, canViewAllTasks, user, advancedFilters]);
+  }, [tasks, search, isMyTasksRoute, myTasksView, canViewAllTasks, user, advancedFilters]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -139,16 +152,30 @@ export default function TaskListPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{isMyTasksRoute ? 'My Tasks' : 'All Tasks'}</h1>
-          <p className="text-muted-foreground">Manage and track your assigned work items.</p>
+          <p className="text-muted-foreground">
+            {isMyTasksRoute
+              ? 'Track tasks assigned to you, created by you, or delegated to others.'
+              : 'Manage and track your assigned work items.'}
+          </p>
         </div>
         
-        {canCreateTask && !isMyTasksRoute && (
+        {canCreateTask && (
           <Button onClick={() => setIsModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-soft">
             <Plus className="w-4 h-4 mr-2" />
             Create Task
           </Button>
         )}
       </div>
+
+      {isMyTasksRoute && (
+        <Tabs value={myTasksView} onValueChange={(v) => setMyTasksView(v as MyTasksView)} className="w-full">
+          <TabsList>
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="assigned">Assigned to me</TabsTrigger>
+            <TabsTrigger value="delegated">Delegated by me</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
 
       <div className="flex flex-col xl:flex-row xl:items-center gap-4 bg-card p-3 rounded-lg border border-border shadow-sm">
         <div className="flex items-center gap-2 w-full xl:w-auto shrink-0">
@@ -239,14 +266,16 @@ export default function TaskListPage() {
                 <th className="px-6 py-4 font-medium">Status</th>
                 <th className="px-6 py-4 font-medium">Priority</th>
                 <th className="px-6 py-4 font-medium">Assignee</th>
+                {isMyTasksRoute && <th className="px-6 py-4 font-medium">Tracking</th>}
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={6} className="text-center py-10">Loading tasks...</td></tr>
+                <tr><td colSpan={isMyTasksRoute ? 7 : 6} className="text-center py-10">Loading tasks...</td></tr>
               ) : visibleTasks.map((task: any) => {
                 const project = projects.find((p: any) => p.id === task.projectId);
                 const assignee = task.assignee;
+                const trackingLabel = getTaskTrackingLabel(task, user?.id);
                 
                 return (
                   <tr 
@@ -269,7 +298,7 @@ export default function TaskListPage() {
                       </Badge>
                     </td>
                     <td className="px-6 py-4">
-                      {canEditTask || task.assigneeId === user?.id ? (
+                      {canEditTask || isTaskVisibleToUser(task, user?.id) ? (
                         <div onClick={(e) => e.stopPropagation()}>
                           <Select 
                             value={task.priority} 
@@ -296,6 +325,22 @@ export default function TaskListPage() {
                     <td className="px-6 py-4 text-muted-foreground">
                       {assignee?.name || 'Unassigned'}
                     </td>
+                    {isMyTasksRoute && (
+                      <td className="px-6 py-4">
+                        {trackingLabel && (
+                          <Badge
+                            variant="outline"
+                            className={
+                              trackingLabel === 'Delegated by me' || trackingLabel === 'Created by me'
+                                ? 'bg-violet-500/10 text-violet-700 border-violet-200'
+                                : 'bg-indigo-500/10 text-indigo-700 border-indigo-200'
+                            }
+                          >
+                            {trackingLabel}
+                          </Badge>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 );
               })}
@@ -308,6 +353,12 @@ export default function TaskListPage() {
             <LayoutList className="w-10 h-10 text-muted-foreground mb-4 opacity-50" />
             <h3 className="text-lg font-medium">No tasks found</h3>
             <p className="text-muted-foreground max-w-sm mt-1">You don't have any tasks matching the current criteria.</p>
+            {canCreateTask && (
+              <Button onClick={() => setIsModalOpen(true)} className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Task
+              </Button>
+            )}
           </div>
         )}
       </div>

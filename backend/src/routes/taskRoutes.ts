@@ -16,7 +16,7 @@ const router = Router();
 router.get('/my-tasks', getMyTasks);
 router.get('/', getTasks);
 router.get('/:id', getTaskById);
-router.post('/', validateRequest(createTaskSchema), createTask);
+router.post('/', requirePermission('CREATE_TASK'), validateRequest(createTaskSchema), createTask);
 router.put('/:id', validateRequest(updateTaskSchema), updateTask);
 router.delete('/:id', requirePermission('DELETE_TASK'), deleteTask);
 router.patch('/:id/archive', archiveTask);
