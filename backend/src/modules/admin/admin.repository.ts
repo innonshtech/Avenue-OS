@@ -11,7 +11,7 @@ export class AdminRepository {
       activeRFIs,
       activeMembers,
     ] = await Promise.all([
-      prisma.project.count(),
+      prisma.project.count({ where: { isArchived: false } }),
       prisma.target.count({ where: { status: 'ACTIVE' } }),
       prisma.task.count(),
       prisma.task.count({ where: { status: 'DONE' } }),

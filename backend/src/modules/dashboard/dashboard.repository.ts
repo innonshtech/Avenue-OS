@@ -66,7 +66,7 @@ export class DashboardRepository {
     return prisma.user.findMany({
       where: {
         isActive: true,
-        role: { in: ['PRINCIPAL_ENGINEER', 'ENGINEER', 'DRAFTSMAN', 'ARCHITECT'] }
+        role: { in: ['LEAD_ENGINEER', 'DESIGN_ENGINEER', 'PRINCIPAL_ENGINEER', 'ENGINEER', 'DRAFTSMAN', 'ARCHITECT'] }
       }
     });
   }
@@ -100,7 +100,7 @@ export class DashboardRepository {
 
   async getActiveProjectsCount() {
     return prisma.project.count({
-      where: { status: 'ACTIVE' }
+      where: { status: 'ACTIVE', isArchived: false }
     });
   }
 

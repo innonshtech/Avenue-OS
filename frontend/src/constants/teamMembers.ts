@@ -3,6 +3,7 @@ import type { TeamMember, UserRole } from "../types/user";
 export const USER_ROLES: UserRole[] = [
   "ADMIN",
   "PROJECT_MANAGER",
+  "LEAD_ENGINEER",
   "PRINCIPAL_ENGINEER",
   "ENGINEER",
   "DRAFTSMAN",
@@ -21,6 +22,7 @@ export const DEPARTMENTS = [
 export const ROLE_COLORS: Record<UserRole, string> = {
   ADMIN: "bg-rose-500/10 text-rose-600 border-rose-200 dark:text-rose-400 dark:border-rose-800",
   PROJECT_MANAGER: "bg-indigo-500/10 text-indigo-600 border-indigo-200 dark:text-indigo-400 dark:border-indigo-800",
+  LEAD_ENGINEER: "bg-violet-500/10 text-violet-600 border-violet-200 dark:text-violet-400 dark:border-violet-800",
   PRINCIPAL_ENGINEER: "bg-amber-500/10 text-amber-600 border-amber-200 dark:text-amber-400 dark:border-amber-800",
   ENGINEER: "bg-blue-500/10 text-blue-600 border-blue-200 dark:text-blue-400 dark:border-blue-800",
   DRAFTSMAN: "bg-teal-500/10 text-teal-600 border-teal-200 dark:text-teal-400 dark:border-teal-800",

@@ -61,6 +61,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
   const { data: teamMembers = [] } = useTeam();
   
   const [newSubtask, setNewSubtask] = useState('');
+  const [newSubtaskAssignee, setNewSubtaskAssignee] = useState<string>('none');
   const [activeTab, setActiveTab] = useState<'comments' | 'history' | 'standups'>('comments');
   const [resolutionNote, setResolutionNote] = useState('');
   const [showResolveInput, setShowResolveInput] = useState(false);
@@ -76,18 +77,29 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
   const project = task.project;
   const target = task.target;
   const assignee = task.assignee;
+  const originalAssignee = task.originalAssignee;
   const reporter = task.creator;
   const rfi = task.rfis?.find((b: any) => !b.isResolved);
 
-  const canEdit = user?.permissions?.includes('CREATE_TASK') || user?.permissions?.includes('ASSIGN_TASK') || user?.id === task.assigneeId;
+  const canEditDetails = user?.permissions?.includes('CREATE_TASK') || user?.permissions?.includes('ASSIGN_TASK');
+  const canAssignTasks = user?.permissions?.includes('ASSIGN_TASK') || user?.permissions?.includes('CREATE_TASK');
+  const canEdit = canEditDetails || user?.id === task.assigneeId || user?.id === task.originalAssigneeId || user?.id === task.delegatedById || user?.id === task.creatorId;
+  const canChangeAssignee = canAssignTasks || user?.id === task.originalAssigneeId || user?.id === task.delegatedById;
 
   // Removed native handleStatusChange
 
   const handleAddSubtask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSubtask.trim()) return;
-    addSubtask.mutate({ taskId, title: newSubtask }, {
-      onSuccess: () => setNewSubtask('')
+    addSubtask.mutate({
+      taskId,
+      title: newSubtask,
+      assigneeId: newSubtaskAssignee === 'none' ? null : newSubtaskAssignee,
+    }, {
+      onSuccess: () => {
+        setNewSubtask('');
+        setNewSubtaskAssignee('none');
+      }
     });
   };
 
@@ -140,7 +152,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                   </Badge>
                 )}
                 
-                {(user?.permissions?.includes('DELETE_TASK')) && (
+                {(canEditDetails || user?.permissions?.includes('DELETE_TASK')) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -148,33 +160,37 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {canEdit && (
+                      {canEditDetails && (
                         <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
                           <Edit2 className="mr-2 h-4 w-4" /> Edit Task
                         </DropdownMenuItem>
                       )}
-                      {!task.isArchived ? (
-                        <DropdownMenuItem onClick={() => {
-                          if (confirm('Archive this task?')) {
-                            archiveTask.mutate(task.id, { onSuccess: () => { toast({ title: 'Task archived' }); onClose(); }});
-                          }
-                        }}>
-                          <Archive className="mr-2 h-4 w-4" /> Archive Task
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem onClick={() => {
-                          restoreTask.mutate(task.id, { onSuccess: () => toast({ title: 'Task restored' }) });
-                        }}>
-                          <RefreshCw className="mr-2 h-4 w-4" /> Restore Task
-                        </DropdownMenuItem>
+                      {user?.permissions?.includes('DELETE_TASK') && (
+                        <>
+                          {!task.isArchived ? (
+                            <DropdownMenuItem onClick={() => {
+                              if (confirm('Archive this task?')) {
+                                archiveTask.mutate(task.id, { onSuccess: () => { toast({ title: 'Task archived' }); onClose(); }});
+                              }
+                            }}>
+                              <Archive className="mr-2 h-4 w-4" /> Archive Task
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem onClick={() => {
+                              restoreTask.mutate(task.id, { onSuccess: () => toast({ title: 'Task restored' }) });
+                            }}>
+                              <RefreshCw className="mr-2 h-4 w-4" /> Restore Task
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onClick={() => {
+                            if (confirm('Are you sure you want to delete this task? This will remove board visibility, target linkage, and analytics contribution.')) {
+                              deleteTask.mutate(task.id, { onSuccess: () => { toast({ title: 'Task deleted' }); onClose(); }});
+                            }
+                          }}>
+                            <Trash className="mr-2 h-4 w-4" /> Delete Task
+                          </DropdownMenuItem>
+                        </>
                       )}
-                      <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onClick={() => {
-                        if (confirm('Are you sure you want to delete this task? This will remove board visibility, target linkage, and analytics contribution.')) {
-                          deleteTask.mutate(task.id, { onSuccess: () => { toast({ title: 'Task deleted' }); onClose(); }});
-                        }
-                      }}>
-                        <Trash className="mr-2 h-4 w-4" /> Delete Task
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
@@ -257,16 +273,36 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                   <ListTodo className="w-4 h-4 mr-2" /> Subtasks
                 </h3>
                 <div className="space-y-2">
-                  {task.subtasks?.map((st: any) => (
-                    <div key={st.id} className="flex items-center gap-3 p-2 hover:bg-muted/30 rounded-md group">
+                  {task.subtasks?.map((st) => (
+                    <div key={st.id} className="flex items-center gap-2 p-2 hover:bg-muted/30 rounded-md group">
                       <input 
                         type="checkbox" 
                         checked={st.isCompleted} 
                         onChange={(e) => updateSubtask.mutate({ id: st.id, isCompleted: e.target.checked })}
-                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 shrink-0"
                         disabled={!canEdit}
                       />
-                      <span className={`text-sm flex-1 ${st.isCompleted ? 'line-through text-muted-foreground' : ''}`}>{st.title}</span>
+                      <span className={`text-sm flex-1 min-w-0 ${st.isCompleted ? 'line-through text-muted-foreground' : ''}`}>{st.title}</span>
+                      {canEdit ? (
+                        <Select
+                          value={st.assigneeId || 'none'}
+                          onValueChange={(val) => updateSubtask.mutate({ id: st.id, assigneeId: val === 'none' ? null : val })}
+                        >
+                          <SelectTrigger className="w-[130px] h-7 text-xs border-none bg-muted/30 shadow-none">
+                            <SelectValue placeholder="Assign" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">
+                              <span className="text-muted-foreground italic">Unassigned</span>
+                            </SelectItem>
+                            {teamMembers.map((m: any) => (
+                              <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : st.assignee ? (
+                        <span className="text-xs text-muted-foreground shrink-0">{st.assignee.name}</span>
+                      ) : null}
                     </div>
                   ))}
                   
@@ -276,8 +312,19 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                         placeholder="What needs to be done?" 
                         value={newSubtask} 
                         onChange={e => setNewSubtask(e.target.value)}
-                        className="h-8 text-sm"
+                        className="h-8 text-sm flex-1"
                       />
+                      <Select value={newSubtaskAssignee} onValueChange={setNewSubtaskAssignee}>
+                        <SelectTrigger className="w-[130px] h-8 text-xs">
+                          <SelectValue placeholder="Assign to" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Unassigned</SelectItem>
+                          {teamMembers.map((m: any) => (
+                            <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <Button type="submit" size="sm" variant="outline" className="h-8 px-2" disabled={!newSubtask.trim()}>
                         <Plus className="w-4 h-4" />
                       </Button>
@@ -394,7 +441,7 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                 <div className="space-y-5">
                   <div>
                     <span className="text-xs text-muted-foreground block mb-1.5">Assignee</span>
-                    {canEdit ? (
+                    {canChangeAssignee ? (
                       <Select 
                         value={task.assigneeId || "none"} 
                         onValueChange={(val) => updateTask.mutate({ id: task.id, assigneeId: val === "none" ? null : val })}
@@ -435,6 +482,19 @@ export default function TaskDrawer({ taskId, onClose }: TaskDrawerProps) {
                       </div>
                     )}
                   </div>
+
+                  {originalAssignee && originalAssignee.id !== task.assigneeId && (
+                    <div>
+                      <span className="text-xs text-muted-foreground block mb-1.5">Original Assignee</span>
+                      <div className="flex items-center gap-2 px-2 py-1.5">
+                        <Avatar className="w-6 h-6 border border-border">
+                          <AvatarImage src={originalAssignee.avatar} />
+                          <AvatarFallback className="text-[10px]">{originalAssignee.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">{originalAssignee.name}</span>
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <span className="text-xs text-muted-foreground block mb-1.5">Reporter</span>

@@ -49,7 +49,7 @@ export const getOverview = async (req: Request, res: Response) => {
     });
 
     const activeProjects = await prisma.project.count({
-      where: { status: 'ACTIVE' }
+      where: { status: 'ACTIVE', isArchived: false }
     });
 
     // Velocity (completed story points)
